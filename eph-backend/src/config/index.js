@@ -1,60 +1,80 @@
-require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+const Sequelize = require('sequelize');
+const config = require('../config');
 
-const ENV = process.env.NODE_ENV || 'development';
-const IS_PROD = ENV === 'production';
+const basename = path.basename(__filename);
+const db = {};
 
-const config = {
-  server: {
-    port: process.env.PORT || 3000,
-    env: ENV,
-    apiVersion: process.env.API_VERSION || 'v1'
-  },
+let sequelize;
 
-  database: {
-    url: IS_PROD ? process.env.DATABASE_URL : undefined,
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 5432,
-    name: process.env.DB_NAME,
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    ssl: IS_PROD || process.env.DB_SSL === 'true'
-  },
+if (config.database.url) {
+  // Production / Render
+  sequelize = new Sequelize(config.database.url, {
+    dialect: 'postgres',
+    protocol: 'postgres',
+    logging: false, // change to console.log for debugging
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    },
+    pool: {
+      max: 20,
+      min: 5,
+      acquire: 30000,
+      idle: 10000
+    }
+  });
+} else {
+  // Development / Local
+  sequelize = new Sequelize(
+    config.database.name,
+    config.database.username,
+    config.database.password,
+    {
+      host: config.database.host,
+      port: config.database.port,
+      dialect: 'postgres',
+      logging: console.log, // set false to disable logs
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      },
+      define: {
+        timestamps: true,
+        underscored: true,
+        paranoid: true
+      }
+    }
+  );
+}
 
-  jwt: {
-    secret: process.env.JWT_SECRET,
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'change-refresh',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
-    issuer: process.env.JWT_ISSUER || 'eph-backend'
-  },
+// Import all models in this folder
+fs.readdirSync(__dirname)
+  .filter(file => {
+    return (
+      file.indexOf('.') !== 0 &&
+      file !== basename &&
+      file.slice(-3) === '.js'
+    );
+  })
+  .forEach(file => {
+    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
+    db[model.name] = model;
+  });
 
-  auth: {
-    passwordResetExpirySeconds: Number(process.env.PASSWORD_RESET_EXPIRY) || 3600,
-    adminMagicLinkExpirySeconds: Number(process.env.ADMIN_MAGIC_LINK_EXPIRY) || 600
-  },
-
-  email: {
-    smtpHost: process.env.EMAIL_SMTP_HOST,
-    smtpPort: process.env.EMAIL_SMTP_PORT,
-    smtpSecure: process.env.EMAIL_SMTP_SECURE === 'true',
-    user: process.env.EMAIL_USER,
-    password: process.env.EMAIL_PASSWORD,
-    from: process.env.EMAIL_FROM
+// Apply associations if any
+Object.keys(db).forEach(modelName => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
   }
-};
+});
 
-// Validate required environment variables
-const requiredEnvVars = ['JWT_SECRET'];
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
 
-if (!IS_PROD) {
-  requiredEnvVars.push('DB_HOST', 'DB_PASSWORD');
-}
-
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
-
-if (missingEnvVars.length > 0 && ENV !== 'test') {
-  console.error('Missing required environment variables:', missingEnvVars);
-  process.exit(1);
-}
-
-module.exports = config;
+module.exports = db;
