@@ -1,0 +1,525 @@
+// controllers/authController.js - Enhanced version with better error messages
+const { User } = require('../models');
+const authService = require('../services/authService');
+const emailService = require('../services/emailService');
+const logger = require('../utils/logger');
+const config = require('../config');
+
+const authController = {
+  // Modified login to check for force_password_change
+  login: async (req, res) => {
+    try {
+      const { email, password, role } = req.body;
+
+      // Find user by email
+      const user = await User.findByEmail(email);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid email or password'
+        });
+      }
+
+      // Optionally check role hint (soft enforcement)
+      if (role && user.role !== role) {
+        return res.status(403).json({
+          success: false,
+          message: `User does not have the '${role}' role`
+        });
+      }
+
+      // Verify password
+      const isValidPassword = await user.validatePassword(password);
+      if (!isValidPassword) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid email or password'
+        });
+      }
+
+      // Update last login
+      user.last_login = new Date();
+      await user.save();
+
+      // Generate JWT token
+      const token = authService.generateToken(user);
+
+      // Check if user must change password (for newly invited admins)
+      const mustChangePassword = user.force_password_change === true;
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          user: user.toJSON(),
+          token,
+          mustChangePassword
+        }
+      });
+
+    } catch (error) {
+      logger.error('Login error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Login failed',
+        error: error.message
+      });
+    }
+  },
+
+  // Enhanced change password to handle force_password_change flag
+  changePassword: async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const user = await User.findByPk(req.user.id);
+
+      if (!user) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'User not found' 
+        });
+      }
+
+      // If NOT a forced change, verify the current password
+      if (!user.force_password_change) {
+        const ok = await user.validatePassword(currentPassword);
+        if (!ok) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Current password is incorrect' 
+          });
+        }
+      }
+
+      // Strength check
+      if (!isPasswordStrong(newPassword)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character',
+        });
+      }
+
+      // Update
+      user.password_hash = newPassword;
+      user.force_password_change = false;
+      user.password_changed_at = new Date();
+      await user.save();
+
+      // Fire-and-forget notification
+      emailService
+        .sendPasswordChangedNotification(user.email, user.name)
+        .then(() => logger.info('Password change notification sent', { userId: user.id }))
+        .catch((err) => logger.warn('Failed to send password change notification', { error: err?.message }));
+
+      const safeUser = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        is_verified: !!user.is_verified,
+        force_password_change: !!user.force_password_change,
+      };
+
+      return res.json({
+        success: true,
+        message: 'Password changed successfully',
+        data: { user: safeUser },
+      });
+    } catch (error) {
+      logger.error('Password change error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to change password',
+        error: error?.message,
+      });
+    }
+  },
+
+  // Modified register with cleaner error handling
+  register: async (req, res) => {
+    try {
+      const {
+        name,
+        email,
+        password,
+        role = 'student',
+        college,
+        branch,
+        year,
+        company_name,
+        company_website,
+        team_size,
+        firm_name,
+        investment_stage,
+        website
+      } = req.body;
+
+      // Validate required fields first
+      if (!name || !name.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Name is required'
+        });
+      }
+
+      if (!email || !email.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is required'
+        });
+      }
+
+      if (!password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password is required'
+        });
+      }
+
+      // Validate email format
+      const emailRegex = /^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$/;
+      if (!emailRegex.test(email.trim())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please enter a valid email address'
+        });
+      }
+
+      // Check Gmail requirement
+      const emailLower = email.toLowerCase().trim();
+      if (!emailLower.endsWith('@gmail.com')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Only Gmail addresses (@gmail.com) are allowed for registration'
+        });
+      }
+
+      // Prevent admin role registration
+      if (role === 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Admin accounts can only be created by existing admins'
+        });
+      }
+
+      // Validate password strength
+      if (password.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 6 characters long'
+        });
+      }
+
+      // Check if user already exists
+      const existingUser = await User.findByEmail(emailLower);
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'An account with this email already exists'
+        });
+      }
+
+      // Validate year if provided
+      if (year !== undefined && year !== null && year !== '') {
+        const parsedYear = parseInt(year, 10);
+        if (isNaN(parsedYear) || parsedYear < 1 || parsedYear > 10) {
+          return res.status(400).json({
+            success: false,
+            message: 'Year must be a valid number between 1 and 10'
+          });
+        }
+      }
+
+      // Prepare userData
+      const userData = {
+        name: name.trim(),
+        email: emailLower,
+        password_hash: password,
+        role: ['student', 'hiring', 'investor'].includes(role) ? role : 'student',
+        force_password_change: false,
+        is_active: true,
+        verified: false
+      };
+
+      // Add optional fields for students
+      if (role === 'student') {
+        if (college) userData.college = college.trim();
+        if (branch) userData.branch = branch.trim();
+        if (year) userData.year = parseInt(year, 10);
+      }
+
+      // Add optional fields for hiring
+      if (role === 'hiring') {
+        if (company_name) userData.company_name = company_name.trim();
+        if (company_website) userData.company_website = company_website.trim();
+        if (team_size) userData.team_size = parseInt(team_size, 10);
+      }
+
+      // Add optional fields for investors
+      if (role === 'investor') {
+        if (firm_name) userData.firm_name = firm_name.trim();
+        if (investment_stage) userData.investment_stage = investment_stage.trim();
+        if (website) userData.website = website.trim();
+      }
+
+      // Create new user
+      const user = await User.create(userData);
+
+      // Generate JWT token
+      const token = authService.generateToken(user);
+
+      // Send welcome email (fire-and-forget)
+      emailService.sendWelcomeEmail(user.email, user.name)
+        .then(() => logger.info('Welcome email sent', { to: user.email }))
+        .catch((err) => logger.warn('Failed to send welcome email', { error: err?.message }));
+
+      return res.status(201).json({
+        success: true,
+        message: 'Account created successfully',
+        data: {
+          user: user.toJSON(),
+          token
+        }
+      });
+
+    } catch (error) {
+      logger.error('Registration error:', error);
+
+      // Handle Sequelize validation errors
+      if (error?.name === 'SequelizeValidationError') {
+        const firstError = error.errors?.[0];
+        return res.status(400).json({
+          success: false,
+          message: firstError?.message || 'Validation failed'
+        });
+      }
+
+      // Handle unique constraint errors
+      if (error?.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({
+          success: false,
+          message: 'An account with this email already exists'
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: 'Registration failed. Please try again.'
+      });
+    }
+  },
+
+  // Get current user profile
+  profile: async (req, res) => {
+    try {
+      const user = await User.findByPk(req.user.id);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          user: user.toJSON()
+        }
+      });
+
+    } catch (error) {
+      logger.error('Profile fetch error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch profile',
+        error: error.message
+      });
+    }
+  },
+
+  // Update user profile
+  updateProfile: async (req, res) => {
+    try {
+      const { name, college, branch, year, skills, profile_pic_url, phone, org, country } = req.body;
+      
+      const user = await User.findByPk(req.user.id);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      const updateData = {};
+      if (name) updateData.name = name;
+      if (college) updateData.college = college;
+      if (branch) updateData.branch = branch;
+      if (year) updateData.year = year;
+      if (skills) updateData.skills = skills;
+      if (phone) updateData.phone = phone;
+      if (org) updateData.org = org;
+      if (country) updateData.country = country;
+      if (profile_pic_url) updateData.profile_pic_url = profile_pic_url;
+
+      await user.update(updateData);
+
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: {
+          user: user.toJSON()
+        }
+      });
+
+    } catch (error) {
+      logger.error('Profile update error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update profile',
+        error: error.message
+      });
+    }
+  },
+
+  forgotPassword: async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is required'
+        });
+      }
+
+      const user = await User.findByEmail(email);
+
+      if (!user) {
+        logger.info('Password reset requested for unknown email', { email });
+        return res.json({
+          success: true,
+          message: 'If your email is registered, you will receive a password reset link'
+        });
+      }
+
+      const resetExpiry = (config?.auth?.passwordResetExpirySeconds) || 3600;
+      const ipAddress = typeof req.ip === 'string' ? req.ip : (req.headers['x-forwarded-for'] || null);
+      const userAgent = (req.get && req.get('User-Agent')) ? req.get('User-Agent') : (req.headers['user-agent'] || null);
+
+      const resetRecord = await authService.createPasswordResetToken(user.id, {
+        expiresInSeconds: resetExpiry,
+        ipAddress: ipAddress ? String(ipAddress) : null,
+        userAgent: userAgent ? String(userAgent) : null
+      });
+
+      const tokenString = resetRecord && (resetRecord.token || (typeof resetRecord.get === 'function' && resetRecord.get('token')));
+      if (!tokenString) {
+        logger.error('Password reset token missing after creation');
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Failed to create password reset token' 
+        });
+      }
+
+      const scheme = (config?.app?.deepLinkScheme) || (process.env.DEEP_LINK_SCHEME || 'eph');
+      const deepLink = `${scheme}://reset-password?token=${encodeURIComponent(tokenString)}`;
+
+      const frontendBase = (process.env.FRONTEND_URL || (config?.app?.frontendUrl) || 'http://localhost:3000').replace(/\/+$/, '');
+      const webFallback = `${frontendBase}/reset-password?token=${encodeURIComponent(tokenString)}`;
+
+      await emailService.sendPasswordResetEmail(user.email, user.name, tokenString, { 
+        expiresInSeconds: resetExpiry, 
+        deepLink, 
+        webFallback 
+      });
+
+      logger.info('Password reset email sent', { to: user.email });
+      return res.json({
+        success: true,
+        message: 'If your email is registered, you will receive a password reset link'
+      });
+
+    } catch (error) {
+      logger.error('Forgot password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to process password reset request'
+      });
+    }
+  },
+
+  resetPassword: async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token and new password are required'
+        });
+      }
+
+      const resetRecord = await authService.validatePasswordResetToken(token);
+      if (!resetRecord) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired reset token'
+        });
+      }
+
+      const user = await User.findByPk(resetRecord.user_id);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      user.password_hash = newPassword;
+      await user.save();
+
+      await resetRecord.markAsUsed();
+
+      res.json({
+        success: true,
+        message: 'Password reset successful'
+      });
+
+    } catch (error) {
+      logger.error('Reset password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reset password'
+      });
+    }
+  },
+
+  logout: async (req, res) => {
+    try {
+      res.json({
+        success: true,
+        message: 'Logged out successfully'
+      });
+    } catch (error) {
+      logger.error('Logout error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Logout failed'
+      });
+    }
+  }
+};
+
+// Helper function for password strength validation
+function isPasswordStrong(password) {
+  if (!password || password.length < 8) return false;
+  
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  
+  return hasUpper && hasLower && hasNumber && hasSpecial;
+}
+
+module.exports = authController;
