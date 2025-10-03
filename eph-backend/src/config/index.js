@@ -1,111 +1,149 @@
+// src/config/index.js
 require('dotenv').config();
 
+/* ----------------------- Helpers ----------------------- */
+const env = (k, d = undefined) => (process.env[k] ?? d);
+const envInt = (k, d) => {
+  const v = process.env[k];
+  if (v === undefined || v === null || v === '') return d;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : d;
+};
+const envBool = (k, d = false) => {
+  const v = (process.env[k] || '').toLowerCase().trim();
+  if (['1', 'true', 'yes', 'on'].includes(v)) return true;
+  if (['0', 'false', 'no', 'off'].includes(v)) return false;
+  return d;
+};
+const envList = (k, d = []) => {
+  const v = process.env[k];
+  if (!v) return d;
+  return v.split(',').map(s => s.trim()).filter(Boolean);
+};
+
+/* -------------------- DB mode detection -------------------- */
+const usingSingleUrl = !!env('DATABASE_URL');
+if (process.env.NODE_ENV !== 'test') {
+  console.log(usingSingleUrl
+    ? 'DB config: using DATABASE_URL'
+    : 'DB config: using discrete DB_* variables');
+}
+
+/* ----------------------- Config ----------------------- */
 const config = {
   server: {
-    port: process.env.PORT || 3000,
-    env: process.env.NODE_ENV || 'development',
-    apiVersion: process.env.API_VERSION || 'v1'
-  },
-  
-  database: {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 5432,
-    name: process.env.DB_NAME,
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    ssl: process.env.DB_SSL === 'true'
+    env: env('NODE_ENV', 'development'),
+    port: envInt('PORT', 3000),
+    apiVersion: env('API_VERSION', 'v1'),
   },
 
-  // Supabase config removed (not needed for PostgreSQL-only setup)
-  /*
-  supabase: {
-    url: process.env.SUPABASE_URL,
-    anonKey: process.env.SUPABASE_ANON_KEY,
-    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY
-  },
-  */
+  database: usingSingleUrl
+    ? {
+        // Single connection string mode (recommended for prod)
+        url: env('DATABASE_URL'),
+        ssl: true, // assume SSL in hosted PG; runtime will set dialectOptions accordingly
+      }
+    : {
+        // Discrete variables mode (useful locally)
+        host: env('DB_HOST', '127.0.0.1'),
+        port: envInt('DB_PORT', 5432),
+        name: env('DB_NAME', 'eph_dev'),
+        username: env('DB_USERNAME', 'postgres'),
+        password: env('DB_PASSWORD', 'password'),
+        ssl: envBool('DB_SSL', false),
+      },
 
   jwt: {
-    secret: process.env.JWT_SECRET,
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'change-refresh',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
-    issuer: process.env.JWT_ISSUER || 'eph-backend'
+    secret: env('JWT_SECRET'),
+    expiresIn: env('JWT_EXPIRES_IN', '7d'),
+    refreshSecret: env('JWT_REFRESH_SECRET', 'change-refresh'),
+    refreshExpiresIn: env('JWT_REFRESH_EXPIRES_IN', '30d'),
+    issuer: env('JWT_ISSUER', 'eph-backend'),
   },
 
   auth: {
-    passwordResetExpirySeconds: Number(process.env.PASSWORD_RESET_EXPIRY) || 3600,
-    adminMagicLinkExpirySeconds: Number(process.env.ADMIN_MAGIC_LINK_EXPIRY) || 600
+    passwordResetExpirySeconds: envInt('PASSWORD_RESET_EXPIRY_SECONDS', 3600),
+    adminMagicLinkExpirySeconds: envInt('ADMIN_MAGIC_LINK_EXPIRY_SECONDS', 600),
+    // initial admin bootstrap flags
+    createInitialAdmin: envBool('CREATE_INITIAL_ADMIN', false),
+    initialAdminEmail: env('INITIAL_ADMIN_EMAIL'),
+    initialAdminName: env('INITIAL_ADMIN_NAME'),
+    initialAdminPassword: env('INITIAL_ADMIN_PASSWORD'),
   },
+
   app: {
-    deepLinkScheme: process.env.DEEP_LINK_SCHEME || 'eph',
-    webFallbackUrl: process.env.WEB_FALLBACK_URL || null
+    deepLinkScheme: env('DEEP_LINK_SCHEME', 'eph'),
+    webFallbackUrl: env('WEB_FALLBACK_URL', null),
+    frontendBaseUrl: env('FRONTEND_BASE_URL') || env('FRONTEND_URL') || null,
   },
 
   upload: {
-    maxFileSize: process.env.MAX_FILE_SIZE || '50MB',
-    uploadPath: process.env.UPLOAD_PATH || 'uploads/',
-    videoMaxDuration: parseInt(process.env.VIDEO_MAX_DURATION) || 60,
-    allowedVideoFormats: process.env.ALLOWED_VIDEO_FORMATS?.split(',') || ['mp4', 'mov', 'avi', 'mkv', 'webm']
+    maxFileSize: env('MAX_FILE_SIZE', '50MB'),
+    uploadPath: env('UPLOAD_PATH', 'uploads/'),
+    videoMaxDuration: envInt('VIDEO_MAX_DURATION', 60),
+    allowedVideoFormats: envList('ALLOWED_VIDEO_FORMATS', ['mp4', 'mov', 'avi', 'mkv', 'webm']),
   },
 
   storage: {
     buckets: {
-      videos: process.env.STORAGE_BUCKET_VIDEOS || 'videos',
-      thumbnails: process.env.STORAGE_BUCKET_THUMBNAILS || 'thumbnails'
+      videos: env('STORAGE_BUCKET_VIDEOS', 'videos'),
+      thumbnails: env('STORAGE_BUCKET_THUMBNAILS', 'thumbnails'),
     },
-    publicUrl: process.env.STORAGE_PUBLIC_URL
+    publicUrl: env('STORAGE_PUBLIC_URL', null),
   },
 
   email: {
-  smtpHost: process.env.EMAIL_SMTP_HOST,
-  smtpPort: process.env.EMAIL_SMTP_PORT,
-  smtpSecure: process.env.EMAIL_SMTP_SECURE === 'true',
-  user: process.env.EMAIL_USER,
-  password: process.env.EMAIL_PASSWORD,
-  from: process.env.EMAIL_FROM
-},
+    smtpHost: env('EMAIL_SMTP_HOST'),
+    smtpPort: envInt('EMAIL_SMTP_PORT', 587),
+    smtpSecure: envBool('EMAIL_SMTP_SECURE', false), // true for 465, false for 587/STARTTLS
+    user: env('EMAIL_USER'),
+    password: env('EMAIL_PASSWORD'),
+    from: env('EMAIL_FROM'),
+    // allow disabling TLS verification for dev/self-signed SMTP
+    tlsRejectUnauthorized: envBool('EMAIL_TLS_REJECT_UNAUTHORIZED', true),
+  },
 
   security: {
-    bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS) || 12,
-    corsOrigin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000']
+    bcryptRounds: envInt('BCRYPT_ROUNDS', 12),
+    corsOrigin: envList('CORS_ORIGIN', ['http://localhost:3000']),
   },
 
   rateLimit: {
-    window: parseInt(process.env.RATE_LIMIT_WINDOW) || 15,
-    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100
+    window: envInt('RATE_LIMIT_WINDOW', 15), // minutes
+    maxRequests: envInt('RATE_LIMIT_MAX_REQUESTS', 100),
   },
 
   logging: {
-    level: process.env.LOG_LEVEL || 'info',
-    fileEnabled: process.env.LOG_FILE_ENABLED === 'true'
+    level: env('LOG_LEVEL', 'info'),
+    fileEnabled: envBool('LOG_FILE_ENABLED', false),
   },
 
   video: {
-    ffmpegPath: process.env.FFMPEG_PATH,
+    ffmpegPath: env('FFMPEG_PATH'),
     thumbnail: {
-      width: parseInt(process.env.THUMBNAIL_WIDTH) || 640,
-      height: parseInt(process.env.THUMBNAIL_HEIGHT) || 360
-    }
+      width: envInt('THUMBNAIL_WIDTH', 640),
+      height: envInt('THUMBNAIL_HEIGHT', 360),
+    },
   },
 
   redis: {
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
-    queueUrl: process.env.QUEUE_REDIS_URL || 'redis://localhost:6379'
-  }
+    url: env('REDIS_URL', 'redis://localhost:6379'),
+    queueUrl: env('QUEUE_REDIS_URL', env('REDIS_URL', 'redis://localhost:6379')),
+  },
 };
 
-// Validate required environment variables (Supabase removed)
+/* --------------- Conditional required envs --------------- */
 const requiredEnvVars = [
-  'DB_HOST',
-  'DB_PASSWORD',
-  'JWT_SECRET'
+  'JWT_SECRET',
+  // Only require discrete DB vars if not using DATABASE_URL
+  ...(usingSingleUrl ? [] : ['DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_NAME']),
 ];
 
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+// Note: don’t enforce EMAIL_* here — let the app start even if email is disabled
+const missing = requiredEnvVars.filter((k) => !process.env[k]);
 
-if (missingEnvVars.length > 0 && process.env.NODE_ENV !== 'test') {
-  console.error('Missing required environment variables:', missingEnvVars);
+if (missing.length > 0 && config.server.env !== 'test') {
+  console.error('Missing required environment variables:', missing);
   process.exit(1);
 }
 
