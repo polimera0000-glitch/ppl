@@ -9,15 +9,11 @@ function normalizeDatabaseUrl(raw) {
 
   try {
     const u = new URL(trimmed);
-
-    // Normalize scheme: allow "postgresql://" but prefer "postgres://"
     if (u.protocol === 'postgresql:') {
-      u.protocol = 'postgres:';
+      u.protocol = 'postgres:'; // normalize
     }
-
     return u.toString();
   } catch {
-    // If URL parsing fails, return the original (Sequelize may still handle it)
     return trimmed;
   }
 }
@@ -26,7 +22,6 @@ function ensureSslmodeRequire(raw) {
   if (!raw) return raw;
   try {
     const u = new URL(raw);
-    // If sslmode absent, add sslmode=require (safe on most providers)
     if (!u.searchParams.has('sslmode')) {
       u.searchParams.set('sslmode', 'require');
     }
@@ -40,9 +35,9 @@ function ensureSslmodeRequire(raw) {
 const defaultPool = { max: 5, min: 0, acquire: 30000, idle: 10000 };
 
 const baseDefine = {
-  timestamps: true,   // created_at / updated_at
-  underscored: true,  // snake_case columns
-  paranoid: true,      // deleted_at (soft deletes)
+  timestamps: true,
+  underscored: true,
+  paranoid: true,
   freezeTableName: true,
 };
 
@@ -58,7 +53,7 @@ const config = {
     logging: process.env.SEQ_LOGGING === 'true' ? console.log : false,
     pool: defaultPool,
     define: baseDefine,
-    timezone: '+05:30', // Asia/Kolkata; remove if you prefer UTC/DB default
+    timezone: '+05:30',
   },
 
   test: {
@@ -84,7 +79,6 @@ const config = {
     dialectOptions: {
       ssl: {
         require: true,
-        // If you provide a CA via PGSSLROOTCERT, we can fully verify:
         rejectUnauthorized: !!process.env.PGSSLROOTCERT,
         ca: process.env.PGSSLROOTCERT || undefined,
       },
@@ -105,56 +99,52 @@ function filteringLogger(msg) {
 function createSequelizeInstance() {
   const env = process.env.NODE_ENV || 'development';
 
-  // Production via DATABASE_URL
-  // inside createSequelizeInstance(), in the production branch
   if (env === 'production' && process.env.DATABASE_URL) {
-  let raw = process.env.DATABASE_URL.trim();
+    let raw = process.env.DATABASE_URL.trim();
 
-  // normalize "postgresql://" -> "postgres://"
-  if (raw.startsWith('postgresql://')) {
-    raw = 'postgres://' + raw.slice('postgresql://'.length);
-  }
+    if (raw.startsWith('postgresql://')) {
+      raw = 'postgres://' + raw.slice('postgresql://'.length);
+    }
 
-  // force sslmode=no-verify
-  const url = raw.includes('sslmode=')
-    ? raw.replace(/sslmode=[^&]+/i, 'sslmode=no-verify')
-    : raw + (raw.includes('?') ? '&' : '?') + 'sslmode=no-verify';
+    const url = raw.includes('sslmode=')
+      ? raw.replace(/sslmode=[^&]+/i, 'sslmode=no-verify')
+      : raw + (raw.includes('?') ? '&' : '?') + 'sslmode=no-verify';
 
-  return new Sequelize(url, {
-    dialect: 'postgres',
-    protocol: 'postgres',
-    logging: false,
-    pool: { max: 20, min: 5, acquire: 30000, idle: 10000 },
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false, // allow self-signed
+    return new Sequelize(url, {
+      dialect: 'postgres',
+      protocol: 'postgres',
+      logging: false,
+      pool: { max: 20, min: 5, acquire: 30000, idle: 10000 },
+      dialectOptions: {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false,
+        },
       },
-    },
-    define: { timestamps: true, underscored: true, paranoid: true, freezeTableName: true },
-    retry: {
-      max: 3,
-      match: [/ETIMEDOUT/, /ECONNRESET/, /SequelizeConnection(?:Refused|Error|TimedOut)/],
-    },
-  });
-}
-}
-
-  // Dev / Test from discrete params
-  const cfg = config[env] || config.development;
-  return new Sequelize(cfg.database, cfg.username, cfg.password, {
-    host: cfg.host,
-    port: cfg.port,
-    dialect: cfg.dialect,
-    logging:
-      env === 'development'
-        ? (process.env.SEQ_LOGGING === 'true' ? console.log : filteringLogger)
-        : cfg.logging,
-    pool: cfg.pool,
-    define: cfg.define,
-    timezone: cfg.timezone,
-    retry: { max: env === 'test' ? 0 : 2 },
-  });
+      define: baseDefine,
+      retry: {
+        max: 3,
+        match: [/ETIMEDOUT/, /ECONNRESET/, /SequelizeConnection(?:Refused|Error|TimedOut)/],
+      },
+    });
+  } else {
+    const cfg = config[env] || config.development;
+    return new Sequelize(cfg.database, cfg.username, cfg.password, {
+      host: cfg.host,
+      port: cfg.port,
+      dialect: cfg.dialect,
+      logging:
+        env === 'development'
+          ? process.env.SEQ_LOGGING === 'true'
+            ? console.log
+            : filteringLogger
+          : cfg.logging,
+      pool: cfg.pool,
+      define: cfg.define,
+      timezone: cfg.timezone,
+      retry: { max: env === 'test' ? 0 : 2 },
+    });
+  }
 }
 
 /* -------------------- Singleton -------------------- */
