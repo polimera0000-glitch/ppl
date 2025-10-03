@@ -55,7 +55,7 @@ export default function LandingPage() {
             Where Student Projects Meet Real Investors
           </h1>
           <p className="text-lg md:text-xl mb-10 max-w-3xl mx-auto text-secondary-text">
-            Transform your college projects into successful startups. Compete, learn, and pitch to real investors through PPL – the ultimate startup league for students.
+            Transform college projects into successful startups. Compete, learn, and pitch to real investors through PPL – the ultimate startup league for students.
           </p>
           <div className="flex flex-wrap gap-4 justify-center items-center">
             <RouterLink
