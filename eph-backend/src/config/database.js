@@ -107,33 +107,37 @@ function createSequelizeInstance() {
 
   // Production via DATABASE_URL
   // inside createSequelizeInstance(), in the production branch
-if (env === 'production' && process.env.DATABASE_URL) {
-  // (optional) normalize URL and add sslmode=require if missing
-  const url = process.env.DATABASE_URL.includes('sslmode=')
-    ? process.env.DATABASE_URL
-    : `${process.env.DATABASE_URL}?sslmode=require`;
+  if (env === 'production' && process.env.DATABASE_URL) {
+  let raw = process.env.DATABASE_URL.trim();
+
+  // normalize "postgresql://" -> "postgres://"
+  if (raw.startsWith('postgresql://')) {
+    raw = 'postgres://' + raw.slice('postgresql://'.length);
+  }
+
+  // force sslmode=no-verify
+  const url = raw.includes('sslmode=')
+    ? raw.replace(/sslmode=[^&]+/i, 'sslmode=no-verify')
+    : raw + (raw.includes('?') ? '&' : '?') + 'sslmode=no-verify';
 
   return new Sequelize(url, {
     dialect: 'postgres',
     protocol: 'postgres',
     logging: false,
     pool: { max: 20, min: 5, acquire: 30000, idle: 10000 },
-
-    // 👇 this is the key bit for self-signed servers
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: false, // <- allow self-signed
+        rejectUnauthorized: false, // allow self-signed
       },
-      keepAlive: true,
     },
-
     define: { timestamps: true, underscored: true, paranoid: true, freezeTableName: true },
     retry: {
       max: 3,
       match: [/ETIMEDOUT/, /ECONNRESET/, /SequelizeConnection(?:Refused|Error|TimedOut)/],
     },
   });
+}
 }
 
   // Dev / Test from discrete params
