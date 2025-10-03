@@ -41,6 +41,7 @@ app.use(helmet({
     }
   }
 }));
+
 // CORS configuration
 const corsOptions = {
   origin: (origin, callback) => {
@@ -50,16 +51,21 @@ const corsOptions = {
     if (config.security.corsOrigin.includes(origin) || config.server.env === 'development') {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      // IMPORTANT: don't throw an Error (that causes 500 on OPTIONS)
+      callback(null, false);
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['X-Total-Count', 'X-Page-Count']
+  exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
+  // Ensure preflight succeeds with a simple 204
+  optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
+// Ensure all preflight OPTIONS requests are handled
+app.options('*', cors(corsOptions));
 
 // Compression middleware
 app.use(compression());
@@ -119,7 +125,7 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use(`/api/${config.server.apiVersion}`, routes);
+app.use(/api/${config.server.apiVersion}, routes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -130,8 +136,8 @@ app.get('/', (req, res) => {
     timestamp: new Date().toISOString(),
     endpoints: {
       health: '/health',
-      api: `/api/${config.server.apiVersion}`,
-      docs: `/api/${config.server.apiVersion}/docs` // Future API documentation
+      api: /api/${config.server.apiVersion},
+      docs: /api/${config.server.apiVersion}/docs // Future API documentation
     }
   });
 });
@@ -140,10 +146,10 @@ app.get('/', (req, res) => {
 app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Endpoint not found',
-    message: `The requested endpoint ${req.method} ${req.originalUrl} does not exist.`,
+    message: The requested endpoint ${req.method} ${req.originalUrl} does not exist.,
     availableEndpoints: {
       health: '/health',
-      api: `/api/${config.server.apiVersion}`
+      api: /api/${config.server.apiVersion}
     }
   });
 });
