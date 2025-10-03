@@ -42,9 +42,9 @@ async function ensureInitialAdmin() {
       logger.warn('No active admin found. Creating initial admin...');
       
       // Create initial admin account
-      const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@ephplatform.com';
-      const initialAdminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'Admin123!@#';
-      const initialAdminName = process.env.INITIAL_ADMIN_NAME || 'EPH Platform Admin';
+      const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL || '';
+      const initialAdminPassword = process.env.INITIAL_ADMIN_PASSWORD || '';
+      const initialAdminName = process.env.INITIAL_ADMIN_NAME || '';
       
       await User.create({
         name: initialAdminName,
@@ -78,7 +78,7 @@ async function startServer() {
     }
     
     const server = app.listen(PORT, () => {
-      logger.info(`🚀 EPH Backend Server running on port ${PORT}`);
+      logger.info(`🚀 PPL Backend Server running on port ${PORT}`);
       logger.info(`📊 Environment: ${config.server.env}`);
       logger.info(`📱 API Version: ${config.server.apiVersion}`);
       
