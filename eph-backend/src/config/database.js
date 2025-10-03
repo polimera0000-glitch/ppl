@@ -37,7 +37,7 @@ const defaultPool = { max: 5, min: 0, acquire: 30000, idle: 10000 };
 const baseDefine = {
   timestamps: true,
   underscored: true,
-  paranoid: true,
+  paranoid: flase,
   freezeTableName: true,
 };
 
