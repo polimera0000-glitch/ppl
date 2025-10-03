@@ -1,9 +1,19 @@
 // src/models/index.js
 'use strict';
 
-const { Sequelize, sequelize } = require('../config/database');
+// Reuse the already-configured Sequelize instance
+// NOTE: this file expects src/config/database.js to export { sequelize } at least.
+const dbCfg = require('../config/database');           // <- your singleton module
+const { DataTypes } = require('sequelize');
 
-// --- Import model definers ---
+const sequelize = dbCfg.sequelize;
+if (!sequelize) {
+  throw new Error(
+    'Sequelize instance not found. Ensure src/config/database.js exports { sequelize }.'
+  );
+}
+
+// ---- Model definers ----
 const UserDef = require('./User');
 const CompetitionDef = require('./Competition');
 const RegistrationDef = require('./Registration');
@@ -12,26 +22,26 @@ const PerkDef = require('./Perk');
 const PasswordResetDef = require('./PasswordReset');
 const UserPerkDef = require('./UserPerk.js');
 
-// NEW models
+// NEW
 const SubmissionDef = require('./Submission');
 const JudgingCriteriaDef = require('./JudgingCriteria');
 const ScoreDef = require('./Score');
 
-// --- Initialize models with the shared Sequelize instance ---
-const User = UserDef(sequelize, Sequelize.DataTypes);
-const Competition = CompetitionDef(sequelize, Sequelize.DataTypes);
-const Registration = RegistrationDef(sequelize, Sequelize.DataTypes);
-const Video = VideoDef(sequelize, Sequelize.DataTypes);
-const Perk = PerkDef(sequelize, Sequelize.DataTypes);
-const PasswordReset = PasswordResetDef(sequelize, Sequelize.DataTypes);
-const UserPerk = UserPerkDef(sequelize, Sequelize.DataTypes);
+// ---- Initialize models (no new Sequelize here) ----
+const User = UserDef(sequelize, DataTypes);
+const Competition = CompetitionDef(sequelize, DataTypes);
+const Registration = RegistrationDef(sequelize, DataTypes);
+const Video = VideoDef(sequelize, DataTypes);
+const Perk = PerkDef(sequelize, DataTypes);
+const PasswordReset = PasswordResetDef(sequelize, DataTypes);
+const UserPerk = UserPerkDef(sequelize, DataTypes);
 
 // NEW
-const Submission = SubmissionDef(sequelize, Sequelize.DataTypes);
-const JudgingCriteria = JudgingCriteriaDef(sequelize, Sequelize.DataTypes);
-const Score = ScoreDef(sequelize, Sequelize.DataTypes);
+const Submission = SubmissionDef(sequelize, DataTypes);
+const JudgingCriteria = JudgingCriteriaDef(sequelize, DataTypes);
+const Score = ScoreDef(sequelize, DataTypes);
 
-// --- Associations ---
+// ---- Associations ----
 
 // User
 User.hasMany(Registration, { foreignKey: 'leader_id', as: 'ledRegistrations' });
@@ -100,10 +110,10 @@ Score.belongsTo(Submission, { as: 'submission', foreignKey: 'submission_id' });
 Score.belongsTo(User, { as: 'judge', foreignKey: 'judge_id' });
 Score.belongsTo(JudgingCriteria, { as: 'criterion', foreignKey: 'criterion_id' });
 
-// --- Export a single db object ---
-const db = {
+// ---- Export ----
+module.exports = {
   sequelize,
-  Sequelize,
+  // expose models
   User,
   Competition,
   Registration,
@@ -115,5 +125,3 @@ const db = {
   JudgingCriteria,
   Score,
 };
-
-module.exports = db;

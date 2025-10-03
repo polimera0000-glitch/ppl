@@ -42,7 +42,8 @@ const defaultPool = { max: 5, min: 0, acquire: 30000, idle: 10000 };
 const baseDefine = {
   timestamps: true,   // created_at / updated_at
   underscored: true,  // snake_case columns
-  paranoid: true      // deleted_at (soft deletes)
+  paranoid: true,      // deleted_at (soft deletes)
+  freezeTableName: true,
 };
 
 /* -------------------- Environment Config -------------------- */
