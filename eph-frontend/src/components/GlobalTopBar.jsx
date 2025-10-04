@@ -3,7 +3,7 @@ import { Link } from "react-scroll";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
-import logo from "../assets/logo.jpg";
+import logo from "../assets/ppl_logo.png";
 
 const GlobalTopBar = ({
   brand = "PPL",
