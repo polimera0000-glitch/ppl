@@ -1461,8 +1461,9 @@ const CompetitionScreen = () => {
         onKeyUp={(e) => (e.key === 'Enter' ? handleCardOpen() : null)}
         className="bg-surface rounded-xl p-6 border border-border hover:bg-border transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30"
       >
-        <div className="flex items-start gap-4">
-          <div className="w-20 h-20 rounded-lg bg-background flex items-center justify-center flex-shrink-0 overflow-hidden border border-border">
+        {/* MOBILE-ONLY improvements: stack image above content */}
+        <div className="flex flex-col sm:flex-row items-start gap-4">
+          <div className="w-full aspect-[16/9] sm:w-20 sm:h-20 sm:aspect-auto rounded-lg bg-background flex items-center justify-center flex-shrink-0 overflow-hidden border border-border">
             {competition.banner_image_url ? (
               <img
                 src={competition.banner_image_url}
@@ -1474,10 +1475,12 @@ const CompetitionScreen = () => {
             )}
           </div>
 
-          <div className="flex-1">
-            <div className="flex items-start justify-between mb-3">
-              <h3 className="text-primary-text text-lg font-bold">{competition.title}</h3>
-              <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+              <h3 className="text-primary-text text-lg font-bold leading-snug break-words">
+                {competition.title}
+              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
                 <div className={`px-3 py-1 rounded-full inline-flex items-center gap-2 ${pill.chipClass}`}>
                   {pill.icon}
                   <span className="text-sm font-medium">{pill.label}</span>
@@ -1500,7 +1503,7 @@ const CompetitionScreen = () => {
               </div>
             )}
 
-            <p className="text-secondary-text mb-4 line-clamp-2">
+            <p className="text-secondary-text mb-4 line-clamp-2 break-words">
               {competition.description || competition.subtitle}
             </p>
 
@@ -1534,12 +1537,12 @@ const CompetitionScreen = () => {
               )}
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-secondary-text">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-secondary-text min-w-0">
                 <div className="w-6 h-6 rounded-full bg-background border border-border flex items-center justify-center">
                   <UserIcon className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-sm">{competition.posted_by?.name || 'Unknown'}</span>
+                <span className="text-sm truncate">{competition.posted_by?.name || 'Unknown'}</span>
               </div>
 
               <div className="flex items-center gap-2" onClick={stop}>
@@ -1737,7 +1740,7 @@ const CompetitionScreen = () => {
             {/* Description */}
             {selected.description && (
               <div>
-                <p className="text-primary-text/90 whitespace-pre-wrap">{selected.description}</p>
+                <p className="text-primary-text/90 whitespace-pre-wrap break-words">{selected.description}</p>
               </div>
             )}
 
@@ -1784,7 +1787,7 @@ const CompetitionScreen = () => {
                 <p className="text-secondary-text text-sm mb-2">Tags</p>
                 <div className="flex flex-wrap gap-2">
                   {selected.tags.map((t, i) => (
-                    <span key={i} className="px-2 py-1 bg-background text-primary-text/80 border border-border text-xs rounded-md inline-flex items-center gap-1">
+                    <span key={i} className="px-2 py-1 bg-background text-primary-text/80 border border-border text-xs rounded-md inline-flex items-center gap-1 break-words">
                       <TagIcon className="w-3.5 h-3.5" /> {t}
                     </span>
                   ))}
@@ -1897,9 +1900,10 @@ const CompetitionScreen = () => {
   return (
     <>
       <div className="flex-1 overflow-auto">
-        <div className="p-6">
+        {/* Mobile padding softened; desktop unchanged thanks to sm: */}
+        <div className="p-4 sm:p-6">
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-primary-text">Competitions</h2>
                 <p className="text-secondary-text">Discover and join exciting competitions</p>
@@ -1907,7 +1911,7 @@ const CompetitionScreen = () => {
               {isAdmin && (
                 <button
                   onClick={() => navigate('/competition/create')}
-                  className="px-4 py-2 bg-surface hover:bg-border border border-border text-primary-text rounded-lg font-medium transition-colors flex items-center gap-2"
+                  className="w-full sm:w-auto px-4 py-2 bg-surface hover:bg-border border border-border text-primary-text rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                 >
                   <Rocket className="w-4 h-4" />
                   Create Competition
@@ -1920,7 +1924,7 @@ const CompetitionScreen = () => {
                 <button
                   onClick={() => setMyOnly((v) => !v)}
                   className={[
-                    "px-4 py-2 rounded-lg transition-colors flex items-center gap-2 border",
+                    "w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border",
                     myOnly ? "bg-surface text-primary-text border-border ring-2 ring-primary/30" : "bg-surface text-secondary-text hover:bg-border border-border"
                   ].join(' ')}
                 >
@@ -1930,7 +1934,8 @@ const CompetitionScreen = () => {
               </div>
             )}
 
-            <div className="flex gap-1 mb-4">
+            {/* Metrics: wrap on mobile, inline on desktop */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1 mb-4">
               <MetricButton label="Ongoing"  count={counts.ongoing}  selected={activeFilter === FILTERS.ONGOING}  onClick={() => setActiveFilter(FILTERS.ONGOING)}  Icon={Activity} palette="green" />
               <MetricButton label="Upcoming" count={counts.upcoming} selected={activeFilter === FILTERS.UPCOMING} onClick={() => setActiveFilter(FILTERS.UPCOMING)} Icon={Clock3} palette="amber" />
               <MetricButton label="Completed" count={counts.completed} selected={activeFilter === FILTERS.COMPLETED} onClick={() => setActiveFilter(FILTERS.COMPLETED)} Icon={CheckCircle2} palette="gray" />

@@ -461,7 +461,6 @@ import { useSearchParams } from "react-router-dom";
 import { apiService } from "../services/apiService";
 import { authService } from "../services/authService";
 
-// ✅ Lucide icons to match CompetitionScreen style
 import {
   Search,
   X,
@@ -487,16 +486,16 @@ const useDebounced = (value, delay = 400) => {
 };
 
 const Pill = ({ icon: Icon, children }) => (
-  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-background text-primary-text/90 border border-border text-sm font-semibold">
-    {Icon && <Icon className="w-4 h-4" />}
-    {children}
+  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-background text-primary-text/90 border border-border text-sm font-semibold break-words">
+    {Icon && <Icon className="w-4 h-4 shrink-0" />}
+    <span className="break-words">{children}</span>
   </span>
 );
 
 const TagChip = ({ text }) => (
-  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-background text-primary-text/80 border border-border text-xs">
-    <TagIcon className="w-3.5 h-3.5" />
-    {text}
+  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-background text-primary-text/80 border border-border text-xs break-words">
+    <TagIcon className="w-3.5 h-3.5 shrink-0" />
+    <span className="break-words">{text}</span>
   </span>
 );
 
@@ -709,7 +708,7 @@ const FeedScreen = () => {
       <div
         key={isSpecific ? "specific" : (v._id || v.id || i)}
         className={[
-          "rounded-xl p-6 border transition-colors",
+          "rounded-xl p-4 sm:p-6 border transition-colors",
           isSpecific
             ? "bg-gradient-to-r from-purple-500/15 to-pink-500/15 border-border"
             : "bg-surface border-border hover:bg-border",
@@ -731,14 +730,16 @@ const FeedScreen = () => {
           </div>
         )}
 
-        <div className="flex gap-4">
+        {/* Content row → stacks on mobile */}
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-4">
+          {/* Thumbnail / Play */}
           <button
             onClick={() =>
               isSpecific
                 ? setExpandedIndex((cur) => (cur === "specific" ? null : "specific"))
                 : onTogglePlay(i)
             }
-            className="relative w-[160px] h-[90px] shrink-0 rounded-lg overflow-hidden bg-background border border-border hover:opacity-90 transition-opacity"
+            className="relative w-full aspect-video sm:w-[160px] sm:h-[90px] sm:aspect-auto shrink-0 rounded-lg overflow-hidden bg-background border border-border hover:opacity-90 transition-opacity"
             title={isExpanded ? "Close" : "Play"}
           >
             {v.thumbnail_url ? (
@@ -760,11 +761,25 @@ const FeedScreen = () => {
                 <Play className="w-9 h-9 text-white drop-shadow-lg" />
               )}
             </div>
+            {/* Duration badge (only when collapsed) */}
+            {!isExpanded && (
+              <span className="absolute right-2 bottom-2 px-1.5 py-0.5 rounded bg-black/65 text-white text-[11px] font-bold inline-flex items-center gap-1">
+                <Clock3 className="w-3 h-3" />
+                {fmtLen(lenSec)}
+              </span>
+            )}
           </button>
 
+          {/* Text + meta */}
           <div className="min-w-0 flex-1">
-            <h3 className="text-primary-text text-lg font-bold line-clamp-2">{title}</h3>
-            {desc && <p className="text-secondary-text text-sm mt-1 line-clamp-2">{desc}</p>}
+            <h3 className="text-primary-text text-base sm:text-lg font-bold break-words">
+              {title}
+            </h3>
+            {desc && (
+              <p className="text-secondary-text text-sm mt-1 break-words">
+                {desc}
+              </p>
+            )}
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Pill icon={UserIcon}>{uploader}</Pill>
@@ -773,19 +788,11 @@ const FeedScreen = () => {
               {createdAt && <Pill icon={Clock3}>{fmtAgo(createdAt)}</Pill>}
             </div>
           </div>
-
-          {!isExpanded && (
-            <div className="self-start">
-              <span className="px-2 py-1 rounded bg-background text-primary-text/90 border border-border text-[11px] font-bold inline-flex items-center gap-1">
-                <Clock3 className="w-3.5 h-3.5" />
-                {fmtLen(lenSec)}
-              </span>
-            </div>
-          )}
         </div>
 
+        {/* Tags */}
         {tags.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-3 sm:mt-4 flex flex-wrap gap-2">
             {tags.slice(0, 8).map((t, idx) => {
               let txt = t.trim();
               if (txt.startsWith("#")) txt = txt.slice(1).trim();
@@ -795,8 +802,9 @@ const FeedScreen = () => {
           </div>
         )}
 
+        {/* Expanded video: fluid, constrained by container */}
         {isExpanded && v.url && (
-          <div className="mt-5 rounded-xl overflow-hidden border border-border">
+          <div className="mt-4 sm:mt-5 rounded-xl overflow-hidden border border-border">
             <div className="aspect-video bg-black">
               <video src={v.url} controls autoPlay className="w-full h-full" />
             </div>
@@ -807,18 +815,20 @@ const FeedScreen = () => {
   };
 
   return (
-    <div className="flex-1 overflow-auto">
-      <div className="p-6">
-        {/* Header — mirrors CompetitionScreen typography */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-2xl font-bold text-primary-text">Feed</h2>
-              <p className="text-secondary-text">Watch 60-sec submissions from the community</p>
+    <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="p-4 sm:p-6">
+        {/* Header */}
+        <div className="mb-4 sm:mb-6">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="min-w-0">
+              <h2 className="text-xl sm:text-2xl font-bold text-primary-text">Feed</h2>
+              <p className="text-secondary-text text-sm sm:text-base">
+                Watch 60-sec submissions from the community
+              </p>
             </div>
           </div>
 
-          {/* Search — same shell as CompetitionScreen */}
+          {/* Search */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-secondary-text" />
@@ -842,9 +852,9 @@ const FeedScreen = () => {
           </div>
         </div>
 
-        {/* Loaders / errors — same palette as CompetitionScreen */}
+        {/* Loaders / errors */}
         {loading && !specificVideo && (
-          <div className="mb-4">
+          <div className="mb-3 sm:mb-4">
             <div className="h-1 bg-border rounded-full overflow-hidden">
               <div className="h-full bg-primary/40 animate-pulse"></div>
             </div>
@@ -861,9 +871,9 @@ const FeedScreen = () => {
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/25 rounded-xl">
             <div className="flex items-center gap-3">
               <AlertTriangle className="w-6 h-6 text-red-400" />
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-red-400 font-medium">Error loading feed</p>
-                <p className="text-red-400/90 text-sm">{error}</p>
+                <p className="text-red-400/90 text-sm break-words">{error}</p>
               </div>
               <button
                 onClick={() => loadFeed({ reset: true })}
@@ -884,7 +894,7 @@ const FeedScreen = () => {
         )}
 
         {/* List */}
-        <div className="grid gap-6">
+        <div className="grid gap-4 sm:gap-6">
           {specificVideo && renderVideoCard(specificVideo, 0, true)}
           {videos.map((v, i) => renderVideoCard(v, i, false))}
         </div>
