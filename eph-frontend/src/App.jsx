@@ -14,6 +14,7 @@ import { ThemeProvider } from "./context/ThemeProvider.jsx";
 
 // Guards
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import { useAuth } from "./hooks/useAuth";
 
 // Pages
 import SplashScreen from "./pages/SplashScreen.jsx";
@@ -40,7 +41,34 @@ import CompetitionLeaderboard from "./pages/CompetitionLeaderboard.jsx";
 import ViewCompetitionScreen from "./pages/ViewCompetitionScreen.jsx";
 import CompetitionDetails from "./pages/CompetitionDetails.jsx";
 
+import ContactPage from "./pages/ContactPage.jsx";
+
 import "./index.css";
+
+// --- Small gates ---
+// Sends logged-in users to /main or /admin when they hit "/".
+function RootGate() {
+  const { isAuthenticated, user, hydrated = true } = useAuth();
+  const isAdmin = (user?.role || "").toLowerCase() === "admin";
+  if (!hydrated) return null; // or a tiny loader if you prefer
+  if (isAuthenticated) {
+    const dest = `${isAdmin ? "/admin" : "/main"}?tab=dashboard`;
+    return <Navigate to={dest} replace />;
+  }
+  return <LandingPage />;
+}
+
+// Prevents logged-in users from seeing /login or /roles (bounce to app).
+function RedirectIfAuthed({ children }) {
+  const { isAuthenticated, user, hydrated = true } = useAuth();
+  const isAdmin = (user?.role || "").toLowerCase() === "admin";
+  if (!hydrated) return null;
+  if (isAuthenticated) {
+    const dest = `${isAdmin ? "/admin" : "/main"}?tab=dashboard`;
+    return <Navigate to={dest} replace />;
+  }
+  return children;
+}
 
 function App() {
   return (
@@ -51,16 +79,55 @@ function App() {
             <Routes>
               {/* Public */}
               <Route path="/splash" element={<SplashScreen />} />
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/competitions" element={<PublicCompetitionScreen />} />
-              <Route path="/about" element={<div>About Page - Coming Soon</div>} />
-              <Route path="/roles" element={<RoleSelectionScreen />} />
+              {/* <Route path="/" element={<LandingPage />} /> */}
+              {/* Root now decides between Landing (public) and Main/Admin (authed) */}
+              <Route path="/" element={<RootGate />} />
+              <Route
+                path="/competitions"
+                element={<PublicCompetitionScreen />}
+              />
+              <Route
+                path="/about"
+                element={<div>About Page - Coming Soon</div>}
+              />
+              <Route path="/contact" element={<ContactPage />} />
+              {/* <Route path="/roles" element={<RoleSelectionScreen />} />
               <Route path="/login" element={<LoginScreen />} />
-              <Route path="/register" element={<RegisterScreen />} />
-              <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+              <Route path="/register" element={<RegisterScreen />} /> */}
+              <Route
+                path="/roles"
+                element={
+                  <RedirectIfAuthed>
+                    <RoleSelectionScreen />
+                  </RedirectIfAuthed>
+                }
+              />
+              <Route
+                path="/login"
+                element={
+                  <RedirectIfAuthed>
+                    <LoginScreen />
+                  </RedirectIfAuthed>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <RedirectIfAuthed>
+                    <RegisterScreen />
+                  </RedirectIfAuthed>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={<ForgotPasswordScreen />}
+              />
               <Route path="/reset-password" element={<ResetPasswordScreen />} />
               <Route path="/auth/callback" element={<OAuthCallbackScreen />} />
-              <Route path="/competition/:competitionId/leaderboard" element={<CompetitionLeaderboard />} />
+              <Route
+                path="/competition/:competitionId/leaderboard"
+                element={<CompetitionLeaderboard />}
+              />
               <Route path="/competition/:id" element={<CompetitionDetails />} />
 
               {/* Protected */}

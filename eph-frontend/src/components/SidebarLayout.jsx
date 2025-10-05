@@ -1,12 +1,12 @@
-// src/components/SidebarLayout.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import logo from "../assets/logo.jpg";
-import ThemeToggle from "./ThemeToggle"; // ⬅️ add
+import ThemeToggle from "./ThemeToggle";
 
 // Lucide icons
 import {
+  LayoutDashboard,
   Trophy,
   List,
   User as UserIcon,
@@ -32,15 +32,19 @@ const NavButton = ({ active, label, icon: Icon, onClick }) => (
 );
 
 const SidebarLayout = ({ currentPage, onPageChange, children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [openMenu, setOpenMenu] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const menuRef = useRef(null);
 
   const isAdmin = (user?.role || "").toLowerCase() === "admin";
+  const logoDest = isAuthenticated
+    ? `${isAdmin ? "/admin" : "/main"}?tab=dashboard`
+    : "/";
 
-  // Close on outside click
+  // Close profile dropdown on outside click
   useEffect(() => {
     const onDown = (e) => {
       if (openMenu && menuRef.current && !menuRef.current.contains(e.target)) {
@@ -51,6 +55,14 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
     return () => document.removeEventListener("mousedown", onDown);
   }, [openMenu]);
 
+  // Close mobile sidebar on route change / ESC
+  useEffect(() => { setMobileOpen(false); }, [location.pathname, location.search]);
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && setMobileOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const handleChangePassword = () => {
     setOpenMenu(false);
     navigate("/change-password");
@@ -58,13 +70,10 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
 
   const handleLogout = async () => {
     setOpenMenu(false);
-    try {
-      await logout?.();
-    } catch {}
+    try { await logout?.(); } catch {}
     navigate("/", { replace: true });
   };
 
-  // Role-based page change with correct base path
   const handlePageChange = (page) => {
     onPageChange(page);
     const q = new URLSearchParams(location.search);
@@ -73,7 +82,6 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
     navigate({ pathname: basePath, search: `?${q.toString()}` }, { replace: true });
   };
 
-  // Fallback initials avatar
   const initials =
     (user?.name || "U")
       .split(" ")
@@ -83,25 +91,41 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
       .toUpperCase() || "U";
 
   return (
-    <div className="min-h-screen bg-background text-primary-text">
-      <div className="safe-area h-screen flex">
-        {/* Sidebar */}
-        <aside className="w-64 shrink-0 h-full bg-surface/80 backdrop-blur-xl border-r border-border p-4 flex flex-col">
-          {/* Brand with logo */}
-          <div className="flex items-center gap-3 mb-6">
-            <img
-              src={logo}
-              alt="PPL Logo"
-              className="w-10 h-10 rounded-lg object-cover border border-border"
-            />
-            <div>
-              <div className="text-base font-bold leading-5 text-primary-text">PPL</div>
-              <div className="text-xs text-secondary-text">Premier Project League</div>
-            </div>
+    // ⬇️ Lock the page height; only right content scrolls
+    <div className="h-screen overflow-hidden bg-background text-primary-text">
+      <div className="flex h-full">
+        {/* Sidebar: off-canvas on mobile, sticky on md+ */}
+        <aside
+          className={[
+            // mobile drawer
+            "fixed inset-y-0 left-0 z-40 w-72 transform transition-transform duration-200",
+            mobileOpen ? "translate-x-0" : "-translate-x-full",
+            "bg-surface/80 backdrop-blur-xl border-r border-border p-4 flex flex-col",
+            // md+: pinned/sticky with its own scroll (if needed)
+            "md:static md:translate-x-0 md:w-64 md:sticky md:top-0 md:h-screen md:overflow-y-auto",
+          ].join(" ")}
+        >
+          {/* Logo */}
+          <div className="flex items-center justify-center mb-3">
+            <button
+              type="button"
+              onClick={() => navigate(logoDest)}
+              className="rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40"
+              aria-label="Go to home"
+              title="Home"
+            >
+              <img src={logo} alt="PPL Logo" className="w-30 h-20 object-cover" />
+            </button>
           </div>
 
           {/* Nav */}
           <nav className="space-y-2">
+            <NavButton
+              label="Dashboard"
+              active={currentPage === "dashboard"}
+              onClick={() => handlePageChange("dashboard")}
+              icon={LayoutDashboard}
+            />
             <NavButton
               label="Competitions"
               active={currentPage === "competitions"}
@@ -130,16 +154,14 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
             )}
           </nav>
 
-          {/* Footer (user profile dropdown) */}
+          {/* Footer / profile dropdown */}
           <div className="mt-auto pt-4 border-top border-t border-border relative" ref={menuRef}>
             <button
               type="button"
               onClick={() => setOpenMenu((v) => !v)}
               className={[
                 "w-full flex items-center justify-between gap-3 px-2 py-2 rounded-lg transition-colors select-none border",
-                openMenu
-                  ? "bg-border text-primary-text border-border"
-                  : "bg-surface hover:bg-border text-primary-text border-border",
+                openMenu ? "bg-border text-primary-text border-border" : "bg-surface hover:bg-border text-primary-text border-border",
               ].join(" ")}
               aria-haspopup="menu"
               aria-expanded={openMenu}
@@ -157,9 +179,7 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
                   </div>
                 </div>
               </div>
-              <ChevronDown
-                className={`w-4 h-4 text-secondary-text transition-transform ${openMenu ? "rotate-180" : ""}`}
-              />
+              <ChevronDown className={`w-4 h-4 text-secondary-text transition-transform ${openMenu ? "rotate-180" : ""}`} />
             </button>
 
             {openMenu && (
@@ -188,9 +208,18 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
           </div>
         </aside>
 
-        {/* Main */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Sticky Navbar */}
+        {/* Mobile overlay */}
+        {mobileOpen && (
+          <div
+            onClick={() => setMobileOpen(false)}
+            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
+            aria-hidden
+          />
+        )}
+
+        {/* Right side: header + content; this column owns the scroll */}
+        <div className="flex-1 min-w-0 flex flex-col h-full">
+          {/* Sticky top header within right column */}
           <header className="sticky top-0 z-20 bg-surface/80 backdrop-blur-xl border-b border-border">
             <div className="px-4 py-3 md:px-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -202,17 +231,27 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
                 )}
               </div>
 
-              {/* Right side: Welcome + Theme Toggle */}
               <div className="flex items-center gap-3">
-                <ThemeToggle /> {/* ⬅️ toggle placed beside Welcome */}
-                <div className="text-xs md:text-sm text-secondary-text">
+                <ThemeToggle />
+                <div className="hidden sm:block text-xs md:text-sm text-secondary-text">
                   Welcome{user?.name ? `, ${user.name.split(" ")[0]}` : ""}
                 </div>
+                {/* Mobile menu trigger */}
+                <button
+                  type="button"
+                  onClick={() => setMobileOpen((v) => !v)}
+                  className="md:hidden px-3 py-2 rounded-lg border border-border bg-surface hover:bg-border transition focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  aria-label="Open menu"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeWidth="2" strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
               </div>
             </div>
           </header>
 
-          {/* Scrollable content */}
+          {/* Scrollable area */}
           <main className="flex-1 overflow-auto bg-background">{children}</main>
         </div>
       </div>

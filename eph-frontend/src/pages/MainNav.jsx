@@ -1,24 +1,25 @@
-// src/pages/MainNav.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 import SidebarLayout from '../components/SidebarLayout';
+import LandingPage from './LandingPage';           // Dashboard view
 import CompetitionScreen from './CompetitionScreen';
 import FeedScreen from './FeedScreen';
 import PerksScreen from './PerksScreen';
 import ProfileScreen from './ProfileScreen';
 import AdminHubScreen from './AdminHubScreen';
 
-const TABS_FOR_USER = ['competitions', 'feed', 'perks', 'profile'];
-const TABS_FOR_ADMIN = ['competitions', 'feed', 'perks', 'profile', 'admin'];
+// Put Dashboard first
+const TABS_FOR_USER  = ['dashboard', 'competitions', 'feed', 'perks', 'profile'];
+const TABS_FOR_ADMIN = ['dashboard', 'competitions', 'feed', 'perks', 'profile', 'admin'];
 
-const MainNav = ({ initialPage = 'competitions' }) => {
+const MainNav = ({ initialPage = 'dashboard' }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
+  const isAdmin  = (user?.role || '').toLowerCase() === 'admin';
   const basePath = isAdmin ? '/admin' : '/main';
 
   const allowedTabs = useMemo(
@@ -28,7 +29,7 @@ const MainNav = ({ initialPage = 'competitions' }) => {
 
   const sanitizeTab = (tab) => {
     const t = (tab || '').toLowerCase();
-    return allowedTabs.includes(t) ? t : 'competitions';
+    return allowedTabs.includes(t) ? t : 'dashboard';
   };
 
   // Initialize from URL (?tab=) or prop fallback
@@ -63,6 +64,8 @@ const MainNav = ({ initialPage = 'competitions' }) => {
 
   const renderCurrentPage = () => {
     switch (currentPage) {
+      case 'dashboard':
+        return <LandingPage embedded />;           // Dashboard shows LandingPage
       case 'competitions':
         return <CompetitionScreen />;
       case 'feed':
@@ -74,7 +77,7 @@ const MainNav = ({ initialPage = 'competitions' }) => {
       case 'admin':
         return isAdmin ? <AdminHubScreen /> : <CompetitionScreen />;
       default:
-        return <CompetitionScreen />;
+        return <LandingPage embedded />;
     }
   };
 

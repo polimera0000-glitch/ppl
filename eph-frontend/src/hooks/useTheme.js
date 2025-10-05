@@ -5,12 +5,11 @@ import { useEffect, useState, useCallback } from "react";
  * Returns [theme, setTheme], where theme is 'light' | 'dark'.
  */
 export function useTheme() {
-  // initial: from localStorage or system pref
+  // initial: from localStorage, else always "light"
   const getInitial = () => {
     const saved = localStorage.getItem("theme");
     if (saved === "light" || saved === "dark") return saved;
-    if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) return "dark";
-    return "light";
+    return "light"; // ✅ force light theme by default
   };
 
   const [theme, _setTheme] = useState(getInitial);
@@ -25,7 +24,8 @@ export function useTheme() {
 
   useEffect(() => apply(theme), [theme, apply]);
 
-  // keep in sync with system only on first mount if nothing saved
+  // remove auto system sync — we want light as default
+  // (you can keep this if you want system sync AFTER first load)
   useEffect(() => {
     const saved = localStorage.getItem("theme");
     if (saved) return;

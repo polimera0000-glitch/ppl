@@ -822,7 +822,7 @@ const CompetitionDetailsDrawer = ({ compId, open, onClose }) => {
               </>
             )}
 
-            {/* Leaderboard */}
+            {/* Leaderboard (unchanged) */}
             {activeTab === "leaderboard" && (
               <>
                 <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -883,7 +883,7 @@ const CompetitionDetailsDrawer = ({ compId, open, onClose }) => {
               </>
             )}
 
-            {/* Timeline */}
+            {/* Timeline (unchanged) */}
             {activeTab === "timeline" && (
               <>
                 <h4 className="text-sm font-semibold uppercase tracking-wider mb-2 text-primary-text">Timeline</h4>
@@ -909,7 +909,7 @@ const CompetitionDetailsDrawer = ({ compId, open, onClose }) => {
               </>
             )}
 
-            {/* Rules */}
+            {/* Rules (unchanged) */}
             {activeTab === "rules" && (
               <>
                 <h4 className="text-sm font-semibold uppercase tracking-wider mb-2 text-primary-text">Rules</h4>
@@ -949,10 +949,12 @@ const PublicCompetitionScreen = () => {
   const navigate = useNavigate();
 
   const fetchCompetitions = useCallback(async () => {
+    setLoading(true);            // NEW: ensure loader also shows on retry
     try {
       const response = await apiService.listCompetitions();
       const allComps = response?.data?.competitions || response?.competitions || [];
       setCompetitions(allComps);
+      setError(null);            // NEW: clear error if success
     } catch (err) {
       setError(err.message || "Failed to load competitions");
     } finally {
@@ -961,6 +963,12 @@ const PublicCompetitionScreen = () => {
   }, []);
 
   useEffect(() => { fetchCompetitions(); }, [fetchCompetitions]);
+
+  // NEW: simple retry helper (used by fallback UI)
+  const handleRetry = () => {
+    setError(null);
+    fetchCompetitions();
+  };
 
   const filteredCompetitions = useMemo(() => {
     const byTab = competitions.filter((c) => computeStatus(c) === activeTab);
@@ -1136,85 +1144,107 @@ const PublicCompetitionScreen = () => {
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300">
               {error}
+              {/* NEW: quick retry next to banner */}
+              <button
+                onClick={handleRetry}
+                className="ml-3 px-3 py-1.5 rounded-lg border border-red-500/30 hover:bg-red-500/10 transition text-sm"
+              >
+                Retry
+              </button>
             </div>
           )}
 
-          <div className="grid gap-6">
-            {filteredCompetitions.map((comp) => {
-              const pill = STATUS_PILL[computeStatus(comp)];
-              const status = computeStatus(comp);
-              return (
-                <div
-                  key={comp.id}
-                  onClick={() => { setDetailsId(comp.id); setShowDetails(true); }}
-                  className="rounded-xl p-6 transition-colors cursor-pointer border border-border hover:shadow bg-surface"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-border">
-                      {comp.banner_image_url ? (
-                        <img src={comp.banner_image_url} alt={comp.title} className="w-full h-full object-cover rounded-lg" />
-                      ) : (
-                        <Compass className="text-secondary-text w-10 h-10" />
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-3 gap-3">
-                        <h3 className="text-primary-text text-lg font-bold">{comp.title}</h3>
-                        <div className={`px-3 py-1 rounded-full ${pill.chipClass}`}>
-                          <span className="text-sm font-medium">{pill.icon} {pill.label}</span>
-                        </div>
-                      </div>
-
-                      {(comp.start_date || comp.end_date) && (
-                        <div className="text-secondary-text flex items-center gap-2 mb-2 text-sm">
-                          <span>{fmtShort(comp.start_date)} – {fmtShort(comp.end_date)}</span>
-                        </div>
-                      )}
-
-                      <p className="text-secondary-text mb-4 line-clamp-2">
-                        {comp.description}
-                      </p>
-
-                      <div className="flex items-center justify-between">
-                        <div className="text-secondary-text flex items-center gap-2 text-sm">
-                          <CheckCircle className="w-4 h-4" />
-                          <span>{comp.stats?.totalRegistrations || 0} registered</span>
-                        </div>
-
-                        {/* 👉 CTA: only show Register for UPCOMING */}
-                        {status === "upcoming" && (
-                          <button
-                            onClick={(e) => handleRegisterClick(e, comp)}
-                            className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
-                          >
-                            Register
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {filteredCompetitions.length === 0 && (
-            <div className="text-center py-16">
-              <svg className="text-border w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6" />
-              </svg>
-              <h3 className="text-primary-text text-lg font-medium mb-2">
-                {activeTab === "upcoming" ? "No upcoming competitions" : activeTab === "ongoing" ? "No live competitions" : "No completed competitions"}
-              </h3>
-              <p className="text-secondary-text">
-                {activeTab === "upcoming"
-                  ? "Check back later for new challenges"
-                  : activeTab === "ongoing"
-                  ? "No competitions are live right now"
-                  : "Completed competitions will appear here"}
-              </p>
+          {/* NEW: if error and no data, show center fallback (keeps your original list code below) */}
+          {error && filteredCompetitions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <div className="text-red-600 dark:text-red-300 font-medium">Failed to load, retry</div>
+              <button
+                onClick={handleRetry}
+                className="px-4 py-2 rounded-lg border border-border bg-surface hover:bg-border transition"
+              >
+                Retry
+              </button>
             </div>
+          ) : (
+            <>
+              <div className="grid gap-6">
+                {filteredCompetitions.map((comp) => {
+                  const pill = STATUS_PILL[computeStatus(comp)];
+                  const status = computeStatus(comp);
+                  return (
+                    <div
+                      key={comp.id}
+                      onClick={() => { setDetailsId(comp.id); setShowDetails(true); }}
+                      className="rounded-xl p-6 transition-colors cursor-pointer border border-border hover:shadow bg-surface"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-border">
+                          {comp.banner_image_url ? (
+                            <img src={comp.banner_image_url} alt={comp.title} className="w-full h-full object-cover rounded-lg" />
+                          ) : (
+                            <Compass className="text-secondary-text w-10 h-10" />
+                          )}
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-3 gap-3">
+                            <h3 className="text-primary-text text-lg font-bold">{comp.title}</h3>
+                            <div className={`px-3 py-1 rounded-full ${pill.chipClass}`}>
+                              <span className="text-sm font-medium">{pill.icon} {pill.label}</span>
+                            </div>
+                          </div>
+
+                          {(comp.start_date || comp.end_date) && (
+                            <div className="text-secondary-text flex items-center gap-2 mb-2 text-sm">
+                              <span>{fmtShort(comp.start_date)} – {fmtShort(comp.end_date)}</span>
+                            </div>
+                          )}
+
+                          <p className="text-secondary-text mb-4 line-clamp-2">
+                            {comp.description}
+                          </p>
+
+                          <div className="flex items-center justify-between">
+                            <div className="text-secondary-text flex items-center gap-2 text-sm">
+                              <CheckCircle className="w-4 h-4" />
+                              <span>{comp.stats?.totalRegistrations || 0} registered</span>
+                            </div>
+
+                            {/* 👉 CTA: only show Register for UPCOMING */}
+                            {status === "upcoming" && (
+                              <button
+                                onClick={(e) => handleRegisterClick(e, comp)}
+                                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+                              >
+                                Register
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {filteredCompetitions.length === 0 && (
+                <div className="text-center py-16">
+                  <svg className="text-border w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6" />
+                  </svg>
+                  <h3 className="text-primary-text text-lg font-medium mb-2">
+                    {activeTab === "upcoming" ? "No upcoming competitions" : activeTab === "ongoing" ? "No live competitions" : "No completed competitions"}
+                  </h3>
+                  <p className="text-secondary-text">
+                    {activeTab === "upcoming"
+                      ? "Check back later for new challenges"
+                      : activeTab === "ongoing"
+                      ? "No competitions are live right now"
+                      : "Completed competitions will appear here"}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
