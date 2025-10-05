@@ -1930,7 +1930,7 @@ const CompetitionScreen = () => {
               </div>
             )}
 
-            <div className="flex gap-4 mb-4">
+            <div className="flex gap-1 mb-4">
               <MetricButton label="Ongoing"  count={counts.ongoing}  selected={activeFilter === FILTERS.ONGOING}  onClick={() => setActiveFilter(FILTERS.ONGOING)}  Icon={Activity} palette="green" />
               <MetricButton label="Upcoming" count={counts.upcoming} selected={activeFilter === FILTERS.UPCOMING} onClick={() => setActiveFilter(FILTERS.UPCOMING)} Icon={Clock3} palette="amber" />
               <MetricButton label="Completed" count={counts.completed} selected={activeFilter === FILTERS.COMPLETED} onClick={() => setActiveFilter(FILTERS.COMPLETED)} Icon={CheckCircle2} palette="gray" />
