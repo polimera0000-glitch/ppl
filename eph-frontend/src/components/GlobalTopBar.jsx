@@ -24,7 +24,7 @@ const GlobalTopBar = ({
   const onLanding = location.pathname === "/";
 
   const { user, isAuthenticated } = useAuth?.() || {};
-  const isAdmin = ((user?.role) || "").toLowerCase() === "admin";
+  const isAdmin = (user?.role || "").toLowerCase() === "admin";
 
   const homeHref = isAuthenticated
     ? `${isAdmin ? "/admin" : "/main"}?tab=dashboard`
@@ -52,8 +52,16 @@ const GlobalTopBar = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-5">
           <div className="flex justify-between items-center h-20">
             {/* Brand (logo acts as Home / Dashboard) */}
-            <RouterLink to={homeHref} className="flex items-center" aria-label="Home">
-              <img src={logo} alt="PPL Logo" className="h-20 w-30 object-cover rounded-lg" />
+            <RouterLink
+              to={homeHref}
+              className="flex items-center"
+              aria-label="Home"
+            >
+              <img
+                src={logo}
+                alt="PPL Logo"
+                className="h-20 w-30 object-cover rounded-lg"
+              />
             </RouterLink>
 
             {/* Desktop nav */}
@@ -121,7 +129,11 @@ const GlobalTopBar = ({
                 className="text-primary-text"
                 aria-label="Toggle menu"
               >
-                {open ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
+                {open ? (
+                  <X className="h-7 w-7" />
+                ) : (
+                  <Menu className="h-7 w-7" />
+                )}
               </button>
             </div>
           </div>
@@ -171,7 +183,7 @@ const GlobalTopBar = ({
                 Contact
               </button>
 
-              {showAuthButtons && (
+              {/* {showAuthButtons && (
                 <RouterLink
                   to="/roles"
                   onClick={() => setOpen(false)}
@@ -179,6 +191,25 @@ const GlobalTopBar = ({
                 >
                   Register
                 </RouterLink>
+              )} */}
+
+              {showAuthButtons && (
+                <>
+                  <RouterLink
+                    to="/login"
+                    onClick={() => setOpen(false)}
+                    className="block w-full text-center py-2 rounded-md font-semibold border border-border bg-surface text-primary-text hover:bg-border transition-colors"
+                  >
+                    Login
+                  </RouterLink>
+                  <RouterLink
+                    to="/roles"
+                    onClick={() => setOpen(false)}
+                    className="block w-full text-center py-2 rounded-md font-semibold bg-primary text-white hover:bg-primary-hover transition-colors"
+                  >
+                    Sign Up
+                  </RouterLink>
+                </>
               )}
             </div>
           </div>

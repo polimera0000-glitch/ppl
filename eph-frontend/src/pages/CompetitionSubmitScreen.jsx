@@ -423,7 +423,6 @@ import { useAuth } from '../hooks/useAuth';
 import { apiService } from '../services/apiService';
 import SidebarLayout from '../components/SidebarLayout';
 
-// Lucide icons to match CreateCompetition look
 import {
   UploadCloud,
   X,
@@ -516,7 +515,6 @@ const CompetitionSubmitScreen = () => {
     setError(null);
 
     try {
-      // 1) Upload the video (multipart)
       const formData = new FormData();
       formData.append('video', video);
       formData.append('title', title.trim());
@@ -530,7 +528,7 @@ const CompetitionSubmitScreen = () => {
       const uploadResp = await apiService.makeRequest('/videos', {
         method: 'POST',
         body: formData,
-        headers: {}, // browser sets multipart boundary
+        headers: {},
       });
 
       if (!uploadResp?.success) {
@@ -539,7 +537,6 @@ const CompetitionSubmitScreen = () => {
         return;
       }
 
-      // 2) Create a submission record (non-blocking UX)
       if (competitionId) {
         const videoObj = uploadResp?.data?.video || {};
         const videoUrl = videoObj?.url || null;
@@ -554,12 +551,10 @@ const CompetitionSubmitScreen = () => {
             attachments: metaAttachments,
           });
         } catch (submissionErr) {
-          // Keep going; the video is uploaded already
           console.warn('createSubmission failed:', submissionErr?.message || submissionErr);
         }
       }
 
-      // 3) Redirect with state the list listens to
       navigate('/main?tab=competitions', {
         replace: true,
         state: { justSubmittedCompetitionId: competitionId || null },
@@ -573,18 +568,19 @@ const CompetitionSubmitScreen = () => {
 
   return (
     <SidebarLayout currentPage="competitions" onPageChange={() => {}}>
-      <div className="flex-1 overflow-auto">
-        <div className="p-6">
-          {/* Header — match CreateCompetitionScreen */}
+      {/* stop horizontal scroll on mobile */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="p-4 sm:p-6">
+          {/* Header */}
           <div className="bg-surface rounded-xl p-4 border border-border mb-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-background border border-border flex items-center justify-center">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-background border border-border flex items-center justify-center shrink-0">
                   <UploadCloud className="w-5 h-5 text-primary-text" />
                 </div>
-                <div>
-                  <h1 className="text-lg font-bold text-primary-text">Submit Project</h1>
-                  <p className="text-secondary-text text-sm">{competitionTitle}</p>
+                <div className="min-w-0">
+                  <h1 className="text-lg font-bold text-primary-text truncate">Submit Project</h1>
+                  <p className="text-secondary-text text-sm truncate">{competitionTitle}</p>
                 </div>
               </div>
               <button
@@ -597,7 +593,7 @@ const CompetitionSubmitScreen = () => {
             </div>
           </div>
 
-          {/* Optional quick stats row (consistent with token set) */}
+          {/* Optional quick stats */}
           {location.state?.competitionMeta && (
             <div className="bg-surface rounded-xl p-4 border border-border mb-6">
               <div className="flex flex-wrap gap-3">
@@ -621,8 +617,8 @@ const CompetitionSubmitScreen = () => {
             </div>
           )}
 
-          {/* Form — tokenized to match CreateCompetition */}
-          <div className="bg-surface rounded-xl p-6 border border-border">
+          {/* Form */}
+          <div className="bg-surface rounded-xl p-4 sm:p-6 border border-border">
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Title */}
               <section className="space-y-2">
@@ -636,7 +632,7 @@ const CompetitionSubmitScreen = () => {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Enter your project title"
-                    className="flex-1 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full"
+                    className="flex-1 min-w-0 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full"
                   />
                 </div>
               </section>
@@ -666,7 +662,7 @@ const CompetitionSubmitScreen = () => {
                     value={repoUrl}
                     onChange={(e) => setRepoUrl(e.target.value)}
                     placeholder="https://github.com/username/project"
-                    className="flex-1 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full"
+                    className="flex-1 min-w-0 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full break-all"
                   />
                 </div>
               </section>
@@ -682,7 +678,7 @@ const CompetitionSubmitScreen = () => {
                     value={driveUrl}
                     onChange={(e) => setDriveUrl(e.target.value)}
                     placeholder="https://drive.google.com/..."
-                    className="flex-1 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full"
+                    className="flex-1 min-w-0 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full break-all"
                   />
                 </div>
               </section>
@@ -691,16 +687,16 @@ const CompetitionSubmitScreen = () => {
               <section className="space-y-6">
                 {/* Video (required) */}
                 <div className="bg-background rounded-xl p-4 border border-border">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Film className="w-5 h-5 text-secondary-text" />
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-3 mb-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Film className="w-5 h-5 text-secondary-text shrink-0" />
                       <span className="font-medium text-primary-text">Project Video</span>
                       <span className="text-red-400">*</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => videoInputRef.current?.click()}
-                      className="px-3 py-1.5 rounded-lg bg-surface hover:bg-border border border-border text-primary-text text-sm"
+                      className="w-full sm:w-auto px-3 py-1.5 rounded-lg bg-surface hover:bg-border border border-border text-primary-text text-sm"
                     >
                       {video ? 'Change Video' : 'Select Video'}
                     </button>
@@ -715,10 +711,10 @@ const CompetitionSubmitScreen = () => {
                   />
 
                   {video ? (
-                    <div className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border">
-                      <CheckCircle2 className="w-5 h-5 text-primary" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-primary-text">{video.name}</p>
+                    <div className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border min-w-0">
+                      <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-primary-text truncate">{video.name}</p>
                         <p className="text-secondary-text text-xs">{formatFileSize(video.size)}</p>
                       </div>
                     </div>
@@ -731,16 +727,16 @@ const CompetitionSubmitScreen = () => {
 
                 {/* ZIP (optional) */}
                 <div className="bg-background rounded-xl p-4 border border-border">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Archive className="w-5 h-5 text-secondary-text" />
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-3 mb-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Archive className="w-5 h-5 text-secondary-text shrink-0" />
                       <span className="font-medium text-primary-text">Project Archive</span>
                       <span className="text-secondary-text text-sm">(Optional)</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => zipInputRef.current?.click()}
-                      className="px-3 py-1.5 rounded-lg bg-surface hover:bg-border border border-border text-primary-text text-sm"
+                      className="w-full sm:w-auto px-3 py-1.5 rounded-lg bg-surface hover:bg-border border border-border text-primary-text text-sm"
                     >
                       {zip ? 'Change ZIP' : 'Select ZIP'}
                     </button>
@@ -755,10 +751,10 @@ const CompetitionSubmitScreen = () => {
                   />
 
                   {zip ? (
-                    <div className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border">
-                      <CheckCircle2 className="w-5 h-5 text-primary" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-primary-text">{zip.name}</p>
+                    <div className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border min-w-0">
+                      <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-primary-text truncate">{zip.name}</p>
                         <p className="text-secondary-text text-xs">{formatFileSize(zip.size)}</p>
                       </div>
                     </div>
@@ -771,18 +767,16 @@ const CompetitionSubmitScreen = () => {
 
                 {/* Attachments (optional) */}
                 <div className="bg-background rounded-xl p-4 border border-border">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Paperclip className="w-5 h-5 text-secondary-text" />
-                      <span className="font-medium text-primary-text">
-                        Attachments ({attachments.length})
-                      </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-3 mb-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Paperclip className="w-5 h-5 text-secondary-text shrink-0" />
+                      <span className="font-medium text-primary-text">Attachments ({attachments.length})</span>
                       <span className="text-secondary-text text-sm">(Optional)</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => attachmentInputRef.current?.click()}
-                      className="px-3 py-1.5 rounded-lg bg-surface hover:bg-border border border-border text-primary-text text-sm"
+                      className="w-full sm:w-auto px-3 py-1.5 rounded-lg bg-surface hover:bg-border border border-border text-primary-text text-sm"
                     >
                       Add Files
                     </button>
@@ -801,17 +795,17 @@ const CompetitionSubmitScreen = () => {
                       {attachments.map((file, index) => (
                         <div
                           key={`${file.name}-${index}`}
-                          className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border"
+                          className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border min-w-0"
                         >
-                          <FileText className="w-4 h-4 text-secondary-text" />
-                          <div className="flex-1">
+                          <FileText className="w-4 h-4 text-secondary-text shrink-0" />
+                          <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-primary-text truncate">{file.name}</p>
                             <p className="text-secondary-text text-xs">{formatFileSize(file.size)}</p>
                           </div>
                           <button
                             type="button"
                             onClick={() => removeAttachment(index)}
-                            className="p-1 text-secondary-text hover:text-primary-text"
+                            className="p-1 text-secondary-text hover:text-primary-text shrink-0"
                             aria-label="Remove attachment"
                           >
                             <X className="w-4 h-4" />
@@ -831,13 +825,13 @@ const CompetitionSubmitScreen = () => {
               {error && (
                 <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl">
                   <div className="flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5 text-rose-400" />
-                    <p className="text-primary-text">{error}</p>
+                    <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+                    <p className="text-primary-text break-words">{error}</p>
                   </div>
                 </div>
               )}
 
-              {/* Submit — native button like CreateCompetition */}
+              {/* Submit */}
               <button
                 type="submit"
                 disabled={submitting}
@@ -865,4 +859,3 @@ const CompetitionSubmitScreen = () => {
 };
 
 export default CompetitionSubmitScreen;
-

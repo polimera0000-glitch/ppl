@@ -734,9 +734,9 @@ const ProfileScreen = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Pill>{(user?.role || "student").toString().toUpperCase()}</Pill>
-                    <Pill icon={BadgeCheck}>
+                    {/* <Pill icon={BadgeCheck}>
                       {user?.verified ? "Verified" : "Unverified"}
-                    </Pill>
+                    </Pill> */}
                   </div>
                 </div>
 

@@ -394,7 +394,6 @@ import { useAuth } from '../hooks/useAuth';
 import { apiService } from '../services/apiService';
 import SidebarLayout from '../components/SidebarLayout';
 
-// Lucide icons (match CreateCompetition vibe)
 import {
   Users,
   X,
@@ -465,7 +464,6 @@ const CompetitionRegisterScreen = () => {
     if (memberEmails.includes(email)) return alert('Email already added');
 
     const maxTeamSize = competition?.max_team_size || 1;
-    // +1 accounts for the leader (registrant) — add emails only for additional members
     if (memberEmails.length + 1 >= maxTeamSize) {
       return alert(`Maximum team size is ${maxTeamSize}`);
     }
@@ -505,7 +503,6 @@ const CompetitionRegisterScreen = () => {
       );
 
       if (response.success) {
-        // success UI stays minimal — keep UX consistent with create screen (navigate back)
         navigate('/main?tab=competitions', {
           replace: true,
           state: { justRegisteredCompetitionId: competitionId },
@@ -522,8 +519,9 @@ const CompetitionRegisterScreen = () => {
 
   return (
     <SidebarLayout currentPage="competitions" onPageChange={() => {}}>
-      <div className="flex-1 overflow-auto">
-        <div className="p-6">
+      {/* Prevent sideways scroll on phones */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="p-4 sm:p-6">
           {/* Loading */}
           {loading && (
             <div className="flex items-center justify-center h-64">
@@ -533,7 +531,7 @@ const CompetitionRegisterScreen = () => {
 
           {/* Error (no competition) */}
           {!loading && error && !competition && (
-            <div className="p-6 max-w-lg">
+            <div className="p-4 sm:p-6 max-w-lg">
               <div className="bg-surface rounded-xl p-6 border border-border text-center">
                 <svg
                   className="w-16 h-16 text-red-400 mx-auto mb-4"
@@ -544,17 +542,17 @@ const CompetitionRegisterScreen = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <h3 className="text-lg font-medium text-primary-text mb-2">Error</h3>
-                <p className="text-secondary-text mb-4">{error}</p>
-                <div className="flex gap-3">
+                <p className="text-secondary-text mb-4 break-words">{error}</p>
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => navigate(-1)}
-                    className="flex-1 px-4 py-2 bg-surface hover:bg-border text-primary-text rounded-lg font-medium transition-colors border border-border"
+                    className="px-4 py-2 bg-surface hover:bg-border text-primary-text rounded-lg font-medium transition-colors border border-border"
                   >
                     Go Back
                   </button>
                   <button
                     onClick={loadCompetition}
-                    className="flex-1 px-4 py-2 bg-background hover:bg-surface text-primary-text rounded-lg font-medium transition-colors border border-border"
+                    className="px-4 py-2 bg-background hover:bg-surface text-primary-text rounded-lg font-medium transition-colors border border-border"
                   >
                     Retry
                   </button>
@@ -566,16 +564,20 @@ const CompetitionRegisterScreen = () => {
           {/* Main content */}
           {!loading && competition && (
             <>
-              {/* Header (same pattern as CreateCompetitionScreen) */}
+              {/* Header */}
               <div className="bg-surface rounded-xl p-4 border border-border mb-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-background border border-border flex items-center justify-center">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-background border border-border flex items-center justify-center shrink-0">
                       <Users className="w-5 h-5 text-primary-text" />
                     </div>
-                    <div>
-                      <h1 className="text-lg font-bold text-primary-text">Register for Competition</h1>
-                      <p className="text-secondary-text text-sm">{competition?.title}</p>
+                    <div className="min-w-0">
+                      <h1 className="text-lg font-bold text-primary-text truncate">
+                        Register for Competition
+                      </h1>
+                      <p className="text-secondary-text text-sm truncate">
+                        {competition?.title}
+                      </p>
                     </div>
                   </div>
                   <button
@@ -588,9 +590,9 @@ const CompetitionRegisterScreen = () => {
                 </div>
               </div>
 
-              {/* Competition Info (tokenized quick stats) */}
+              {/* Competition Info */}
               <div className="bg-surface rounded-xl p-4 border border-border mb-6">
-                <p className="text-secondary-text mb-4">
+                <p className="text-secondary-text mb-4 break-words">
                   {competition.description}
                 </p>
                 <div className="flex flex-wrap gap-3">
@@ -617,8 +619,8 @@ const CompetitionRegisterScreen = () => {
                 </div>
               </div>
 
-              {/* Registration Form (sections + native submit) */}
-              <div className="bg-surface rounded-xl p-6 border border-border">
+              {/* Form */}
+              <div className="bg-surface rounded-xl p-4 sm:p-6 border border-border">
                 <form onSubmit={handleSubmit} className="space-y-8">
                   {/* Registration Type */}
                   <section className="space-y-3">
@@ -676,22 +678,23 @@ const CompetitionRegisterScreen = () => {
                         Team Members (by email)
                       </label>
 
-                      <div className="flex gap-2">
-                        <div className="flex-1 inline-flex items-center gap-2 h-11 px-3 rounded-lg bg-background border border-border">
-                          <Users className="w-4 h-4 text-secondary-text" />
+                      {/* STACK on mobile; row on ≥sm */}
+                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-3">
+                        <div className="min-w-0 inline-flex items-center gap-2 h-11 px-3 rounded-lg bg-background border border-border">
+                          <Users className="w-4 h-4 text-secondary-text shrink-0" />
                           <input
                             type="email"
                             value={memberEmail}
                             onChange={(e) => setMemberEmail(e.target.value)}
                             placeholder="Add member email address"
-                            className="flex-1 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full"
+                            className="flex-1 min-w-0 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full break-words"
                           />
                         </div>
 
                         <button
                           type="button"
                           onClick={addMemberEmail}
-                          className="px-3 h-11 rounded-lg bg-surface hover:bg-border text-primary-text font-medium border border-border inline-flex items-center gap-1"
+                          className="w-full sm:w-auto px-3 h-11 rounded-lg bg-surface hover:bg-border text-primary-text font-medium border border-border inline-flex items-center justify-center gap-1"
                         >
                           <Plus className="w-4 h-4" />
                           Add
@@ -707,9 +710,9 @@ const CompetitionRegisterScreen = () => {
                             {memberEmails.map((email, index) => (
                               <div
                                 key={index}
-                                className="flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg"
+                                className="flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg max-w-full"
                               >
-                                <span className="text-secondary-text text-sm">{email}</span>
+                                <span className="text-secondary-text text-sm break-all">{email}</span>
                                 <button
                                   type="button"
                                   onClick={() => removeMemberEmail(index)}
@@ -747,7 +750,7 @@ const CompetitionRegisterScreen = () => {
                     <div className="p-4 bg-red-500/10 border border-red-500/25 rounded-xl">
                       <div className="flex items-center gap-3">
                         <svg
-                          className="w-5 h-5 text-red-400"
+                          className="w-5 h-5 text-red-400 shrink-0"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -759,12 +762,12 @@ const CompetitionRegisterScreen = () => {
                             d="M12 9v2m0 4h.01M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                           />
                         </svg>
-                        <p className="text-red-300">{error}</p>
+                        <p className="text-red-300 break-words">{error}</p>
                       </div>
                     </div>
                   )}
 
-                  {/* Submit / Cancel — native button like CreateCompetition */}
+                  {/* Submit */}
                   <button
                     type="submit"
                     disabled={submitting}

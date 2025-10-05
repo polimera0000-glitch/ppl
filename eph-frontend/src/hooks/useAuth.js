@@ -36,6 +36,7 @@ export const useAuth = () => {
     isAuthenticated: ctxAuthed,
     hydrated: ctxHydrated,
     login = noop,
+    register = noop,
     logout = noop,
     refresh = noop, // if your provider exposes this
   } = ctx || {};
@@ -58,6 +59,7 @@ export const useAuth = () => {
       user,
       token,
       login,
+      register,
       logout,
       refresh,
       hydrated,
@@ -67,6 +69,6 @@ export const useAuth = () => {
       isAuthenticated,
       redirectPath,
     }),
-    [user, token, login, logout, refresh, hydrated, role, isAdmin, isAuthenticated]
+    [user, token, login, register, logout, refresh, hydrated, role, isAdmin, isAuthenticated]
   );
 };
