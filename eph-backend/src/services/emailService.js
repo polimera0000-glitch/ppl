@@ -772,6 +772,64 @@ async sendResultsPublishedEmail(email, name, competitionTitle) {
   return this.sendEmail(email, subject, html, text);
 }
 
+async sendTeamRegistrationCreatedLeader(email, name, competitionTitle, context = {}) {
+  return this.sendCompetitionRegistrationEmail(email, name, competitionTitle, context);
+}
+
+async sendTeamRegistrationCreatedMember(email, name, competitionTitle, context = {}) {
+  const subject = `You're on the team — ${competitionTitle}`;
+  const html = `
+    <div style="font-family:Arial;max-width:620px;margin:0 auto;">
+      <div style="background:#2563EB;color:#fff;padding:14px 18px;border-radius:10px 10px 0 0;">
+        <strong>You're on a team</strong>
+      </div>
+      <div style="border:1px solid #eee;border-top:none;padding:18px;border-radius:0 0 10px 10px;">
+        <p>Hi ${name || 'there'},</p>
+        <p>You've been added to a team for <strong>${competitionTitle}</strong>.</p>
+        <p>Please coordinate with your team and submit before the deadline.</p>
+        ${context?.link ? `<p style="text-align:center;margin:16px 0;">
+          <a href="${context.link}" style="background:#111827;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">Open competition</a>
+        </p>` : ''}
+      </div>
+    </div>`;
+  const text = `You've been added to a team for ${competitionTitle}.`;
+  return this.sendEmail(email, subject, html, text);
+}
+
+async sendAddedToTeamEmail(email, name, competitionTitle, teamName, context = {}) {
+  const subject = `You've been added to "${teamName}" — ${competitionTitle}`;
+  const html = `
+    <div style="font-family:Arial;max-width:620px;margin:0 auto;">
+      <div style="background:#10B981;color:#fff;padding:14px 18px;border-radius:10px 10px 0 0;">
+        <strong>Team update</strong>
+      </div>
+      <div style="border:1px solid #eee;border-top:none;padding:18px;border-radius:0 0 10px 10px;">
+        <p>Hi ${name || 'there'},</p>
+        <p>You've been added to team <strong>${teamName || 'Your Team'}</strong> for <strong>${competitionTitle}</strong>.</p>
+        ${context?.link ? `<p style="text-align:center;margin:16px 0;">
+          <a href="${context.link}" style="background:#2563eb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">View competition</a>
+        </p>` : ''}
+      </div>
+    </div>`;
+  const text = `You've been added to team "${teamName}" for ${competitionTitle}.`;
+  return this.sendEmail(email, subject, html, text);
+}
+
+async sendRemovedFromTeamEmail(email, name, competitionTitle, teamName) {
+  const subject = `You were removed from "${teamName}" — ${competitionTitle}`;
+  const text = `Hi ${name || 'there'}, you were removed from team "${teamName}" for ${competitionTitle}.`;
+  const html = `<div style="font-family:Arial;max-width:620px;margin:0 auto;">
+    <div style="background:#EF4444;color:#fff;padding:14px 18px;border-radius:10px 10px 0 0;">
+      <strong>Team update</strong>
+    </div>
+    <div style="border:1px solid #eee;border-top:none;padding:18px;border-radius:0 0 10px 10px;">
+      <p>${text}</p>
+    </div>
+  </div>`;
+  return this.sendEmail(email, subject, html, text);
+}
+
+
 
   async sendPerkRedemptionEmail(email, name, perkTitle, redemptionDetails = {}) {
     const { redemptionCode, redemptionUrl, instructions, termsConditions } = redemptionDetails;

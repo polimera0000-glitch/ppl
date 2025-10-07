@@ -144,6 +144,17 @@ class ApiService {
     }
   }
 
+  async checkUserExists(email) {
+    return this.makeRequest(`/users/exists?email=${encodeURIComponent(email)}`);
+  }
+
+  async checkUsersExistBulk(emails = []) {
+    return this.makeRequest(`/users/exists-bulk`, {
+      method: 'POST',
+      body: JSON.stringify({ emails }),
+    });
+  }
+
   // ===== OAuth =====
   async getGoogleAuthUrl(redirectUri, state) {
   const params = new URLSearchParams();

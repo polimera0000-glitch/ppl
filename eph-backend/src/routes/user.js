@@ -6,6 +6,9 @@ const { userValidation } = require('../middleware/validation');
 
 const router = express.Router();
 
+router.get('/exists', userController.existsByEmail);
+router.post('/exists-bulk', userController.existsBulk);
+
 // Public routes (with optional auth for context)
 router.get('/leaderboard', optionalAuth, userController.getLeaderboard);
 router.get('/college/:college', optionalAuth, userController.getUsersByCollege);
