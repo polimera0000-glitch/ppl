@@ -14,6 +14,7 @@ import {
   ChevronDown,
   LockKeyhole,
   LogOut,
+  GraduationCap, // ⬅️ NEW
 } from "lucide-react";
 
 const NavButton = ({ active, label, icon: Icon, onClick }) => (
@@ -56,7 +57,9 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
   }, [openMenu]);
 
   // Close mobile sidebar on route change / ESC
-  useEffect(() => { setMobileOpen(false); }, [location.pathname, location.search]);
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname, location.search]);
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && setMobileOpen(false);
     window.addEventListener("keydown", onKey);
@@ -70,7 +73,9 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
 
   const handleLogout = async () => {
     setOpenMenu(false);
-    try { await logout?.(); } catch {}
+    try {
+      await logout?.();
+    } catch {}
     navigate("/", { replace: true });
   };
 
@@ -89,6 +94,35 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
       .join("")
       .slice(0, 2)
       .toUpperCase() || "U";
+
+  // Dynamic header title
+  const pageTitleMap = {
+    dashboard: "Home",
+    competitions: "Competitions",
+    feed: "Feed",
+    profile: "Profile",
+    admin: "Admin Hub",
+    courses: "Courses", // ⬅️ NEW
+  };
+  const headerTitle = pageTitleMap[currentPage] || "Home";
+
+  // Simple "Coming soon" for Courses
+  const isCourses = currentPage === "courses";
+  const content = isCourses ? (
+    <div className="p-4 md:p-6">
+      <div className="bg-surface border border-border rounded-xl p-6 md:p-8 text-center">
+        <div className="mx-auto mb-4 w-12 h-12 rounded-2xl bg-background border border-border flex items-center justify-center">
+          <GraduationCap className="w-6 h-6 text-secondary-text" />
+        </div>
+        <h2 className="text-lg md:text-xl font-bold text-primary-text mb-2">Courses</h2>
+        <p className="text-secondary-text">
+          Coming soon… we’re preparing curated lessons, roadmaps, and hands-on tracks.
+        </p>
+      </div>
+    </div>
+  ) : (
+    children
+  );
 
   return (
     // ⬇️ Lock the page height; only right content scrolls
@@ -121,9 +155,9 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
           {/* Nav */}
           <nav className="space-y-2">
             <NavButton
-              label="Dashboard"
-              active={currentPage === "dashboard"}
-              onClick={() => handlePageChange("dashboard")}
+              label="Home"
+              active={currentPage === "home"}
+              onClick={() => handlePageChange("home")}
               icon={LayoutDashboard}
             />
             <NavButton
@@ -144,6 +178,13 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
               onClick={() => handlePageChange("profile")}
               icon={UserIcon}
             />
+            {/* NEW: Courses */}
+            <NavButton
+              label="Courses"
+              active={currentPage === "courses"}
+              onClick={() => handlePageChange("courses")}
+              icon={GraduationCap}
+            />
             {isAdmin && (
               <NavButton
                 label="Admin Hub"
@@ -161,7 +202,9 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
               onClick={() => setOpenMenu((v) => !v)}
               className={[
                 "w-full flex items-center justify-between gap-3 px-2 py-2 rounded-lg transition-colors select-none border",
-                openMenu ? "bg-border text-primary-text border-border" : "bg-surface hover:bg-border text-primary-text border-border",
+                openMenu
+                  ? "bg-border text-primary-text border-border"
+                  : "bg-surface hover:bg-border text-primary-text border-border",
               ].join(" ")}
               aria-haspopup="menu"
               aria-expanded={openMenu}
@@ -179,7 +222,11 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
                   </div>
                 </div>
               </div>
-              <ChevronDown className={`w-4 h-4 text-secondary-text transition-transform ${openMenu ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`w-4 h-4 text-secondary-text transition-transform ${
+                  openMenu ? "rotate-180" : ""
+                }`}
+              />
             </button>
 
             {openMenu && (
@@ -223,7 +270,7 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
           <header className="sticky top-0 z-20 bg-surface/80 backdrop-blur-xl border-b border-border">
             <div className="px-4 py-3 md:px-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <h1 className="text-base md:text-lg font-bold text-primary-text">Dashboard</h1>
+                <h1 className="text-base md:text-lg font-bold text-primary-text">{headerTitle}</h1>
                 {user?.role && (
                   <span className="px-2 py-0.5 rounded-full bg-background border border-border text-[11px] md:text-xs font-semibold text-secondary-text">
                     {(user.role || "").toUpperCase()}
@@ -252,7 +299,7 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
           </header>
 
           {/* Scrollable area */}
-          <main className="flex-1 overflow-auto bg-background">{children}</main>
+          <main className="flex-1 overflow-auto bg-background">{content}</main>
         </div>
       </div>
     </div>

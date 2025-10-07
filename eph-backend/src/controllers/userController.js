@@ -2,7 +2,57 @@ const { User, Video, Registration } = require('../models');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 
+const normalizeEmail = (e) => String(e || '').trim().toLowerCase();
+
 const userController = {
+
+ // --- SINGLE email existence check (no verified/is_active filtering) ---
+  existsByEmail: async (req, res) => {
+    try {
+      const email = normalizeEmail(req.query.email);
+      if (!email) {
+        return res.json({ success: true, data: { exists: false } });
+      }
+      const user = await User.findOne({
+        where: { email }, 
+        attributes: ['id'],
+      });
+      return res.json({ success: true, data: { exists: !!user } });
+    } catch (error) {
+      logger.error('existsByEmail error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to check user',
+        error: error.message,
+      });
+    }
+  },
+
+  // --- BULK email existence check (no verified/is_active filtering) ---
+  existsBulk: async (req, res) => {
+    try {
+      const emails = Array.isArray(req.body?.emails) ? req.body.emails : [];
+      const normalized = emails.map(normalizeEmail).filter(Boolean);
+      if (!normalized.length) {
+        return res.json({ success: true, data: { exists: {}, missing: [] } });
+      }
+      const users = await User.findAll({
+        where: { email: { [Op.in]: normalized } },  // <— no verified/is_active condition
+        attributes: ['email'],
+      });
+      const found = new Set(users.map(u => u.email.toLowerCase()));
+      const exists = Object.fromEntries(normalized.map(e => [e, found.has(e)]));
+      const missing = normalized.filter(e => !found.has(e));
+      return res.json({ success: true, data: { exists, missing } });
+    } catch (error) {
+      logger.error('existsBulk error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to check users',
+        error: error.message,
+      });
+    }
+  },
   // Get all users (with pagination and filters)
   getAllUsers: async (req, res) => {
   try {

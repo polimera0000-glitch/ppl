@@ -220,6 +220,24 @@ const registrationController = {
             status,
             feedback
           );
+
+          const members = await registration.getTeamMembers({
+    attributes: ['name','email'],
+    joinTableAttributes: []
+  });
+  if (members?.length) {
+    await emailService.sendToMany(
+      members.map(m =>
+        emailService.sendRegistrationStatusUpdate(
+          m.email,
+          m.name,
+          registration.competition.title,
+          status,
+          feedback
+        )
+      )
+    );
+  }
         } catch (emailError) {
           logger.error('Failed to send status update email:', emailError);
         }
@@ -291,6 +309,35 @@ const registrationController = {
       }
 
       await registration.submitProject(submission_url);
+
+      try {
+  const compTitle = registration.competition.title;
+  const leader = await registration.getLeader({ attributes: ['name','email'] });
+  const members = await registration.getTeamMembers({ attributes: ['name','email'], joinTableAttributes: [] });
+
+  await emailService.sendSubmissionReceivedEmail(
+    leader.email,
+    leader.name,
+    compTitle,
+    submission_url // using URL as title; swap if you store a nicer title
+  );
+
+  if (members?.length) {
+    await emailService.sendToMany(
+      members.map(m =>
+        emailService.sendSubmissionReceivedEmail(
+          m.email,
+          m.name,
+          compTitle,
+          submission_url
+        )
+      )
+    );
+  }
+} catch (emailError) {
+  logger.error('Failed to send submission receipt emails:', emailError);
+}
+
 
       res.json({
         success: true,
@@ -486,6 +533,25 @@ const registrationController = {
         ]
       });
 
+      try {
+  const compTitle = updatedRegistration.competition.title;
+  const teamName = updatedRegistration.team_name || 'Your Team';
+
+  // notify the new member
+  await emailService.sendAddedToTeamEmail(
+    newMember.email,
+    newMember.name,
+    compTitle,
+    teamName,
+    { link: process.env.FRONTEND_BASE_URL
+        ? `${process.env.FRONTEND_BASE_URL.replace(/\/$/, '')}/competitions`
+        : undefined }
+  );
+} catch (emailError) {
+  logger.error('Failed to email added member:', emailError);
+}
+
+
       res.json({
         success: true,
         message: 'Team member added successfully',
@@ -547,6 +613,20 @@ const registrationController = {
 
       // Remove member from registration
       await registration.removeTeamMember([memberToRemove]);
+
+      try {
+  const comp = await registration.getCompetition({ attributes: ['title'] });
+  const teamName = registration.team_name || 'Your Team';
+  await emailService.sendRemovedFromTeamEmail(
+    memberToRemove.email,
+    memberToRemove.name,
+    comp.title,
+    teamName
+  );
+} catch (emailError) {
+  logger.error('Failed to email removed member:', emailError);
+}
+
 
       res.json({
         success: true,
