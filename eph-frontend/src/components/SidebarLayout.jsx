@@ -14,7 +14,7 @@ import {
   ChevronDown,
   LockKeyhole,
   LogOut,
-  GraduationCap, // ⬅️ NEW
+  GraduationCap,
 } from "lucide-react";
 
 const NavButton = ({ active, label, icon: Icon, onClick }) => (
@@ -36,6 +36,7 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [openMenu, setOpenMenu] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuRef = useRef(null);
@@ -44,6 +45,12 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
   const logoDest = isAuthenticated
     ? `${isAdmin ? "/admin" : "/main"}?tab=dashboard`
     : "/";
+
+  // Lock document scroll while app shell is mounted
+  useEffect(() => {
+    document.body.classList.add("no-doc-scroll");
+    return () => document.body.classList.remove("no-doc-scroll");
+  }, []);
 
   // Close profile dropdown on outside click
   useEffect(() => {
@@ -60,6 +67,7 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname, location.search]);
+
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && setMobileOpen(false);
     window.addEventListener("keydown", onKey);
@@ -80,7 +88,7 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
   };
 
   const handlePageChange = (page) => {
-    onPageChange(page);
+    onPageChange?.(page);
     const q = new URLSearchParams(location.search);
     q.set("tab", page);
     const basePath = isAdmin ? "/admin" : "/main";
@@ -95,18 +103,18 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
       .slice(0, 2)
       .toUpperCase() || "U";
 
-  // Dynamic header title
+  // Use one canonical key: 'dashboard'
   const pageTitleMap = {
     dashboard: "Home",
     competitions: "Competitions",
     feed: "Feed",
     profile: "Profile",
     admin: "Admin Hub",
-    courses: "Courses", // ⬅️ NEW
+    courses: "Courses",
   };
   const headerTitle = pageTitleMap[currentPage] || "Home";
 
-  // Simple "Coming soon" for Courses
+  // "Courses" coming soon content
   const isCourses = currentPage === "courses";
   const content = isCourses ? (
     <div className="p-4 md:p-6">
@@ -125,17 +133,15 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
   );
 
   return (
-    // ⬇️ Lock the page height; only right content scrolls
-    <div className="h-screen overflow-hidden bg-background text-primary-text">
+    // Anchor the app shell to the viewport; kill outer scrollbar
+    <div className="fixed inset-0 overflow-hidden bg-background text-primary-text">
       <div className="flex h-full">
         {/* Sidebar: off-canvas on mobile, sticky on md+ */}
         <aside
           className={[
-            // mobile drawer
             "fixed inset-y-0 left-0 z-40 w-72 transform transition-transform duration-200",
             mobileOpen ? "translate-x-0" : "-translate-x-full",
             "bg-surface/80 backdrop-blur-xl border-r border-border p-4 flex flex-col",
-            // md+: pinned/sticky with its own scroll (if needed)
             "md:static md:translate-x-0 md:w-64 md:sticky md:top-0 md:h-screen md:overflow-y-auto",
           ].join(" ")}
         >
@@ -156,8 +162,8 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
           <nav className="space-y-2">
             <NavButton
               label="Home"
-              active={currentPage === "home"}
-              onClick={() => handlePageChange("home")}
+              active={currentPage === "dashboard"}
+              onClick={() => handlePageChange("dashboard")}
               icon={LayoutDashboard}
             />
             <NavButton
@@ -178,7 +184,6 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
               onClick={() => handlePageChange("profile")}
               icon={UserIcon}
             />
-            {/* NEW: Courses */}
             <NavButton
               label="Courses"
               active={currentPage === "courses"}
@@ -264,9 +269,8 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
           />
         )}
 
-        {/* Right side: header + content; this column owns the scroll */}
-        <div className="flex-1 min-w-0 flex flex-col h-full">
-          {/* Sticky top header within right column */}
+        {/* Right column: sticky header + scrollable main */}
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full">
           <header className="sticky top-0 z-20 bg-surface/80 backdrop-blur-xl border-b border-border">
             <div className="px-4 py-3 md:px-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -283,7 +287,6 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
                 <div className="hidden sm:block text-xs md:text-sm text-secondary-text">
                   Welcome{user?.name ? `, ${user.name.split(" ")[0]}` : ""}
                 </div>
-                {/* Mobile menu trigger */}
                 <button
                   type="button"
                   onClick={() => setMobileOpen((v) => !v)}
@@ -298,8 +301,7 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
             </div>
           </header>
 
-          {/* Scrollable area */}
-          <main className="flex-1 overflow-auto bg-background">{content}</main>
+          <main className="flex-1 min-h-0 overflow-auto bg-background">{content}</main>
         </div>
       </div>
     </div>

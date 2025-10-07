@@ -1182,6 +1182,27 @@ const FILTERS = {
   MY_COMPETITIONS: 'my_competitions'
 };
 
+// Bright gradient pills (chips)
+const BADGE = {
+  live:          'bg-gradient-to-r from-green-500 to-emerald-500 text-white border border-emerald-400 shadow-sm',
+  soon:          'bg-gradient-to-r from-amber-500 to-orange-500 text-white border border-amber-400 shadow-sm',
+  done:          'bg-gradient-to-r from-gray-500 to-slate-600 text-white border border-slate-400 shadow-sm',
+
+  registered:    'bg-gradient-to-r from-green-500 to-emerald-500 text-white border border-emerald-400 shadow-sm',
+  submitted:     'bg-gradient-to-r from-blue-500 to-sky-500 text-white border border-sky-400 shadow-sm',
+  notRegistered: 'bg-gradient-to-r from-rose-500 to-pink-500 text-white border border-rose-400 shadow-sm',
+  notSubmitted:  'bg-gradient-to-r from-fuchsia-500 to-purple-500 text-white border border-fuchsia-400 shadow-sm',
+  participating: 'bg-gradient-to-r from-violet-500 to-purple-500 text-white border border-purple-400 shadow-sm',
+};
+
+// Bright gradient buttons
+const BTN = {
+  submit:      'px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 border border-amber-400 shadow-sm hover:brightness-105 active:scale-[.99]',
+  register:    'px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-sky-500 border border-sky-400 shadow-sm hover:brightness-105 active:scale-[.99]',
+  viewResults: 'px-3 py-1 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-cyan-500 border border-sky-400 shadow-sm hover:brightness-105 active:scale-[.99]',
+};
+
+
 const CompetitionScreen = () => {
   const [activeFilter, setActiveFilter] = useState(FILTERS.ALL);
   const [loading, setLoading] = useState(true);
@@ -1379,10 +1400,12 @@ const CompetitionScreen = () => {
 
   // ✅ Status chip icons & classes (semantic + color)
   const getStatusPill = useMemo(() => ({
-    ongoing:   { icon: <Activity className="w-4 h-4" />, label: 'Live',  chipClass: 'bg-green-500/15 text-green-400 border border-green-500/25' },
-    upcoming:  { icon: <Clock3 className="w-4 h-4" />,   label: 'Soon',  chipClass: 'bg-amber-500/15 text-amber-300 border border-amber-500/25' },
-    completed: { icon: <CheckCircle2 className="w-4 h-4" />, label: 'Done', chipClass: 'bg-gray-500/15 text-gray-300 border border-gray-500/25' },
-  }), []);
+  ongoing:   { icon: <Activity className="w-4 h-4" />,   label: 'Live',  chipClass: BADGE.live },
+  upcoming:  { icon: <Clock3 className="w-4 h-4" />,     label: 'Soon',  chipClass: BADGE.soon },
+  completed: { icon: <CheckCircle2 className="w-4 h-4" />, label: 'Done', chipClass: BADGE.done },
+}), []);
+
+
 
   // Metric button uses theme tokens
   const MetricButton = ({ label, count, selected, onClick, Icon, palette }) => {
@@ -1446,9 +1469,9 @@ const CompetitionScreen = () => {
 
     const myStatus = (() => {
       if (activeFilter === FILTERS.MY_COMPETITIONS) {
-        if (userSubmitted)  return { text: 'Submitted', class: 'bg-blue-500/15 text-blue-300 border border-blue-500/25', Icon: FileCheck };
-        if (userRegistered) return { text: 'Registered', class: 'bg-green-500/15 text-green-400 border border-green-500/25', Icon: CheckCircle2 };
-        return { text: 'Participating', class: 'bg-purple-500/15 text-purple-300 border border-purple-500/25', Icon: Rocket };
+        if (userSubmitted)  return { text: 'Submitted', class: BADGE.submitted,    Icon: FileCheck };
+        if (userRegistered) return { text: 'Registered', class: BADGE.registered,  Icon: CheckCircle2 };
+        return { text: 'Participating', class: BADGE.participating, Icon: Rocket };
       }
       return null;
     })();
@@ -1576,14 +1599,14 @@ const CompetitionScreen = () => {
                     {userSubmitted ? (
                       <button
                         onClick={(e) => { stop(e); navigate(`/competition/${cid}/leaderboard`); }}
-                        className="px-3 py-1 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/25 text-blue-300 rounded-lg text-sm font-medium transition-colors"
+                        className={BTN.viewResults}
                       >
                         View Results
                       </button>
                     ) : status === 'ongoing' && userRegistered ? (
                       <button
                         onClick={(e) => { stop(e); goToSubmit(competition); }}
-                        className="px-4 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/25 text-amber-300 rounded-lg text-sm font-medium transition-colors"
+                        className={BTN.submit}
                       >
                         Submit
                       </button>
@@ -1597,14 +1620,14 @@ const CompetitionScreen = () => {
                   <>
                     {status === 'upcoming' && (
                       userRegistered ? (
-                        <div className="px-3 py-1 bg-green-500/15 border border-green-500/25 text-green-400 rounded-lg text-sm font-medium flex items-center gap-1">
+                        <div className={`px-3 py-1 rounded-lg text-sm font-medium flex items-center gap-1 ${BADGE.registered}`}>
                           <CheckCircle2 className="w-4 h-4" />
                           Registered
                         </div>
                       ) : (
                         <button
                           onClick={(e) => { stop(e); goToRegister(competition); }}
-                          className="px-4 py-2 bg-surface hover:bg-border border border-border text-primary-text rounded-lg text-sm font-medium transition-colors"
+                          className={BTN.register}
                         >
                           Register
                         </button>
@@ -1612,27 +1635,34 @@ const CompetitionScreen = () => {
                     )}
                     {status === 'ongoing' && (
                       userSubmitted ? (
-                        <div className="px-3 py-1 bg-blue-500/15 border border-blue-500/25 text-blue-300 rounded-lg text-sm font-medium">
+                        <div className={`px-3 py-1 rounded-lg text-sm font-medium ${BADGE.submitted}`}>
+
                           Submitted
                         </div>
                       ) : userRegistered ? (
                         <button
                           onClick={(e) => { stop(e); goToSubmit(competition); }}
-                          className="px-4 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/25 text-amber-300 rounded-lg text-sm font-medium transition-colors"
+                          className={BTN.submit}
                         >
                           Submit
                         </button>
                       ) : (
-                        <div className="px-3 py-1 bg-orange-500/15 border border-orange-500/25 text-orange-300 rounded-lg text-sm font-medium">
+                        <div className={`px-3 py-1 rounded-lg text-sm font-medium ${BADGE.notRegistered}`}>
                           Not registered
                         </div>
                       )
                     )}
-                    {status === 'completed' && (
-                      <div className="px-3 py-1 bg-gray-500/15 border border-gray-500/25 text-gray-300 rounded-lg text-sm font-medium">
-                        {userSubmitted ? 'Submitted' : userRegistered ? 'Not submitted' : 'Not registered'}
-                      </div>
-                    )}
+                    {status === 'completed' && (() => {
+                      const cls = userSubmitted
+                        ? BADGE.submitted
+                        : (userRegistered ? BADGE.notSubmitted : BADGE.notRegistered);
+                      const text = userSubmitted ? 'Submitted' : (userRegistered ? 'Not submitted' : 'Not registered');
+                      return (
+                        <div className={`px-3 py-1 rounded-lg text-sm font-medium ${cls}`}>
+                          {text}
+                        </div>
+                      );
+                    })()}
                   </>
                 )}
               </div>

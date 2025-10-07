@@ -24,6 +24,8 @@
   --color-border: 55 65 81;
 }
 
+.no-doc-scroll { overflow: hidden !important; }
+
 @layer base {
   body {
     @apply bg-background text-primary-text font-sans;
