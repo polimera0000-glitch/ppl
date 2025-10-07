@@ -26,6 +26,7 @@ const UserPerkDef = require('./UserPerk.js');
 const SubmissionDef = require('./Submission');
 const JudgingCriteriaDef = require('./JudgingCriteria');
 const ScoreDef = require('./Score');
+const ContactDef = require('./ContactRequest.js');
 
 // ---- Initialize models (no new Sequelize here) ----
 const User = UserDef(sequelize, DataTypes);
@@ -35,6 +36,7 @@ const Video = VideoDef(sequelize, DataTypes);
 const Perk = PerkDef(sequelize, DataTypes);
 const PasswordReset = PasswordResetDef(sequelize, DataTypes);
 const UserPerk = UserPerkDef(sequelize, DataTypes);
+const ContactRequest = ContactDef(sequelize, DataTypes);
 
 // NEW
 const Submission = SubmissionDef(sequelize, DataTypes);
@@ -110,6 +112,12 @@ Score.belongsTo(Submission, { as: 'submission', foreignKey: 'submission_id' });
 Score.belongsTo(User, { as: 'judge', foreignKey: 'judge_id' });
 Score.belongsTo(JudgingCriteria, { as: 'criterion', foreignKey: 'criterion_id' });
 
+ContactRequest.belongsTo(User, { as: 'sender', foreignKey: 'sender_id' });
+ContactRequest.belongsTo(User, { as: 'recipient', foreignKey: 'recipient_id' });
+if (Submission) {
+  ContactRequest.belongsTo(Submission, { as: 'submission', foreignKey: 'submission_id' });
+}
+
 // ---- Export ----
 module.exports = {
   sequelize,
@@ -124,4 +132,5 @@ module.exports = {
   Submission,
   JudgingCriteria,
   Score,
+  ContactRequest
 };

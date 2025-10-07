@@ -13,7 +13,13 @@ import {
   ChevronLeft,
   Plus,
   Trash2,
-  FileText
+  FileText,
+  Mail,
+  Phone,
+  User as UserIcon,
+  Building2,
+  GraduationCap,
+  Briefcase
 } from 'lucide-react';
 
 // Allowed email domains for team members
@@ -31,6 +37,7 @@ const emailDomainOk = (email) => {
 };
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
+const normalizePhone = (p) => String(p || '').trim();
 
 const CompetitionRegisterScreen = () => {
   const [loading, setLoading] = useState(true);
@@ -38,19 +45,33 @@ const CompetitionRegisterScreen = () => {
   const [error, setError] = useState(null);
   const [competition, setCompetition] = useState(null);
 
+  // Registration meta
   const [registrationType, setRegistrationType] = useState('individual');
   const [teamName, setTeamName] = useState('');
   const [abstract, setAbstract] = useState('');
   const [memberEmail, setMemberEmail] = useState('');
   const [memberEmails, setMemberEmails] = useState([]);
 
+  // Applicant (lead) details – for both individual and team
+  const [applicantName, setApplicantName] = useState('');
+  const [applicantEmail, setApplicantEmail] = useState('');
+  const [applicantPhone, setApplicantPhone] = useState('');
+  const [gender, setGender] = useState('prefer_not_to_say'); // male|female|non_binary|prefer_not_to_say
+  const [organization, setOrganization] = useState('');
+  const [eduType, setEduType] = useState('undergraduate'); // undergraduate|graduate|other
+  const [workExpYears, setWorkExpYears] = useState(''); // number (only when graduate)
+
+  // Agreements
+  const [agreeTnC, setAgreeTnC] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+
   const [toast, setToast] = useState(null); // {type, message}
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth?.() || { isAuthenticated: false, user: null };
 
-  // NOTE: your router passes competition id via state.competitionId; keep var name as "id" to match apiService
+  // router passes competition id via state.competitionId
   const id = location.state?.competitionId;
 
   const showToast = (type, message, duration = 3500) => {
@@ -69,6 +90,36 @@ const CompetitionRegisterScreen = () => {
       navigate('/login');
       return;
     }
+
+    // Prefill from auth user object synchronously (fast)
+    if (user) {
+      if (user.name) setApplicantName(user.name);
+      if (user.email) setApplicantEmail(user.email);
+      if (user.phone) setApplicantPhone(user.phone);
+      if (user.org) setOrganization(user.org);
+      if (user.gender) setGender(user.gender);
+      if (user.edu_type) setEduType(user.edu_type);
+      if (user.work_experience_years != null) setWorkExpYears(String(user.work_experience_years));
+    }
+
+    // Also fetch fresh profile from backend (authoritative)
+    (async () => {
+      try {
+        const res = await apiService.getMe?.();
+        const u = res?.data?.user || {};
+        if (u.name) setApplicantName(u.name);
+        if (u.email) setApplicantEmail(u.email);
+        if (u.phone) setApplicantPhone(u.phone);
+        if (u.org) setOrganization(u.org);
+        if (u.gender) setGender(u.gender);
+        if (u.edu_type) setEduType(u.edu_type);
+        if (u.work_experience_years != null) setWorkExpYears(String(u.work_experience_years));
+        // T&C/Privacy are consent moments; we don't auto-check them
+      } catch (_) {
+        // non-fatal
+      }
+    })();
+
     loadCompetition();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isAuthenticated, navigate]);
@@ -81,7 +132,6 @@ const CompetitionRegisterScreen = () => {
       if (response?.success && response?.data?.competition) {
         setCompetition(response.data.competition);
       } else if (response?.competition) {
-        // in case backend returns { competition }
         setCompetition(response.competition);
       } else {
         setError(response?.message || 'Competition not found');
@@ -130,6 +180,29 @@ const CompetitionRegisterScreen = () => {
     showToast('info', 'Member removed');
   };
 
+  // --- Validation helpers for applicant fields ---
+  const validateApplicant = () => {
+    const e = normalizeEmail(applicantEmail);
+    const n = String(applicantName || '').trim();
+    const p = normalizePhone(applicantPhone);
+
+    if (!n || n.length < 2) return 'Please enter your full name';
+    if (!emailFormatOk(e)) return 'Please enter a valid email';
+    if (!p || !/^\+?\d[\d\s\-()]{6,}$/.test(p)) return 'Please enter a valid mobile number';
+    if (!organization || organization.trim().length < 2) return 'Please enter your organization/institution';
+    if (!['undergraduate', 'graduate', 'other'].includes(eduType)) return 'Please select a valid Type';
+    if (eduType === 'graduate') {
+      const years = Number(workExpYears);
+      if (!Number.isFinite(years) || years < 0 || years > 60) {
+        return 'Please enter valid work experience (0–60 years)';
+      }
+    }
+    if (!agreeTnC || !agreePrivacy) {
+      return 'You must agree to the Terms & Conditions and Privacy Policy';
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -163,14 +236,53 @@ const CompetitionRegisterScreen = () => {
       }
     }
 
+    // Validate applicant block
+    const applicantErr = validateApplicant();
+    if (applicantErr) {
+      return showToast('error', applicantErr);
+    }
+
     setSubmitting(true);
     setError(null);
     try {
+      // 1) (Optional) persist applicant details to user profile (non-fatal)
+      try {
+        await apiService.makeRequest('/auth/update-profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: String(applicantName || '').trim(),
+            phone: normalizePhone(applicantPhone),
+            org: String(organization || '').trim(),
+            gender,
+            edu_type: eduType,
+            work_experience_years: eduType === 'graduate' ? Number(workExpYears || 0) : 0,
+            // store consent moments as timestamps (server will set if true)
+            agree_tnc: !!agreeTnC,
+            agree_privacy: !!agreePrivacy,
+          }),
+        });
+      } catch (_) {
+        // continue even if profile update fails
+      }
+
+      // 2) Submit competition registration
       const payload = {
         type: registrationType,
         ...(registrationType === 'team' && { team_name: teamName.trim() }),
         ...(memberEmails.length > 0 && { member_emails: memberEmails }),
         ...(abstract.trim() && { abstract: abstract.trim() }),
+        applicant: {
+          name: String(applicantName || '').trim(),
+          email: normalizeEmail(applicantEmail),
+          phone: normalizePhone(applicantPhone),
+          gender,
+          org: String(organization || '').trim(),
+          edu_type: eduType,
+          work_experience_years: eduType === 'graduate' ? Number(workExpYears || 0) : 0,
+          agree_tnc: !!agreeTnC,
+          agree_privacy: !!agreePrivacy,
+        },
       };
 
       const response = await apiService.registerForCompetition(id, payload);
@@ -348,6 +460,158 @@ const CompetitionRegisterScreen = () => {
                       </div>
                     </section>
                   )}
+
+                  {/* Applicant details */}
+                  <section className="space-y-4">
+                    <h3 className="font-semibold text-primary-text">Your Details</h3>
+
+                    {/* Name */}
+                    <div className="space-y-2">
+                      <label className="block text-primary-text">Full Name</label>
+                      <div className="flex items-center gap-2 h-11 px-3 rounded-lg bg-background border border-border">
+                        <UserIcon className="w-4 h-4 text-secondary-text" />
+                        <input
+                          value={applicantName}
+                          onChange={(e) => setApplicantName(e.target.value)}
+                          placeholder="Your name"
+                          className="flex-1 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email + Phone */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <label className="block text-primary-text">Email</label>
+                        <div className="flex items-center gap-2 h-11 px-3 rounded-lg bg-background border border-border">
+                          <Mail className="w-4 h-4 text-secondary-text" />
+                          <input
+                            type="email"
+                            value={applicantEmail}
+                            onChange={(e) => setApplicantEmail(e.target.value)}
+                            placeholder="you@example.com"
+                            className="flex-1 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-primary-text">Mobile Number</label>
+                        <div className="flex items-center gap-2 h-11 px-3 rounded-lg bg-background border border-border">
+                          <Phone className="w-4 h-4 text-secondary-text" />
+                          <input
+                            type="tel"
+                            value={applicantPhone}
+                            onChange={(e) => setApplicantPhone(e.target.value)}
+                            placeholder="+91 90000 00000"
+                            className="flex-1 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Gender + Org */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <label className="block text-primary-text">Gender</label>
+                        <select
+                          className="h-11 px-3 rounded-lg bg-background border border-border text-primary-text outline-none"
+                          value={gender}
+                          onChange={(e) => setGender(e.target.value)}
+                        >
+                          <option value="male">Male</option>
+                          <option value="female">Female</option>
+                          <option value="non_binary">Non-binary</option>
+                          <option value="prefer_not_to_say">Prefer not to say</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-primary-text">Organization / Institution</label>
+                        <div className="flex items-center gap-2 h-11 px-3 rounded-lg bg-background border border-border">
+                          <Building2 className="w-4 h-4 text-secondary-text" />
+                          <input
+                            value={organization}
+                            onChange={(e) => setOrganization(e.target.value)}
+                            placeholder="Your college or company"
+                            className="flex-1 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Type + Work Exp (conditional) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <label className="block text-primary-text">Type</label>
+                        <div className="flex items-center gap-2 h-11 px-3 rounded-lg bg-background border border-border">
+                          <GraduationCap className="w-4 h-4 text-secondary-text" />
+                          <select
+                            className="flex-1 bg-transparent outline-none text-primary-text h-full"
+                            value={eduType}
+                            onChange={(e) => setEduType(e.target.value)}
+                          >
+                            <option value="undergraduate">Undergraduate</option>
+                            <option value="graduate">Graduate</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {eduType === 'graduate' && (
+                        <div className="space-y-2">
+                          <label className="block text-primary-text">Work Experience (years)</label>
+                          <div className="flex items-center gap-2 h-11 px-3 rounded-lg bg-background border border-border">
+                            <Briefcase className="w-4 h-4 text-secondary-text" />
+                            <input
+                              type="number"
+                              min="0"
+                              max="60"
+                              value={workExpYears}
+                              onChange={(e) => setWorkExpYears(e.target.value)}
+                              placeholder="e.g., 2"
+                              className="flex-1 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full"
+                              required
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Agreements */}
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-3">
+                        <input
+                          id="agree-tnc"
+                          type="checkbox"
+                          checked={agreeTnC}
+                          onChange={(e) => setAgreeTnC(e.target.checked)}
+                          className="mt-1"
+                          required
+                        />
+                        <label htmlFor="agree-tnc" className="text-secondary-text">
+                          I agree to the <a href="/terms" target="_blank" rel="noreferrer" className="underline">Terms &amp; Conditions</a>.
+                        </label>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <input
+                          id="agree-privacy"
+                          type="checkbox"
+                          checked={agreePrivacy}
+                          onChange={(e) => setAgreePrivacy(e.target.checked)}
+                          className="mt-1"
+                          required
+                        />
+                        <label htmlFor="agree-privacy" className="text-secondary-text">
+                          I agree to the <a href="/privacy" target="_blank" rel="noreferrer" className="underline">Privacy Policy</a>.
+                        </label>
+                      </div>
+                    </div>
+                  </section>
 
                   {/* Team Members */}
                   {registrationType === 'team' && (

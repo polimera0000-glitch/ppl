@@ -54,7 +54,7 @@ const userController = {
     }
   },
   // Get all users (with pagination and filters)
-  getAllUsers: async (req, res) => {
+getAllUsers: async (req, res) => {
   try {
     const {
       page = 1,
@@ -64,9 +64,14 @@ const userController = {
       branch,
       verified,
       search,
-      phone,      // NEW optional direct filter
-      org,        // NEW optional direct filter
-      country     // NEW optional direct filter
+      phone,
+      org,
+      country,
+      // NEW filters:
+      gender,               // 'male' | 'female' | 'non_binary' | 'prefer_not_to_say'
+      edu_type,             // 'undergraduate' | 'graduate' | 'other'
+      min_work_exp,         // number
+      max_work_exp          // number
     } = req.query;
 
     const offset = (page - 1) * limit;
@@ -77,19 +82,30 @@ const userController = {
     if (college) whereClause.college = { [Op.iLike]: `%${college}%` };
     if (branch) whereClause.branch = { [Op.iLike]: `%${branch}%` };
     if (verified !== undefined) whereClause.verified = verified === 'true';
-    if (phone) whereClause.phone = { [Op.iLike]: `%${phone}%` };       // NEW
-    if (org) whereClause.org = { [Op.iLike]: `%${org}%` };             // NEW
-    if (country) whereClause.country = { [Op.iLike]: `%${country}%` }; // NEW
+    if (phone) whereClause.phone = { [Op.iLike]: `%${phone}%` };
+    if (org) whereClause.org = { [Op.iLike]: `%${org}%` };
+    if (country) whereClause.country = { [Op.iLike]: `%${country}%` };
+
+    // NEW: extra filters
+    if (gender) whereClause.gender = gender;
+    if (edu_type) whereClause.edu_type = edu_type;
+
+    if (min_work_exp !== undefined || max_work_exp !== undefined) {
+      const range = {};
+      if (min_work_exp !== undefined) range[Op.gte] = Number(min_work_exp);
+      if (max_work_exp !== undefined) range[Op.lte] = Number(max_work_exp);
+      whereClause.work_experience_years = range;
+    }
 
     // search across common text fields
     if (search) {
       whereClause[Op.or] = [
-        { name:   { [Op.iLike]: `%${search}%` } },
-        { email:  { [Op.iLike]: `%${search}%` } },
-        { college:{ [Op.iLike]: `%${search}%` } },
-        { phone:  { [Op.iLike]: `%${search}%` } },   // NEW
-        { org:    { [Op.iLike]: `%${search}%` } },   // NEW
-        { country:{ [Op.iLike]: `%${search}%` } },   // NEW
+        { name:    { [Op.iLike]: `%${search}%` } },
+        { email:   { [Op.iLike]: `%${search}%` } },
+        { college: { [Op.iLike]: `%${search}%` } },
+        { phone:   { [Op.iLike]: `%${search}%` } },
+        { org:     { [Op.iLike]: `%${search}%` } },
+        { country: { [Op.iLike]: `%${search}%` } },
       ];
     }
 
@@ -101,9 +117,11 @@ const userController = {
       attributes: [
         'id','name','email','role',
         'college','branch','year','skills',
-        'phone','org','country',            // NEW
+        'phone','org','country',
         'profile_pic_url','xp','badges',
-        'verified','created_at'
+        'verified','created_at',
+        // NEW:
+        'gender','edu_type','work_experience_years','agreed_tnc_at','agreed_privacy_at'
       ]
     });
 

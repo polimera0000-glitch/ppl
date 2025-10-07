@@ -244,6 +244,10 @@ async getGitHubAuthUrl(redirectUri, state) {
     });
   }
 
+  async getMe() {
+  return this.makeRequest('/auth/profile', { method: 'GET' });
+}
+
   async deleteCompetition(id) {
     return this.makeRequest(`/competitions/${id}`, { method: 'DELETE' });
   }
