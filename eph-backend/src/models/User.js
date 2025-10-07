@@ -124,6 +124,36 @@ module.exports = (sequelize, DataTypes) => {
         comment:
           "Forces user to change password on next login (used for new admin invites)",
       },
+      gender: {
+        type: DataTypes.ENUM('male','female','non_binary','prefer_not_to_say'),
+        allowNull: true,
+      },
+      edu_type: {
+        type: DataTypes.ENUM('undergraduate','graduate','other'),
+        allowNull: true,
+      },
+      work_experience_years: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        validate: { min: 0, max: 60 },
+      },
+
+      // ✅ NEW: agreements (timestamps so you know WHEN they agreed)
+      agreed_tnc_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      agreed_privacy_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      company_name: { type: DataTypes.STRING(255), allowNull: true },
+      company_website: { type: DataTypes.STRING(512), allowNull: true, validate: { isUrl: true } },
+      team_size: { type: DataTypes.INTEGER, allowNull: true, validate: { min: 1 } },
+          
+      firm_name: { type: DataTypes.STRING(255), allowNull: true },
+      investment_stage: { type: DataTypes.STRING(100), allowNull: true },
+      website: { type: DataTypes.STRING(512), allowNull: true, validate: { isUrl: true } },
       created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
@@ -161,6 +191,8 @@ module.exports = (sequelize, DataTypes) => {
         {
           fields: ["force_password_change"], // Index for quick lookup of users who need password change
         },
+        { fields: ["gender"] },
+        { fields: ["edu_type"] },
       ],
       hooks: {
         beforeCreate: async (user) => {

@@ -9,6 +9,7 @@ const videoRoutes = require('./videos');
 const perkRoutes = require('./perks');
 const adminRoutes = require('./admin');
 const submissions = require('./submissions');
+const contactRoutes = require('./contact');
 
 const router = express.Router();
 
@@ -32,6 +33,7 @@ router.use('/submissions', submissions);
 router.use('/registrations', registrationRoutes);
 router.use('/videos', videoRoutes);
 router.use('/perks', perkRoutes);
+router.use('/contacts', contactRoutes);
 
 // Admin routes with stricter rate limiting
 router.use('/admin', adminLimiter, adminRoutes);

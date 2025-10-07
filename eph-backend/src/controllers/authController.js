@@ -151,7 +151,7 @@ const authController = {
         team_size,
         firm_name,
         investment_stage,
-        website
+        website,
       } = req.body;
 
       // Validate required fields first
@@ -311,75 +311,123 @@ const authController = {
 
   // Get current user profile
   profile: async (req, res) => {
-    try {
-      const user = await User.findByPk(req.user.id);
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: 'User not found'
-        });
-      }
-
-      res.json({
-        success: true,
-        data: {
-          user: user.toJSON()
-        }
-      });
-
-    } catch (error) {
-      logger.error('Profile fetch error:', error);
-      res.status(500).json({
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({
         success: false,
-        message: 'Failed to fetch profile',
-        error: error.message
+        message: 'User not found'
       });
     }
-  },
+
+    res.json({
+      success: true,
+      data: { user: user.toJSON() }
+    });
+
+  } catch (error) {
+    logger.error('Profile fetch error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch profile',
+      error: error.message
+    });
+  }
+},
+
 
   // Update user profile
-  updateProfile: async (req, res) => {
-    try {
-      const { name, college, branch, year, skills, profile_pic_url, phone, org, country } = req.body;
-      
-      const user = await User.findByPk(req.user.id);
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: 'User not found'
-        });
-      }
+  // Update user profile
+updateProfile: async (req, res) => {
+  try {
+    const {
+      name, college, branch, year, skills, profile_pic_url,
+      phone, org, country,
 
-      const updateData = {};
-      if (name) updateData.name = name;
-      if (college) updateData.college = college;
-      if (branch) updateData.branch = branch;
-      if (year) updateData.year = year;
-      if (skills) updateData.skills = skills;
-      if (phone) updateData.phone = phone;
-      if (org) updateData.org = org;
-      if (country) updateData.country = country;
-      if (profile_pic_url) updateData.profile_pic_url = profile_pic_url;
+      // NEW fields from frontend
+      gender,                 // 'male' | 'female' | 'non_binary' | 'prefer_not_to_say'
+      edu_type,               // 'undergraduate' | 'graduate' | 'other'
+      work_experience_years,  // number
 
-      await user.update(updateData);
-
-      res.json({
-        success: true,
-        message: 'Profile updated successfully',
-        data: {
-          user: user.toJSON()
-        }
-      });
-
-    } catch (error) {
-      logger.error('Profile update error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update profile',
-        error: error.message
-      });
+      // Consent flags (booleans). If true, set timestamps to now.
+      agree_tnc,
+      agree_privacy,
+    } = req.body;
+    
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
-  },
+
+    const updateData = {};
+
+    if (name) updateData.name = String(name);
+    if (college) updateData.college = String(college);
+    if (branch) updateData.branch = String(branch);
+    if (year !== undefined && year !== null && year !== '') {
+      const y = parseInt(year, 10);
+      if (Number.isNaN(y) || y < 1 || y > 10) {
+        return res.status(400).json({ success: false, message: 'Year must be a number between 1 and 10' });
+      }
+      updateData.year = y;
+    }
+    if (Array.isArray(skills)) updateData.skills = skills;
+    if (phone) updateData.phone = String(phone);
+    if (org) updateData.org = String(org);
+    if (country) updateData.country = String(country);
+    if (profile_pic_url) updateData.profile_pic_url = String(profile_pic_url);
+
+    // --- NEW validations + assignments ---
+    const GENDERS = new Set(['male','female','non_binary','prefer_not_to_say']);
+    const EDU_TYPES = new Set(['undergraduate','graduate','other']);
+
+    if (gender !== undefined) {
+      if (!GENDERS.has(gender)) {
+        return res.status(400).json({ success: false, message: 'Invalid gender' });
+      }
+      updateData.gender = gender;
+    }
+
+    if (edu_type !== undefined) {
+      if (!EDU_TYPES.has(edu_type)) {
+        return res.status(400).json({ success: false, message: 'Invalid edu_type' });
+      }
+      updateData.edu_type = edu_type;
+    }
+
+    if (work_experience_years !== undefined && work_experience_years !== null && work_experience_years !== '') {
+      const w = Number(work_experience_years);
+      if (!Number.isFinite(w) || w < 0 || w > 60) {
+        return res.status(400).json({ success: false, message: 'work_experience_years must be between 0 and 60' });
+      }
+      updateData.work_experience_years = Math.trunc(w);
+    }
+
+    // Consent timestamps: set only when explicitly true
+    if (agree_tnc === true) {
+      updateData.agreed_tnc_at = new Date();
+    }
+    if (agree_privacy === true) {
+      updateData.agreed_privacy_at = new Date();
+    }
+
+    await user.update(updateData);
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: { user: user.toJSON() }
+    });
+
+  } catch (error) {
+    logger.error('Profile update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile',
+      error: error.message
+    });
+  }
+},
 
   forgotPassword: async (req, res) => {
     try {
