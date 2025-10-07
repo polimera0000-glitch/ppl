@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { apiService } from '../services/apiService';
 import SidebarLayout from '../components/SidebarLayout';
 import Toast from '../components/Toast';
+import TermsModal from '../components/TermsModal';
+import PrivacyModal from '../components/PrivacyModal';
 
 import {
   Users,
@@ -64,6 +66,10 @@ const CompetitionRegisterScreen = () => {
   // Agreements
   const [agreeTnC, setAgreeTnC] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
+
+  // Modals
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   const [toast, setToast] = useState(null); // {type, message}
 
@@ -306,6 +312,18 @@ const CompetitionRegisterScreen = () => {
       setSubmitting(false);
     }
   };
+
+  // --- helpers for terms/privacy links ---
+  const openTermsModal = (e) => {
+    e?.preventDefault?.();
+    setShowTerms(true);
+  };
+  const openPrivacyModal = (e) => {
+    e?.preventDefault?.();
+    setShowPrivacy(true);
+  };
+  const openTermsPage = () => window.open('/terms', '_blank', 'noopener,noreferrer');
+  const openPrivacyPage = () => window.open('/privacy', '_blank', 'noopener,noreferrer');
 
   return (
     <SidebarLayout currentPage="competitions" onPageChange={() => {}}>
@@ -594,7 +612,16 @@ const CompetitionRegisterScreen = () => {
                           required
                         />
                         <label htmlFor="agree-tnc" className="text-secondary-text">
-                          I agree to the <a href="/terms" target="_blank" rel="noreferrer" className="underline">Terms &amp; Conditions</a>.
+                          I agree to the{' '}
+                          <button
+                            type="button"
+                            onClick={openTermsModal}
+                            className="underline hover:text-primary-text"
+                          >
+                            Terms &amp; Conditions
+                          </button>
+                          .{' '}
+                          
                         </label>
                       </div>
                       <div className="flex items-start gap-3">
@@ -607,7 +634,16 @@ const CompetitionRegisterScreen = () => {
                           required
                         />
                         <label htmlFor="agree-privacy" className="text-secondary-text">
-                          I agree to the <a href="/privacy" target="_blank" rel="noreferrer" className="underline">Privacy Policy</a>.
+                          I agree to the{' '}
+                          <button
+                            type="button"
+                            onClick={openPrivacyModal}
+                            className="underline hover:text-primary-text"
+                          >
+                            Privacy Policy
+                          </button>
+                          .{' '}
+                          
                         </label>
                       </div>
                     </div>
@@ -745,6 +781,10 @@ const CompetitionRegisterScreen = () => {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* Modals */}
+      <TermsModal open={showTerms} onClose={() => setShowTerms(false)} />
+      <PrivacyModal open={showPrivacy} onClose={() => setShowPrivacy(false)} />
     </SidebarLayout>
   );
 };
