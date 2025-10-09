@@ -22,9 +22,13 @@ const logger = {
 // ---------- Branding / URLs ----------
 const BRAND_NAME = "PPL Platform";
 const BRAND_TAGLINE = "Empowering Students, Connecting Opportunities";
+
 const FRONTEND_BASE =
+  config.app?.frontendBaseUrl ||
   process.env.FRONTEND_BASE_URL ||
+  process.env.FRONTEND_URL ||
   "https://ppl-frontend-vzuv.onrender.com";
+
 const DEEP_LINK_SCHEME =
   (config.app && config.app.deepLinkScheme) ||
   process.env.DEEP_LINK_SCHEME ||
@@ -76,64 +80,60 @@ class EmailService {
   initializeTransporter() {
     try {
       const smtpHost = config.email?.smtpHost || process.env.EMAIL_SMTP_HOST;
-      const smtpPort =
-        parseInt(
-          config.email?.smtpPort || process.env.EMAIL_SMTP_PORT || "0",
-          10
-        ) || null;
+      const smtpPortRaw = config.email?.smtpPort ?? process.env.EMAIL_SMTP_PORT ?? 0;
+      const smtpPort = Number(smtpPortRaw) || null;
+
+      // Prefer explicit secure from config when provided; else infer from port
       const smtpSecure =
-        typeof config.email?.smtpSecure !== "undefined"
-          ? Boolean(config.email.smtpSecure)
-          : process.env.EMAIL_SMTP_SECURE === "true";
+        typeof config.email?.smtpSecure === "boolean"
+          ? config.email.smtpSecure
+          : smtpPort === 465;
 
       const user = config.email?.user || process.env.EMAIL_USER;
       const pass = config.email?.password || process.env.EMAIL_PASSWORD;
 
+      // Allow forcing debug in any env with EMAIL_DEBUG=true
+      const emailDebug = String(process.env.EMAIL_DEBUG || "").toLowerCase() === "true";
+
       if (smtpHost && smtpPort && user && pass) {
-        // GoDaddy-specific configuration
         const transportConfig = {
           host: smtpHost,
           port: smtpPort,
-          secure: smtpPort === 465, // true for 465, false for other ports
-          auth: {
-            user,
-            pass,
-          },
-          // GoDaddy-specific settings
+          secure: smtpSecure, // true for 465; false for 587 (STARTTLS)
+          auth: { user, pass },
           tls: {
-            // Don't fail on invalid certs (GoDaddy sometimes has cert issues)
-            rejectUnauthorized: config.email?.tlsRejectUnauthorized !== false ? true : false,
-            // Force TLS version
-            minVersion: 'TLSv1.2',
-            // Explicitly set the server name for SNI
+            // Use value as-is from config (default false = lenient).
+            rejectUnauthorized: !!(config.email && config.email.tlsRejectUnauthorized),
+            minVersion: "TLSv1.2",
+            // Do NOT force legacy ciphers; let Node choose sane defaults
+            // servername helps SNI on some providers
             servername: smtpHost,
-            // Some GoDaddy servers need this
-            ciphers: 'SSLv3',
           },
-          // Connection settings
-          connectionTimeout: 30000, // 30 seconds
+          // STARTTLS upgrade handled automatically when secure:false
+          requireTLS: smtpPort === 587,
+          pool: false,
+          connectionTimeout: 30000,
           greetingTimeout: 30000,
           socketTimeout: 30000,
-          // For port 587, force STARTTLS
-          requireTLS: smtpPort === 587,
-          // Disable pooling to avoid connection issues
-          pool: false,
-          // Enable debug mode
-          debug: process.env.NODE_ENV === 'development',
-          logger: process.env.NODE_ENV === 'development',
+          logger: emailDebug,
+          debug: emailDebug,
+          // Optional: override EHLO name if needed
+          name: process.env.EMAIL_CLIENT_NAME || undefined,
         };
 
-        logger.info('Initializing SMTP transporter with config:', {
+        logger.info("Initializing SMTP transporter with config:", {
           host: smtpHost,
           port: smtpPort,
           secure: transportConfig.secure,
           user,
+          tlsRejectUnauthorized: transportConfig.tls.rejectUnauthorized,
+          requireTLS: transportConfig.requireTLS,
         });
 
         this.transporter = nodemailer.createTransport(transportConfig);
 
         // Verify connection
-        this.transporter.verify((err, success) => {
+        this.transporter.verify((err) => {
           if (err) {
             logger.error("Email transporter verification failed:", {
               code: err.code,
@@ -142,38 +142,45 @@ class EmailService {
               responseCode: err.responseCode,
               message: err.message,
             });
-            
-            // Provide helpful error messages
-            if (err.code === 'EAUTH') {
-              logger.error('Authentication failed. Please check:');
-              logger.error('1. Username/password are correct');
-              logger.error('2. Email account is active in GoDaddy');
-              logger.error('3. Try using the full email address as username');
-              logger.error('4. Check if 2FA is enabled (may need app password)');
-            } else if (err.code === 'ECONNECTION') {
-              logger.error('Connection failed. Please check:');
-              logger.error('1. SMTP host and port are correct');
-              logger.error('2. Firewall/network allows outbound SMTP');
-              logger.error('3. GoDaddy SMTP service is accessible');
+
+            if (err.code === "EAUTH") {
+              logger.error("Authentication failed. Check:");
+              logger.error("1) Username/password");
+              logger.error("2) Mailbox active and allowed for SMTP");
+              logger.error("3) Use full email as username");
+              logger.error("4) If 2FA exists, use an app password");
+            } else if (err.code === "ECONNECTION") {
+              logger.error("Connection failed. Check:");
+              logger.error("1) SMTP host/port correct");
+              logger.error("2) Outbound 465/587 allowed by firewall/VPC");
+              logger.error("3) SMTP service status");
             }
           } else {
             logger.info("✓ Email transporter verified successfully");
           }
         });
       } else if (config.email && config.email.service) {
+        // Fallback to nodemailer well-known services if configured that way
+        const user2 = config.email?.user || process.env.EMAIL_USER;
+        const pass2 = config.email?.password || process.env.EMAIL_PASSWORD;
         this.transporter = nodemailer.createTransport({
           service: config.email.service,
-          auth: user && pass ? { user, pass } : undefined,
+          auth: user2 && pass2 ? { user: user2, pass: pass2 } : undefined,
+          logger: emailDebug,
+          debug: emailDebug,
         });
       } else {
+        const missingBits = [
+          !smtpHost && "EMAIL_SMTP_HOST",
+          !smtpPort && "EMAIL_SMTP_PORT",
+          !user && "EMAIL_USER",
+          !pass && "EMAIL_PASSWORD",
+        ]
+          .filter(Boolean)
+          .join(", ");
+
         logger.warn(
-          "Email config incomplete. Missing: " +
-          [
-            !smtpHost && "SMTP_HOST",
-            !smtpPort && "SMTP_PORT", 
-            !user && "EMAIL_USER",
-            !pass && "EMAIL_PASSWORD"
-          ].filter(Boolean).join(", ")
+          "Email config incomplete. Missing: " + (missingBits || "unknown fields")
         );
         logger.warn("Emails will be logged to console only.");
       }
@@ -182,43 +189,52 @@ class EmailService {
         logger.info("Email service initialized");
       }
     } catch (error) {
-      logger.error(
-        "Failed to initialize email transporter:",
-        error?.message || error
-      );
+      logger.error("Failed to initialize email transporter:", error?.message || error);
       this.transporter = null;
     }
+  }
+
+  _resolveDefaultFrom() {
+    const authUser = config.email?.user || process.env.EMAIL_USER || "";
+    const explicitFrom = config.email?.from || process.env.EMAIL_FROM;
+    if (explicitFrom) return explicitFrom;
+
+    // Safest default: send from the authenticated mailbox
+    if (authUser && authUser.includes("@")) return authUser;
+
+    // Fallback: generic no-reply on same domain if inferrable
+    const domain = (authUser.split("@")[1] || "").trim() || "example.com";
+    return `no-reply@${domain}`;
   }
 
   async sendEmail(to, subject, html, text = null) {
     try {
       if (!this.transporter) {
         logger.info("Email (console fallback) — to:", to, "subject:", subject);
-        if (process.env.NODE_ENV === "development") {
-          logger.info("Email HTML preview (first 500 chars):", html.slice(0, 500));
+        if (process.env.NODE_ENV !== "production") {
+          logger.info("Email HTML preview (first 500 chars):", String(html || "").slice(0, 500));
         }
         return { success: true, messageId: "console-fallback" };
       }
 
+      const fromAddress = this._resolveDefaultFrom();
+
       const mailOptions = {
-        from:
-          config.email?.from ||
-          process.env.EMAIL_FROM ||
-          `"${BRAND_NAME}" <${config.email?.user || 'no-reply@ppl.app'}>`,
+        from: `"${BRAND_NAME}" <${fromAddress}>`,
         to,
         subject,
         html,
-        text: text || html.replace(/<[^>]*>/g, ""),
+        text: text || String(html || "").replace(/<[^>]*>/g, ""),
       };
 
       logger.info("Attempting to send email:", { to, subject, from: mailOptions.from });
 
       const info = await this.transporter.sendMail(mailOptions);
-      logger.info("✓ Email sent successfully", { 
-        to, 
-        subject, 
+      logger.info("✓ Email sent successfully", {
+        to,
+        subject,
         messageId: info.messageId,
-        response: info.response 
+        response: info.response,
       });
       return { success: true, messageId: info.messageId, raw: info };
     } catch (error) {
@@ -236,20 +252,14 @@ class EmailService {
 
   // ---------------- Verification ----------------
   async sendVerificationEmail(email, name, verificationToken) {
-    const webLink = `${frontend}/verify-email?token=${encodeURIComponent(
-      verificationToken
-    )}`;
-    const deepLink = `${DEEP_LINK_SCHEME}://verify-email?token=${encodeURIComponent(
-      verificationToken
-    )}`;
+    const webLink = `${frontend}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+    const deepLink = `${DEEP_LINK_SCHEME}://verify-email?token=${encodeURIComponent(verificationToken)}`;
 
     const subject = `Verify your email — ${BRAND_NAME}`;
     const bodyHtml = `
       <tr><td style="padding:28px 32px 12px;">
         <h1 style="margin:0;font-size:22px;color:#0f1724;">Welcome to ${BRAND_NAME}!</h1>
-        <p style="margin:12px 0 0;color:#475569;font-size:14px;">Hi ${
-          name || "there"
-        }, please verify your email address to get started.</p>
+        <p style="margin:12px 0 0;color:#475569;font-size:14px;">Hi ${name || "there"}, please verify your email address to get started.</p>
       </td></tr>
       <tr><td style="padding:18px 32px;">
         <p style="margin:0 0 16px;color:#334155;font-size:15px;">Click the button below to verify your email and activate your account.</p>
@@ -292,9 +302,7 @@ If you didn't create an account, you can ignore this email.`;
     const subject = `Welcome to ${BRAND_NAME}!`;
     const bodyHtml = `
       <tr><td style="padding:28px 32px 12px;">
-        <h1 style="margin:0;font-size:22px;color:#0f1724;">🎉 You're all set, ${
-          name || "friend"
-        }!</h1>
+        <h1 style="margin:0;font-size:22px;color:#0f1724;">🎉 You're all set, ${name || "friend"}!</h1>
         <p style="margin:12px 0 0;color:#475569;font-size:14px;">Your email is verified and your account is active.</p>
       </td></tr>
       <tr><td style="padding:18px 32px;">
@@ -341,9 +349,7 @@ Dashboard: ${dashboardUrl}`;
     const subject = `Welcome back to ${BRAND_NAME}`;
     const bodyHtml = `
       <tr><td style="padding:28px 32px 12px;">
-        <h1 style="margin:0;font-size:20px;color:#0f1724;">Welcome back, ${
-          name || "there"
-        }!</h1>
+        <h1 style="margin:0;font-size:20px;color:#0f1724;">Welcome back, ${name || "there"}!</h1>
         <p style="margin:12px 0 0;color:#475569;font-size:14px;">Pick up where you left off.</p>
       </td></tr>
       <tr><td style="padding:18px 32px;">
@@ -380,9 +386,7 @@ ${competitionsUrl}`;
     const bodyHtml = `
       <tr><td style="padding:28px 32px 12px;">
         <h1 style="margin:0;font-size:20px;color:#0f1724;">🔒 Password updated</h1>
-        <p style="margin:12px 0 0;color:#475569;font-size:14px;">Hi ${
-          name || "there"
-        }, your password was changed on ${when}.</p>
+        <p style="margin:12px 0 0;color:#475569;font-size:14px;">Hi ${name || "there"}, your password was changed on ${when}.</p>
       </td></tr>
       <tr><td style="padding:18px 32px;">
         <p style="margin:0 0 12px;color:#334155;font-size:15px;">If this was you, no action is needed.</p>
@@ -408,10 +412,7 @@ If this wasn’t you, reset your password and contact support immediately.`;
       if (!resetTokenOrObject) return "";
       if (typeof resetTokenOrObject === "string") return resetTokenOrObject;
       if (resetTokenOrObject.token) return String(resetTokenOrObject.token);
-      if (
-        typeof resetTokenOrObject.get === "function" &&
-        resetTokenOrObject.get("token")
-      )
+      if (typeof resetTokenOrObject.get === "function" && resetTokenOrObject.get("token"))
         return String(resetTokenOrObject.get("token"));
       if (opts && opts.deepLink) {
         try {
@@ -429,9 +430,7 @@ If this wasn’t you, reset your password and contact support immediately.`;
     const deepLink =
       opts.deepLink ||
       (tokenString
-        ? `${DEEP_LINK_SCHEME}://reset-password?token=${encodeURIComponent(
-            tokenString
-          )}`
+        ? `${DEEP_LINK_SCHEME}://reset-password?token=${encodeURIComponent(tokenString)}`
         : null);
 
     const webFallback =
@@ -446,9 +445,7 @@ If this wasn’t you, reset your password and contact support immediately.`;
     const bodyHtml = `
       <tr><td style="padding:28px 32px 12px;">
         <h1 style="margin:0;font-size:20px;color:#0f1724;">Reset your password</h1>
-        <p style="margin:12px 0 0;color:#475569;font-size:14px;">Hi ${
-          name || "there"
-        }, we received a request to reset your password.</p>
+        <p style="margin:12px 0 0;color:#475569;font-size:14px;">Hi ${name || "there"}, we received a request to reset your password.</p>
       </td></tr>
       <tr><td style="padding:18px 32px;">
         <p style="margin:0 0 16px;color:#334155;font-size:15px;">This link is valid for <strong>${expiryMinutes} minutes</strong>.</p>
@@ -460,16 +457,8 @@ If this wasn’t you, reset your password and contact support immediately.`;
         </div>
         <p style="margin:16px 0 0;color:#475569;font-size:13px;">If the button doesn't work, use one of these links:</p>
         <p style="word-break:break-all;color:#0f1724;font-size:13px;margin:8px 0 0;">
-          ${
-            webFallback
-              ? `<strong>Web:</strong> <a href="${webFallback}">${webFallback}</a><br/>`
-              : ""
-          }
-          ${
-            deepLink
-              ? `<strong>App:</strong> <a href="${deepLink}">${deepLink}</a>`
-              : ""
-          }
+          ${webFallback ? `<strong>Web:</strong> <a href="${webFallback}">${webFallback}</a><br/>` : ""}
+          ${deepLink ? `<strong>App:</strong> <a href="${deepLink}">${deepLink}</a>` : ""}
         </p>
         <hr style="border:none;border-top:1px solid #eef2ff;margin:20px 0;" />
         <p style="color:#64748b;font-size:12px;margin:0;">If you didn’t request this, you can safely ignore this email.</p>
@@ -493,19 +482,13 @@ If you didn’t request this, you can ignore this email.`;
   }
 
   // ---------------- Admin invitation (optional) ----------------
-  async sendAdminInvitationEmail(
-    email,
-    name,
-    { tempPassword, invitedBy, loginUrl } = {}
-  ) {
+  async sendAdminInvitationEmail(email, name, { tempPassword, invitedBy, loginUrl } = {}) {
     const subject = `You’ve been invited as an Admin — ${BRAND_NAME}`;
     const safeLoginUrl = loginUrl || `${frontend}/admin`;
     const bodyHtml = `
       <tr><td style="padding:28px 32px 12px;">
         <h1 style="margin:0;font-size:22px;color:#0f1724;">Welcome to ${BRAND_NAME} Admin</h1>
-        <p style="margin:12px 0 0;color:#475569;font-size:14px;">Hi ${
-          name || "there"
-        }, you've been invited by ${invitedBy || "an admin"}.</p>
+        <p style="margin:12px 0 0;color:#475569;font-size:14px;">Hi ${name || "there"}, you've been invited by ${invitedBy || "an admin"}.</p>
       </td></tr>
       <tr><td style="padding:18px 32px;">
         <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:16px;margin:16px 0;">
@@ -552,9 +535,7 @@ Please change your password immediately after your first login.`;
     const bodyHtml = `
       <tr><td style="padding:28px 32px 12px;">
         <h1 style="margin:0;font-size:20px;color:#0f1724;">Admin Access</h1>
-        <p style="margin:12px 0 0;color:#475569;font-size:14px;">Hi ${
-          name || "Admin"
-        }, use the secure link below to access the admin panel.</p>
+        <p style="margin:12px 0 0;color:#475569;font-size:14px;">Hi ${name || "Admin"}, use the secure link below to access the admin panel.</p>
       </td></tr>
       <tr><td style="padding:18px 32px;">
         <div style="text-align:center;margin:20px 0;">
@@ -575,37 +556,15 @@ Please change your password immediately after your first login.`;
     return this.sendEmail(email, subject, html, `Admin access link: ${url}`);
   }
 
-  // ---- (Your competition/submission emails below still work; they’ll inherit the new brand in the footer text) ----
+  // ---- Competition & submission emails ----
 
-  async sendRegistrationStatusUpdate(
-    email,
-    name,
-    competitionTitle,
-    status,
-    feedback = null
-  ) {
+  async sendRegistrationStatusUpdate(email, name, competitionTitle, status, feedback = null) {
     const statusMessages = {
-      confirmed: {
-        title: "Registration confirmed 🎉",
-        message: "You can now participate.",
-        color: "#10B981",
-      },
-      rejected: {
-        title: "Registration update",
-        message: "Unfortunately, your registration was not accepted.",
-        color: "#EF4444",
-      },
-      cancelled: {
-        title: "Registration cancelled",
-        message: "Your registration has been cancelled.",
-        color: "#6B7280",
-      },
+      confirmed: { title: "Registration confirmed 🎉", message: "You can now participate.", color: "#10B981" },
+      rejected:  { title: "Registration update", message: "Unfortunately, your registration was not accepted.", color: "#EF4444" },
+      cancelled: { title: "Registration cancelled", message: "Your registration has been cancelled.", color: "#6B7280" },
     };
-    const s = statusMessages[status] || {
-      title: "Registration update",
-      message: `Status: ${status}`,
-      color: "#667eea",
-    };
+    const s = statusMessages[status] || { title: "Registration update", message: `Status: ${status}`, color: "#667eea" };
     const subject = `${s.title} — ${competitionTitle}`;
     const bodyHtml = `
       <tr><td style="padding:20px 24px;background:${s.color};color:#fff;">
@@ -615,30 +574,17 @@ Please change your password immediately after your first login.`;
         <p style="margin:0 0 6px;">Hi ${name || "there"},</p>
         <p style="margin:0 0 10px;"><strong>Competition:</strong> ${competitionTitle}</p>
         <p style="margin:0 0 10px;">${s.message}</p>
-        ${
-          feedback
-            ? `<div style="background:#f8f9fa;padding:12px;border-radius:6px;margin:14px 0;"><strong>Notes:</strong><br/>${feedback}</div>`
-            : ""
-        }
+        ${feedback ? `<div style="background:#f8f9fa;padding:12px;border-radius:6px;margin:14px 0;"><strong>Notes:</strong><br/>${feedback}</div>` : ""}
         <div style="text-align:center;margin:18px 0;">
           <a href="${frontend}/competitions" style="display:inline-block;padding:10px 18px;border-radius:8px;background:#111827;color:#fff;">View my registrations</a>
         </div>
       </td></tr>
     `;
-    const html = baseEmailShell({
-      title: subject,
-      preheader: "Competition registration update.",
-      bodyHtml,
-    });
+    const html = baseEmailShell({ title: subject, preheader: "Competition registration update.", bodyHtml });
     return this.sendEmail(email, subject, html);
   }
 
-  async sendSubmissionReceivedEmail(
-    email,
-    name,
-    competitionTitle,
-    submissionTitle
-  ) {
+  async sendSubmissionReceivedEmail(email, name, competitionTitle, submissionTitle) {
     const mySubsUrl = `${frontend}/my-submissions`;
     const subject = `Submission received — ${competitionTitle}`;
     const bodyHtml = `
@@ -653,23 +599,12 @@ Please change your password immediately after your first login.`;
         </p>
       </td></tr>
     `;
-    const html = baseEmailShell({
-      title: subject,
-      preheader: "We got your submission.",
-      bodyHtml,
-    });
+    const html = baseEmailShell({ title: subject, preheader: "We got your submission.", bodyHtml });
     const text = `Submission received for "${competitionTitle}" — "${submissionTitle}". View: ${mySubsUrl}`;
     return this.sendEmail(email, subject, html, text);
   }
 
-  async sendSubmissionStatusEmail(
-    email,
-    name,
-    competitionTitle,
-    submissionTitle,
-    status,
-    feedback
-  ) {
+  async sendSubmissionStatusEmail(email, name, competitionTitle, submissionTitle, status, feedback) {
     const subject = `Submission status updated — ${competitionTitle}`;
     const bodyHtml = `
       <tr><td style="padding:14px 18px;background:#3B82F6;color:#fff;">
@@ -677,17 +612,11 @@ Please change your password immediately after your first login.`;
       </td></tr>
       <tr><td style="padding:18px;">
         <p>Hi ${name || "there"},</p>
-        <p>Your submission <strong>${submissionTitle}</strong> for <strong>${competitionTitle}</strong> is now: <strong>${String(
-      status
-    ).replace("_", " ")}</strong>.</p>
+        <p>Your submission <strong>${submissionTitle}</strong> for <strong>${competitionTitle}</strong> is now: <strong>${String(status).replace("_", " ")}</strong>.</p>
         ${feedback ? `<p><strong>Feedback:</strong> ${feedback}</p>` : ""}
       </td></tr>
     `;
-    const html = baseEmailShell({
-      title: subject,
-      preheader: "Your submission status changed.",
-      bodyHtml,
-    });
+    const html = baseEmailShell({ title: subject, preheader: "Your submission status changed.", bodyHtml });
     const text = `Your submission "${submissionTitle}" is now ${status}.`;
     return this.sendEmail(email, subject, html, text);
   }
@@ -707,21 +636,12 @@ Please change your password immediately after your first login.`;
         </p>
       </td></tr>
     `;
-    const html = baseEmailShell({
-      title: subject,
-      preheader: "Results are live.",
-      bodyHtml,
-    });
+    const html = baseEmailShell({ title: subject, preheader: "Results are live.", bodyHtml });
     const text = `Results published for "${competitionTitle}". See: ${mySubsUrl}`;
     return this.sendEmail(email, subject, html, text);
   }
 
-  async sendCompetitionRegistrationEmail(
-    email,
-    name,
-    competitionTitle,
-    extras = {}
-  ) {
+  async sendCompetitionRegistrationEmail(email, name, competitionTitle, extras = {}) {
     const competitionsUrl = `${frontend}/competitions`;
     const mySubsUrl = `${frontend}/my-submissions`;
     const submitHint = extras?.submitUrl || competitionsUrl;
@@ -749,61 +669,35 @@ Please change your password immediately after your first login.`;
         </p>
       </td></tr>
     `;
-    const html = baseEmailShell({
-      title: subject,
-      preheader: "You're in!",
-      bodyHtml,
-    });
+    const html = baseEmailShell({ title: subject, preheader: "You're in!", bodyHtml });
     const text = `Registration confirmed for ${competitionTitle}. Next: submit your project. My submissions: ${mySubsUrl}`;
     return this.sendEmail(email, subject, html, text);
   }
 
-  async sendAddedToTeamEmail(
-    email,
-    name,
-    competitionTitle,
-    teamName,
-    context = {}
-  ) {
+  async sendAddedToTeamEmail(email, name, competitionTitle, teamName, context = {}) {
     const subject = `You've been added to "${teamName}" — ${competitionTitle}`;
     const link = context?.link;
     const bodyHtml = `
       <tr><td style="padding:14px 18px;background:#10B981;color:#fff;"><strong>Team update</strong></td></tr>
       <tr><td style="padding:18px;">
         <p>Hi ${name || "there"},</p>
-        <p>You've been added to team <strong>${
-          teamName || "Your Team"
-        }</strong> for <strong>${competitionTitle}</strong>.</p>
-        ${
-          link
-            ? `<p style="text-align:center;margin:16px 0;"><a href="${link}" style="background:#2563eb;color:#fff;padding:10px 18px;border-radius:8px;display:inline-block;">View competition</a></p>`
-            : ""
-        }
+        <p>You've been added to team <strong>${teamName || "Your Team"}</strong> for <strong>${competitionTitle}</strong>.</p>
+        ${link ? `<p style="text-align:center;margin:16px 0;"><a href="${link}" style="background:#2563eb;color:#fff;padding:10px 18px;border-radius:8px;display:inline-block;">View competition</a></p>` : ""}
       </td></tr>
     `;
-    const html = baseEmailShell({
-      title: subject,
-      preheader: "You've joined a team.",
-      bodyHtml,
-    });
+    const html = baseEmailShell({ title: subject, preheader: "You've joined a team.", bodyHtml });
     const text = `You've been added to team "${teamName}" for ${competitionTitle}.`;
     return this.sendEmail(email, subject, html, text);
   }
 
   async sendRemovedFromTeamEmail(email, name, competitionTitle, teamName) {
     const subject = `Removed from "${teamName}" — ${competitionTitle}`;
-    const text = `Hi ${
-      name || "there"
-    }, you were removed from team "${teamName}" for ${competitionTitle}.`;
+    const text = `Hi ${name || "there"}, you were removed from team "${teamName}" for ${competitionTitle}.`;
     const bodyHtml = `
       <tr><td style="padding:14px 18px;background:#EF4444;color:#fff;"><strong>Team update</strong></td></tr>
       <tr><td style="padding:18px;"><p>${text}</p></td></tr>
     `;
-    const html = baseEmailShell({
-      title: subject,
-      preheader: "Team change.",
-      bodyHtml,
-    });
+    const html = baseEmailShell({ title: subject, preheader: "Team change.", bodyHtml });
     return this.sendEmail(email, subject, html, text);
   }
 }
