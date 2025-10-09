@@ -100,6 +100,7 @@ const config = {
     password: env('EMAIL_PASSWORD'),
     from: env('EMAIL_FROM'),
     // allow disabling TLS verification for dev/self-signed SMTP
+    // default false = lenient (good for many hosted SMTPs)
     tlsRejectUnauthorized: envBool('EMAIL_TLS_REJECT_UNAUTHORIZED', false),
   },
 
