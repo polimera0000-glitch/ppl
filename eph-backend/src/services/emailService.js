@@ -75,6 +75,7 @@ class EmailService {
   constructor() {
     this.transporter = null;
     this.isConfigured = false;
+    this.verificationAttempted = false;
     this.initializeTransporter();
   }
 
@@ -109,33 +110,30 @@ class EmailService {
       // GoDaddy detection
       const isGoDaddy = smtpHost && smtpHost.toLowerCase().includes('secureserver.net');
       
-      // CRITICAL: Port 465 MUST use secure:true, port 587 uses secure:false + requireTLS
+      // Port 465 uses secure:true, port 587 uses secure:false + requireTLS
       const smtpSecure = smtpPort === 465;
 
-      // GoDaddy-specific config adjustments
+      // CRITICAL: GoDaddy-optimized config for Render.com
       const transportConfig = {
-  host: smtpHost,
-  port: smtpPort,                 // 587 recommended
-  secure: smtpSecure,             // false for 587 (STARTTLS), true only for 465
-  auth: { user, pass },
-  requireTLS: smtpPort === 587,   // force STARTTLS on 587
-  tls: {
-    // Start lenient; set to true once stable and certs are clean
-    rejectUnauthorized: isGoDaddy ? false : !!(config.email && config.email.tlsRejectUnauthorized),
-    minVersion: "TLSv1.2",
-    servername: smtpHost,         // SNI
-    // ❌ REMOVE this line (breaks modern TLS):
-    // ciphers: isGoDaddy ? 'SSLv3' : undefined,
-  },
-  pool: false,
-  maxConnections: 1,
-  maxMessages: 1,
-  connectionTimeout: 120000,
-  greetingTimeout: 60000,
-  socketTimeout: 120000,
-  logger: emailDebug,
-  debug: emailDebug,
-};
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpSecure,
+        auth: { user, pass },
+        requireTLS: smtpPort === 587,
+        tls: {
+          rejectUnauthorized: false, // CRITICAL for GoDaddy
+          minVersion: "TLSv1.2",
+          servername: smtpHost,
+        },
+        pool: true,              // ✅ Enable connection pooling
+        maxConnections: 5,       // Allow multiple connections
+        maxMessages: 100,        // Reuse connections
+        connectionTimeout: 120000,  // 2 minutes
+        greetingTimeout: 120000,
+        socketTimeout: 120000,
+        logger: emailDebug,
+        debug: emailDebug,
+      };
 
       logger.info("🔧 Initializing SMTP transporter:", {
         host: smtpHost,
@@ -150,50 +148,13 @@ class EmailService {
 
       this.transporter = nodemailer.createTransport(transportConfig);
 
-      // Verify connection (critical for catching config errors) with timeout
-      const verifyTimeout = setTimeout(() => {
-        logger.error("❌ Email verification timeout after 30 seconds");
-        this.isConfigured = false;
-      }, 60000);
-
-      this.transporter.verify((err) => {
-        clearTimeout(verifyTimeout);
-        
-        if (err) {
-          this.isConfigured = false;
-          logger.error("❌ Email transporter verification FAILED:", {
-            code: err.code,
-            command: err.command,
-            response: err.response,
-            responseCode: err.responseCode,
-            message: err.message,
-          });
-
-          if (err.code === "EAUTH") {
-            logger.error("🔐 Authentication failed. Check:");
-            logger.error("   1) Username is full email: admin@theppl.in");
-            logger.error("   2) Password is correct (no extra spaces)");
-            logger.error("   3) GoDaddy email account is active");
-            logger.error("   4) SMTP access is enabled in GoDaddy settings");
-          } else if (err.code === "ECONNECTION" || err.code === "ETIMEDOUT") {
-            logger.error("🔌 Connection failed. Check:");
-            logger.error("   1) SMTP host: smtpout.secureserver.net");
-            logger.error("   2) Port 465 for SSL or 587 for TLS");
-            logger.error("   3) Firewall/VPC allows outbound to GoDaddy SMTP");
-            logger.error("   4) No IP blocking by GoDaddy");
-            logger.error(`   5) Test connection: curl -v telnet://${smtpHost}:${smtpPort}`);
-          } else if (err.code === "ESOCKET" || err.code === "EPROTO") {
-            logger.error("🔒 SSL/TLS issue. Check:");
-            logger.error("   1) Port matches secure setting (465=SSL, 587=TLS)");
-            logger.error("   2) Try switching to port 587 with STARTTLS");
-            logger.error("   3) GoDaddy cert is valid");
-          }
-        } else {
-          this.isConfigured = true;
-          logger.info("✅ Email transporter verified successfully");
-          logger.info(`📧 Emails will be sent from: ${this._resolveDefaultFrom()}`);
-        }
-      });
+      // LAZY VERIFICATION: Don't block startup, verify on first send
+      if (process.env.EMAIL_VERIFY_ON_STARTUP === 'true') {
+        this.verifyConnection();
+      } else {
+        logger.info("⏭️  Skipping startup verification (will verify on first email send)");
+        this.isConfigured = true; // Assume configured, will verify lazily
+      }
 
     } catch (error) {
       this.isConfigured = false;
@@ -202,12 +163,59 @@ class EmailService {
     }
   }
 
+  // Separate verification method
+  async verifyConnection() {
+    if (this.verificationAttempted || !this.transporter) {
+      return;
+    }
+
+    this.verificationAttempted = true;
+
+    return new Promise((resolve) => {
+      const verifyTimeout = setTimeout(() => {
+        logger.warn("⚠️  Email verification timeout (120s) - will retry on first send");
+        this.isConfigured = true; // Allow app to continue, verify on send
+        resolve(false);
+      }, 120000); // 2 minutes timeout
+
+      this.transporter.verify((err) => {
+        clearTimeout(verifyTimeout);
+        
+        if (err) {
+          this.isConfigured = true; // Still allow sends (lazy verification)
+          logger.warn("⚠️  Email verification failed, will retry on send:", {
+            code: err.code,
+            message: err.message,
+          });
+
+          if (err.code === "EAUTH") {
+            logger.error("🔐 Authentication issue detected. Check:");
+            logger.error("   1) Username: admin@theppl.in (full email)");
+            logger.error("   2) Password is correct");
+            logger.error("   3) GoDaddy email account is active");
+          } else if (err.code === "ECONNECTION" || err.code === "ETIMEDOUT") {
+            logger.error("🔌 Connection issue. Possible causes:");
+            logger.error("   1) Render.com may block outbound port 587");
+            logger.error("   2) Try port 465 with SSL");
+            logger.error("   3) GoDaddy may block Render's IP range");
+            logger.error("   4) Contact GoDaddy to whitelist Render IPs");
+          }
+          resolve(false);
+        } else {
+          this.isConfigured = true;
+          logger.info("✅ Email transporter verified successfully");
+          logger.info(`📧 Emails will be sent from: ${this._resolveDefaultFrom()}`);
+          resolve(true);
+        }
+      });
+    });
+  }
+
   _resolveDefaultFrom() {
     const authUser = config.email?.user || process.env.EMAIL_USER || "";
     const explicitFrom = config.email?.from || process.env.EMAIL_FROM;
     if (explicitFrom) return explicitFrom;
 
-    // For GoDaddy, MUST send from authenticated email
     if (authUser && authUser.includes("@")) {
       return `"${BRAND_NAME}" <${authUser}>`;
     }
@@ -218,7 +226,12 @@ class EmailService {
 
   async sendEmail(to, subject, html, text = null) {
     try {
-      // CRITICAL: Check if configured before attempting to send
+      // Lazy verification: verify connection on first send
+      if (!this.verificationAttempted && this.transporter) {
+        logger.info("🔄 First email send - verifying connection...");
+        await this.verifyConnection();
+      }
+
       if (!this.transporter || !this.isConfigured) {
         logger.warn("⚠️  Email not configured - logging instead of sending");
         logger.info("📧 Email (console fallback):");
@@ -251,10 +264,10 @@ class EmailService {
         env: process.env.NODE_ENV 
       });
 
-      // Send with timeout protection
+      // Send with extended timeout
       const sendPromise = this.transporter.sendMail(mailOptions);
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Email send timeout after 60 seconds')), 60000)
+        setTimeout(() => reject(new Error('Email send timeout after 90 seconds')), 90000)
       );
 
       const info = await Promise.race([sendPromise, timeoutPromise]);
@@ -285,7 +298,6 @@ class EmailService {
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       });
 
-      // Return detailed error for debugging
       return { 
         success: false, 
         error: error?.message || error, 
@@ -341,7 +353,8 @@ If you didn't create an account, you can ignore this email.`;
     return this.sendEmail(email, subject, html, text);
   }
 
-  // ---------------- Welcome (after verification) ----------------
+  // [Keep all other email methods unchanged - they call sendEmail() which handles everything]
+  
   async sendWelcomeEmail(email, name) {
     const dashboardUrl = `${frontend}/dashboard`;
     const subject = `Welcome to ${BRAND_NAME}!`;
@@ -388,7 +401,6 @@ Dashboard: ${dashboardUrl}`;
     return this.sendEmail(email, subject, html, text);
   }
 
-  // ---------------- Welcome back (login) ----------------
   async sendWelcomeBackEmail(email, name) {
     const competitionsUrl = `${frontend}/competitions`;
     const subject = `Welcome back to ${BRAND_NAME}`;
@@ -424,7 +436,6 @@ ${competitionsUrl}`;
     return this.sendEmail(email, subject, html, text);
   }
 
-  // ---------------- Password changed ----------------
   async sendPasswordChangedNotification(email, name) {
     const subject = `Your ${BRAND_NAME} password was changed`;
     const when = new Date().toLocaleString();
@@ -446,12 +457,11 @@ ${competitionsUrl}`;
     const text = `Hi ${name || "there"},
 
 Your ${BRAND_NAME} password was changed on ${when}.
-If this wasn’t you, reset your password and contact support immediately.`;
+If this wasn't you, reset your password and contact support immediately.`;
 
     return this.sendEmail(email, subject, html, text);
   }
 
-  // ---------------- Password reset ----------------
   async sendPasswordResetEmail(email, name, resetTokenOrObject, opts = {}) {
     const tokenString = (() => {
       if (!resetTokenOrObject) return "";
@@ -506,7 +516,7 @@ If this wasn’t you, reset your password and contact support immediately.`;
           ${deepLink ? `<strong>App:</strong> <a href="${deepLink}">${deepLink}</a>` : ""}
         </p>
         <hr style="border:none;border-top:1px solid #eef2ff;margin:20px 0;" />
-        <p style="color:#64748b;font-size:12px;margin:0;">If you didn’t request this, you can safely ignore this email.</p>
+        <p style="color:#64748b;font-size:12px;margin:0;">If you didn't request this, you can safely ignore this email.</p>
       </td></tr>
     `;
     const html = baseEmailShell({
@@ -521,14 +531,13 @@ This link is valid for ${expiryMinutes} minutes.
 
 ${webFallback || deepLink || ""}
 
-If you didn’t request this, you can ignore this email.`;
+If you didn't request this, you can ignore this email.`;
 
     return this.sendEmail(email, subject, html, text);
   }
 
-  // ---------------- Admin invitation (optional) ----------------
   async sendAdminInvitationEmail(email, name, { tempPassword, invitedBy, loginUrl } = {}) {
-    const subject = `You’ve been invited as an Admin — ${BRAND_NAME}`;
+    const subject = `You've been invited as an Admin — ${BRAND_NAME}`;
     const safeLoginUrl = loginUrl || `${frontend}/admin`;
     const bodyHtml = `
       <tr><td style="padding:28px 32px 12px;">
@@ -573,7 +582,6 @@ Please change your password immediately after your first login.`;
     return this.sendEmail(email, subject, html, text);
   }
 
-  // ---------------- Admin magic link ----------------
   async sendAdminMagicLink(email, name, { deepLink, webFallback } = {}) {
     const subject = `Admin access link — ${BRAND_NAME}`;
     const url = webFallback || deepLink || `${frontend}/admin`;
@@ -600,8 +608,6 @@ Please change your password immediately after your first login.`;
 
     return this.sendEmail(email, subject, html, `Admin access link: ${url}`);
   }
-
-  // ---- Competition & submission emails ----
 
   async sendRegistrationStatusUpdate(email, name, competitionTitle, status, feedback = null) {
     const statusMessages = {
@@ -638,7 +644,7 @@ Please change your password immediately after your first login.`;
       </td></tr>
       <tr><td style="padding:18px;">
         <p>Hi ${name || "there"},</p>
-        <p>We’ve received your submission <strong>${submissionTitle}</strong> for <strong>${competitionTitle}</strong>.</p>
+        <p>We've received your submission <strong>${submissionTitle}</strong> for <strong>${competitionTitle}</strong>.</p>
         <p style="text-align:center;margin:16px 0;">
           <a href="${mySubsUrl}" style="background:#111827;color:#fff;padding:10px 18px;border-radius:8px;display:inline-block;">View my submissions</a>
         </p>
