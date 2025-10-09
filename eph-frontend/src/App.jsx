@@ -43,6 +43,10 @@ import CompetitionDetails from "./pages/CompetitionDetails.jsx";
 
 import ContactPage from "./pages/ContactPage.jsx";
 
+import VerifyEmail from "./pages/VerifyEmail";
+
+import EmailVerificationNotice from "./pages/EmailVerificationNotice";
+
 import "./index.css";
 
 // --- Small gates ---
@@ -123,6 +127,11 @@ function App() {
                 element={<ForgotPasswordScreen />}
               />
               <Route path="/reset-password" element={<ResetPasswordScreen />} />
+
+              <Route path="/verify-email" element={<VerifyEmail />} />
+
+              <Route path="/verify-email-sent" element={<EmailVerificationNotice />} />
+
               <Route path="/auth/callback" element={<OAuthCallbackScreen />} />
               <Route
                 path="/competition/:competitionId/leaderboard"

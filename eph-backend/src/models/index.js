@@ -21,6 +21,7 @@ const VideoDef = require('./Video');
 const PerkDef = require('./Perk');
 const PasswordResetDef = require('./PasswordReset');
 const UserPerkDef = require('./UserPerk.js');
+const EmailVerificationTokenDef = require('./EmailVerificationToken.js');
 
 // NEW
 const SubmissionDef = require('./Submission');
@@ -37,6 +38,7 @@ const Perk = PerkDef(sequelize, DataTypes);
 const PasswordReset = PasswordResetDef(sequelize, DataTypes);
 const UserPerk = UserPerkDef(sequelize, DataTypes);
 const ContactRequest = ContactDef(sequelize, DataTypes);
+const EmailVerificationToken = EmailVerificationTokenDef(sequelize, DataTypes);
 
 // NEW
 const Submission = SubmissionDef(sequelize, DataTypes);
@@ -65,6 +67,8 @@ Video.belongsTo(User, { foreignKey: 'uploader_id', as: 'uploader' });
 
 // PasswordReset
 PasswordReset.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+EmailVerificationToken.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
 // Users ↔ Registrations (team members)
 User.belongsToMany(Registration, {
@@ -132,5 +136,6 @@ module.exports = {
   Submission,
   JudgingCriteria,
   Score,
-  ContactRequest
+  ContactRequest,
+  EmailVerificationToken,
 };
