@@ -42,6 +42,7 @@ const authenticate = async (req, res, next) => {
     const token = extractToken(req);
 
     if (!token) {
+      logger.warn('Authentication failed: No token provided');
       return res.status(401).json({
         success: false,
         message: 'Access token is required'
@@ -52,8 +53,8 @@ const authenticate = async (req, res, next) => {
     let decoded;
     try {
       decoded = authService.verifyToken(token);
+      logger.info(`Token verified for user: ${decoded.sub || decoded.id}`);
     } catch (err) {
-      // If verifyToken fails, surface clear messages for common JWT errors
       logger.warn('Token verification failed', { err: err.message || err });
       const msg = (err.message || '').toLowerCase();
       if (msg.includes('expired')) {
@@ -78,7 +79,7 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    // Attach minimal user info to request, avoid leaking sensitive fields
+    // Attach user info to request
     req.user = {
       id: user.id,
       email: user.email,
@@ -88,9 +89,10 @@ const authenticate = async (req, res, next) => {
       is_active: !!user.is_active,
     };
 
+    logger.info(`User authenticated: ${user.email} (${user.role})`);
+
     return next();
   } catch (error) {
-    // Catch-all
     logger.error('Authentication error:', error && (error.stack || error.message || error));
     return res.status(401).json({
       success: false,
@@ -106,11 +108,12 @@ const optionalAuth = async (req, res, next) => {
   try {
     const token = extractToken(req);
     if (!token) {
+      logger.info('Optional auth: No token provided, continuing as anonymous');
       req.user = null;
       return next();
     }
 
-    try {cd
+    try {
       const decoded = authService.verifyToken(token);
       const userId = decoded && (decoded.sub || decoded.id || decoded.userId || decoded.uid);
       if (!userId) {
@@ -126,11 +129,12 @@ const optionalAuth = async (req, res, next) => {
           role: user.role,
           name: user.name
         };
+        logger.info(`Optional auth: User authenticated: ${user.email} (${user.role})`);
       } else {
         req.user = null;
+        logger.info('Optional auth: User not found or inactive');
       }
     } catch (err) {
-      // token invalid / expired -> treat as unauthenticated (do not block)
       logger.info('Optional auth token invalid/expired - continuing anonymously', { err: err.message || err });
       req.user = null;
     }

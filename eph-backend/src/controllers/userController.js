@@ -560,7 +560,50 @@ getAllUsers: async (req, res) => {
         error: error.message
       });
     }
-  }
+  },
+
+  // ✅ NEW: Hard delete user (admin only)
+  deleteUser: async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Prevent admin from deleting themselves
+      if (String(id) === String(req.user.id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'You cannot delete your own account'
+        });
+      }
+
+      const user = await User.findByPk(id);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      // Optional safety: avoid deleting the last admin
+      if (user.role === 'admin') {
+        const otherAdmins = await User.count({
+          where: { role: 'admin', id: { [Op.ne]: id }, is_active: true }
+        });
+        if (otherAdmins === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot delete the last active admin'
+          });
+        }
+      }
+
+      await user.destroy(); // hard delete; switch to soft-delete if needed
+      return res.json({ success: true, message: 'User deleted successfully' });
+    } catch (error) {
+      logger.error('Delete user error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to delete user',
+        error: error.message
+      });
+    }
+  },
 };
 
 module.exports = userController;

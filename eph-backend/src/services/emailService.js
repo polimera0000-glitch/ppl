@@ -753,4 +753,7 @@ Please change your password immediately after your first login.`;
   }
 }
 
-module.exports = new EmailService();
+if (!global.emailService) {
+  global.emailService = new EmailService();
+}
+module.exports = global.emailService;

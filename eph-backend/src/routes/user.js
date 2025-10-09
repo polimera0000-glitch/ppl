@@ -29,4 +29,7 @@ router.put('/:id/verify', requireAdmin, userValidation.verifyUser, userControlle
 router.put('/:id/deactivate', requireAdmin, userController.deactivateUser);
 router.put('/:id/reactivate', requireAdmin, userController.reactivateUser);
 
+// ✅ NEW: hard delete
+router.delete('/:id', requireAdmin, userController.deleteUser);
+
 module.exports = router;
