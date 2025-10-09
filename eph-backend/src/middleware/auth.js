@@ -110,7 +110,7 @@ const optionalAuth = async (req, res, next) => {
       return next();
     }
 
-    try {
+    try {cd
       const decoded = authService.verifyToken(token);
       const userId = decoded && (decoded.sub || decoded.id || decoded.userId || decoded.uid);
       if (!userId) {

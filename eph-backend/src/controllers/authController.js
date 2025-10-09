@@ -685,34 +685,22 @@ const authController = {
   // ----------------------------
   // REGISTER (any email) + send verification
   // ----------------------------
+
   register: async (req, res) => {
   try {
     const {
-      name,
-      email,
-      password,
-      role = 'student',
-      college,
-      branch,
-      year,
-      company_name,
-      company_website,
-      team_size,
-      firm_name,
-      investment_stage,
-      website,
-
-      // ✅ NEW: agreement flags from frontend
-      agree_tnc,
-      agree_privacy,
+      name, email, password, role = 'student',
+      college, branch, year,
+      company_name, company_website, team_size,
+      firm_name, investment_stage, website,
+      agree_tnc, agree_privacy,
     } = req.body;
 
-    // required fields
+    // Validation
     if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Name is required' });
     if (!email || !email.trim()) return res.status(400).json({ success: false, message: 'Email is required' });
     if (!password) return res.status(400).json({ success: false, message: 'Password is required' });
 
-    // ✅ Mandatory checkbox acceptance
     if (agree_tnc !== true || agree_privacy !== true) {
       return res.status(400).json({
         success: false,
@@ -746,7 +734,7 @@ const authController = {
       }
     }
 
-    const now = new Date(); // ✅ stamp once
+    const now = new Date();
 
     const userData = {
       name: name.trim(),
@@ -756,8 +744,6 @@ const authController = {
       force_password_change: false,
       is_active: true,
       verified: false,
-
-      // ✅ persist agreement timestamps
       agreed_tnc_at: now,
       agreed_privacy_at: now,
     };
@@ -778,45 +764,67 @@ const authController = {
 
     const user = await User.create(userData);
 
-      // Create verification token & send email (fire-and-forget)
-      const ipAddress = typeof req.ip === 'string' ? req.ip : req.headers['x-forwarded-for'] || null;
-      const userAgent = req.get?.('User-Agent') || req.headers['user-agent'] || null;
+    // Create verification token
+    const ipAddress = typeof req.ip === 'string' ? req.ip : req.headers['x-forwarded-for'] || null;
+    const userAgent = req.get?.('User-Agent') || req.headers['user-agent'] || null;
 
-      const vRec = await authService.createEmailVerificationToken(user.id, {
-        ipAddress: ipAddress ? String(ipAddress) : null,
-        userAgent: userAgent ? String(userAgent) : null,
+    const vRec = await authService.createEmailVerificationToken(user.id, {
+      ipAddress: ipAddress ? String(ipAddress) : null,
+      userAgent: userAgent ? String(userAgent) : null,
+    });
+
+    // CRITICAL: Await email send and log result
+    logger.info('Attempting to send verification email...', { to: user.email });
+    
+    const emailResult = await emailService.sendVerificationEmail(
+      user.email, 
+      user.name, 
+      vRec.token
+    );
+
+    if (emailResult.success) {
+      logger.info('✅ Verification email sent successfully', { 
+        to: user.email,
+        messageId: emailResult.messageId 
       });
-
-      emailService
-        .sendVerificationEmail(user.email, user.name, vRec.token)
-        .then(() => logger.info('Verification email sent', { to: user.email }))
-        .catch((err) => logger.warn('Failed to send verification email', { error: err?.message }));
-
-      // NOTE: Do NOT send welcome email here. Do it AFTER verification.
-      // Also, commonly do NOT issue auth token until verified.
+    } else {
+      logger.error('❌ Failed to send verification email', { 
+        to: user.email,
+        error: emailResult.error,
+        code: emailResult.code 
+      });
+      // Don't fail registration, but warn user
       return res.status(201).json({
         success: true,
-        message: 'Account created. Please check your email to verify your account.',
+        message: 'Account created but verification email failed to send. Please contact support.',
         data: { user: user.toJSON() },
+        emailError: emailResult.error
       });
-    } catch (error) {
-      logger.error('Registration error:', error);
-
-      if (error?.name === 'SequelizeValidationError') {
-        const firstError = error.errors?.[0];
-        return res.status(400).json({
-          success: false,
-          message: firstError?.message || 'Validation failed',
-        });
-      }
-
-      if (error?.name === 'SequelizeUniqueConstraintError') {
-        return res.status(400).json({ success: false, message: 'An account with this email already exists' });
-      }
-
-      return res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });
     }
-  },
+
+    return res.status(201).json({
+      success: true,
+      message: 'Account created. Please check your email to verify your account.',
+      data: { user: user.toJSON() },
+    });
+  } catch (error) {
+    logger.error('Registration error:', error);
+
+    if (error?.name === 'SequelizeValidationError') {
+      const firstError = error.errors?.[0];
+      return res.status(400).json({
+        success: false,
+        message: firstError?.message || 'Validation failed',
+      });
+    }
+
+    if (error?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ success: false, message: 'An account with this email already exists' });
+    }
+
+    return res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });
+  }
+},
 
   // ----------------------------
   // EMAIL VERIFY (GET /auth/verify-email?token=...)
