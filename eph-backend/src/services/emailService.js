@@ -83,14 +83,6 @@ class EmailService {
       const smtpHost = config.email?.smtpHost || process.env.EMAIL_SMTP_HOST;
       const smtpPortRaw = config.email?.smtpPort ?? process.env.EMAIL_SMTP_PORT ?? 0;
       const smtpPort = Number(smtpPortRaw) || null;
-
-      // For GoDaddy's secureserver.net, port 465 MUST use secure:true
-      const isGoDaddy = smtpHost && smtpHost.includes('secureserver.net');
-      const smtpSecure =
-        typeof config.email?.smtpSecure === "boolean"
-          ? config.email.smtpSecure
-          : smtpPort === 465; // Default: 465=secure, 587=STARTTLS
-
       const user = config.email?.user || process.env.EMAIL_USER;
       const pass = config.email?.password || process.env.EMAIL_PASSWORD;
 
@@ -114,6 +106,12 @@ class EmailService {
         return;
       }
 
+      // GoDaddy detection
+      const isGoDaddy = smtpHost && smtpHost.toLowerCase().includes('secureserver.net');
+      
+      // CRITICAL: Port 465 MUST use secure:true, port 587 uses secure:false + requireTLS
+      const smtpSecure = smtpPort === 465;
+
       // GoDaddy-specific config adjustments
       const transportConfig = {
         host: smtpHost,
@@ -126,12 +124,15 @@ class EmailService {
             : !!(config.email && config.email.tlsRejectUnauthorized),
           minVersion: "TLSv1.2",
           servername: smtpHost, // SNI for hosted SMTP
+          ciphers: isGoDaddy ? 'SSLv3' : undefined, // GoDaddy compatibility
         },
         requireTLS: smtpPort === 587, // Force STARTTLS on 587
-        pool: false,
-        connectionTimeout: 30000,
+        pool: false, // Disable pooling for better reliability in production
+        maxConnections: 1,
+        maxMessages: 1,
+        connectionTimeout: 60000, // 60 seconds
         greetingTimeout: 30000,
-        socketTimeout: 30000,
+        socketTimeout: 60000,
         logger: emailDebug,
         debug: emailDebug,
       };
@@ -144,12 +145,20 @@ class EmailService {
         isGoDaddy,
         tlsRejectUnauthorized: transportConfig.tls.rejectUnauthorized,
         requireTLS: transportConfig.requireTLS,
+        env: process.env.NODE_ENV,
       });
 
       this.transporter = nodemailer.createTransport(transportConfig);
 
-      // Verify connection (critical for catching config errors)
+      // Verify connection (critical for catching config errors) with timeout
+      const verifyTimeout = setTimeout(() => {
+        logger.error("❌ Email verification timeout after 30 seconds");
+        this.isConfigured = false;
+      }, 30000);
+
       this.transporter.verify((err) => {
+        clearTimeout(verifyTimeout);
+        
         if (err) {
           this.isConfigured = false;
           logger.error("❌ Email transporter verification FAILED:", {
@@ -172,10 +181,12 @@ class EmailService {
             logger.error("   2) Port 465 for SSL or 587 for TLS");
             logger.error("   3) Firewall/VPC allows outbound to GoDaddy SMTP");
             logger.error("   4) No IP blocking by GoDaddy");
-          } else if (err.code === "ESOCKET") {
+            logger.error(`   5) Test connection: curl -v telnet://${smtpHost}:${smtpPort}`);
+          } else if (err.code === "ESOCKET" || err.code === "EPROTO") {
             logger.error("🔒 SSL/TLS issue. Check:");
             logger.error("   1) Port matches secure setting (465=SSL, 587=TLS)");
-            logger.error("   2) GoDaddy cert is valid");
+            logger.error("   2) Try switching to port 587 with STARTTLS");
+            logger.error("   3) GoDaddy cert is valid");
           }
         } else {
           this.isConfigured = true;
@@ -233,9 +244,20 @@ class EmailService {
         text: text || String(html || "").replace(/<[^>]*>/g, ""),
       };
 
-      logger.info("📤 Sending email:", { to, subject, from: mailOptions.from });
+      logger.info("📤 Sending email:", { 
+        to, 
+        subject, 
+        from: mailOptions.from,
+        env: process.env.NODE_ENV 
+      });
 
-      const info = await this.transporter.sendMail(mailOptions);
+      // Send with timeout protection
+      const sendPromise = this.transporter.sendMail(mailOptions);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Email send timeout after 60 seconds')), 60000)
+      );
+
+      const info = await Promise.race([sendPromise, timeoutPromise]);
       
       logger.info("✅ Email sent successfully:", {
         to,
@@ -260,7 +282,7 @@ class EmailService {
         response: error.response,
         responseCode: error.responseCode,
         message: error.message,
-        stack: error.stack,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       });
 
       // Return detailed error for debugging
@@ -330,7 +352,7 @@ If you didn't create an account, you can ignore this email.`;
       </td></tr>
       <tr><td style="padding:18px 32px;">
         <div style="background:#f8fafc;padding:16px;border-radius:8px;margin:12px 0;">
-          <h3 style="margin:0 0 8px;color:#1e293b;font-size:16px;">What’s next?</h3>
+          <h3 style="margin:0 0 8px;color:#1e293b;font-size:16px;">What's next?</h3>
           <ul style="margin:0;padding-left:20px;color:#475569;font-size:14px;">
             <li>Browse and register for competitions</li>
             <li>Upload projects to showcase your work</li>
@@ -391,7 +413,7 @@ Dashboard: ${dashboardUrl}`;
     `;
     const html = baseEmailShell({
       title: subject,
-      preheader: "See what’s new on PPL.",
+      preheader: "See what's new on PPL.",
       bodyHtml,
     });
     const text = `Welcome back to ${BRAND_NAME}, ${name || "there"}!

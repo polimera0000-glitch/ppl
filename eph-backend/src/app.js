@@ -43,18 +43,70 @@ app.use(
 );
 
 // CORS configuration
+// const corsOptions = {
+//   origin: (origin, callback) => {
+//     if (!origin) return callback(null, true); // allow Postman, mobile apps
+
+//     if (
+//       config.security.corsOrigin.includes(origin) ||
+//       config.server.env === 'development'
+//     ) {
+//       callback(null, true);
+//     } else {
+//       callback(null, false);
+//     }
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+//   exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
+//   optionsSuccessStatus: 204,
+// };
+
+// --- CORS configuration (replace your current block) ---
+const SAFE_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  'https://ppl-frontend-vzuv.onrender.com',
+  'https://theppl.in',
+  'https://www.theppl.in',
+  // add any other real frontends here
+];
+
+// Allow also via env: CORS_ORIGINS=https://foo.com,https://bar.com
+const envOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const allowedSet = new Set(
+  [...SAFE_ORIGINS, ...envOrigins].map(o => o.replace(/\/+$/, '').toLowerCase())
+);
+
+const isDev = config.server.env === 'development';
+
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // allow Postman, mobile apps
+    if (!origin) return callback(null, true); // Postman, curl, mobile apps
 
-    if (
-      config.security.corsOrigin.includes(origin) ||
-      config.server.env === 'development'
-    ) {
-      callback(null, true);
-    } else {
-      callback(null, false);
+    // normalize
+    const normalized = String(origin).replace(/\/+$/, '').toLowerCase();
+
+    // allow in dev OR if explicitly whitelisted
+    if (isDev || allowedSet.has(normalized)) {
+      return callback(null, true);
     }
+
+    // also allow localhost:* patterns to ease local testing
+    try {
+      const url = new URL(origin);
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        return callback(null, true);
+      }
+    } catch {}
+
+    return callback(new Error(`CORS: Origin not allowed: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -62,6 +114,11 @@ const corsOptions = {
   exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
   optionsSuccessStatus: 204,
 };
+
+// app.use(cors(corsOptions));
+// // Make sure preflight is handled BEFORE any auth/route middleware
+// app.options('*', cors(corsOptions));
+
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Handle preflight requests
