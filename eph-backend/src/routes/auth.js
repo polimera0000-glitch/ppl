@@ -43,6 +43,10 @@ router.post('/oauth/exchange', oauthController.exchangeOAuthCode);
 router.post('/forgot-password', v.forgotPassword || noop, authController.forgotPassword);
 router.post('/reset-password', v.resetPassword || noop, authController.resetPassword);
 
+router.get('/verify-email', authController.verifyEmail);
+router.post('/resend-verification', authenticate, authController.resendVerification);
+router.post('/resend-verification-public', authController.resendVerificationPublic);
+
 // PROTECTED
 router.use(authenticate);
 router.get('/profile', authController.profile);

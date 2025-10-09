@@ -817,19 +817,19 @@ import {
   Briefcase,
 } from 'lucide-react';
 
-// Allowed email domains for team members
-const ALLOWED_DOMAINS = new Set(['gmail.com', 'outlook.com', 'yahoo.com']);
+// // Allowed email domains for team members
+// const ALLOWED_DOMAINS = new Set(['gmail.com', 'outlook.com', 'yahoo.com']);
 
 const emailFormatOk = (email) =>
   /^[\w.+-]+@([\w-]+\.)+[\w-]{2,}$/i.test(String(email || '').trim());
 
-const emailDomainOk = (email) => {
-  const s = String(email || '').trim();
-  const at = s.lastIndexOf('@');
-  if (at < 0) return false;
-  const domain = s.slice(at + 1).toLowerCase();
-  return ALLOWED_DOMAINS.has(domain);
-};
+// const emailDomainOk = (email) => {
+//   const s = String(email || '').trim();
+//   const at = s.lastIndexOf('@');
+//   if (at < 0) return false;
+//   const domain = s.slice(at + 1).toLowerCase();
+//   return ALLOWED_DOMAINS.has(domain);
+// };
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 const normalizePhone = (p) => String(p || '').trim();
@@ -988,7 +988,7 @@ const CompetitionRegisterScreen = () => {
 
     if (!n || n.length < 2) return 'Please enter full name';
     if (!emailFormatOk(e)) return 'Please enter a valid email';
-    if (!emailDomainOk(e)) return 'Only emails from gmail.com, outlook.com, yahoo.com are allowed';
+    // if (!emailDomainOk(e)) return 'Only emails from gmail.com, outlook.com, yahoo.com are allowed';
     if (!ph || !/^\+?\d[\d\s\-()]{6,}$/.test(ph)) return 'Please enter a valid mobile number';
     if (!p.org || p.org.trim().length < 2) return 'Please enter organization/institution';
     if (!['undergraduate', 'graduate', 'other'].includes(p.edu_type)) return 'Please select a valid Type';
@@ -1073,6 +1073,12 @@ const CompetitionRegisterScreen = () => {
     // Validate leader
     const leaderErr = validatePerson(applicant, true);
     if (leaderErr) return showToast('error', leaderErr);
+
+    // NEW: ensure applicant email exists in DB
+   const applicantExists = await checkUserExistsOrToast(applicant.email);
+   if (!applicantExists) {
+     return; // toast already shown: "This email is not registered..."
+   }
 
     // Verify all team members (if any)
     if (registrationType === 'team' && members.length > 0) {
@@ -1376,6 +1382,8 @@ const CompetitionRegisterScreen = () => {
                             placeholder="you@example.com"
                             className="flex-1 bg-transparent outline-none text-primary-text placeholder-secondary-text h-full"
                             required
+                            readOnly
+                            title="Your email is linked to your account"
                           />
                         </div>
                       </div>
@@ -1471,9 +1479,9 @@ const CompetitionRegisterScreen = () => {
                     <section className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-primary-text">Team Members</h3>
-                        <span className="text-xs text-secondary-text">
+                        {/* <span className="text-xs text-secondary-text">
                           Allowed domains: gmail.com, outlook.com, yahoo.com
-                        </span>
+                        </span> */}
                       </div>
 
                       {/* Member Draft Form (add one member) */}

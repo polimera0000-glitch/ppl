@@ -91,27 +91,19 @@ export const AuthProvider = ({ children }) => {
 };
 
  const register = async (userData) => {
-  try {
-    const response = await apiService.register(userData);
-    if (response.success) {
-      const { user, token } = response.data;
-      authService.saveToken(token);
-      authService.saveUser(user);
-      // ✅ Explicitly set mustChangePassword to false for regular registration
-      dispatch({ 
-        type: 'SET_AUTH', 
-        payload: { 
-          user, 
-          token, 
-          mustChangePassword: false  // Regular users never need forced password change
-        } 
-      });
-    }
-    return response;
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
-};
+   try {
+     const response = await apiService.register(userData);
+     // Backend returns: { success:true, data:{ user }, message:'Account created...' }
+     if (response?.success) {
+       // 🚫 Do NOT save token or set auth here
+       // Just return the created user so UI can show the "verify email" screen
+       return { success: true, user: response.data?.user, message: response.message };
+     }
+     return { success: false, message: response?.message, errors: response?.errors };
+   } catch (error) {
+     return { success: false, message: error.message || 'Registration failed' };
+   }
+ };
 
   const logout = async () => {
     try {
