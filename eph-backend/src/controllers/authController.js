@@ -618,11 +618,6 @@ const authController = {
       const token = authService.generateToken(user);
       const mustChangePassword = user.force_password_change === true;
 
-      // Optional: "welcome back" email (fire-and-forget)
-      emailService
-        .sendWelcomeBackEmail?.(user.email, user.name)
-        .catch((err) => logger.warn('Welcome back email failed', { error: err?.message }));
-
       return res.json({
         success: true,
         message: 'Login successful',

@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiService } from "../services/apiService";
 import SidebarLayout from "../components/SidebarLayout";
+import { useAuth } from "../hooks/useAuth"; // ✅ ADDED
 
 import {
   Rocket,
@@ -18,6 +19,11 @@ import {
 const CompetitionDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  // ✅ ADDED: read current user/role
+  const { user } = useAuth();
+  const role = user?.role || null;
+  const isAdmin = role === "admin"; // ✅ admins should not see Register
 
   const [loading, setLoading] = useState(true);
   const [comp, setComp] = useState(null);
@@ -160,18 +166,21 @@ const CompetitionDetails = () => {
   }, [comp]);
 
   const seatsLeft = comp?.seats_remaining;
+
+  // ✅ MODIFIED: Exclude admins from Register eligibility
   const canRegisterCTA =
     phase === "upcoming" &&
+    !isAdmin && // ✅ important change
     isRegistrationOpen &&
     (typeof seatsLeft !== "number" || seatsLeft > 0);
 
   const handleRegister = () => {
-  // prefer the url param, then comp.id, then comp._id
-  const cid = String(id || comp?.id || comp?._id || '');
-  navigate('/competition/register', {
-    state: { competitionId: cid, fromDetails: true },
-  });
-};
+    // prefer the url param, then comp.id, then comp._id
+    const cid = String(id || comp?.id || comp?._id || "");
+    navigate("/competition/register", {
+      state: { competitionId: cid, fromDetails: true },
+    });
+  };
 
   // ----- Loading -----
   if (loading) {
@@ -518,8 +527,8 @@ const CompetitionDetails = () => {
                   </div>
                 )}
 
-                {/* --- Register CTA (only when upcoming) --- */}
-                {phase === "upcoming" && (
+                {/* --- Register CTA (only when upcoming AND not admin) --- */}
+                {!isAdmin && phase === "upcoming" && (
                   <div className="pt-1 sm:pt-2">
                     <button
                       onClick={handleRegister}

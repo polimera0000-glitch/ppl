@@ -207,6 +207,12 @@ async getGitHubAuthUrl(redirectUri, state) {
     return this.makeRequest(`/admin/${adminId}/deactivate`, { method: 'DELETE' });
   }
 
+  // Users (admin)
+async deleteUser(id) {
+  if (!id) throw new Error('User id is required');
+  return this.makeRequest(`/users/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
   // ===== Competitions =====
   async listCompetitions() {
     return this.makeRequest('/competitions');
