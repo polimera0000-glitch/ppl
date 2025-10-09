@@ -114,28 +114,28 @@ class EmailService {
 
       // GoDaddy-specific config adjustments
       const transportConfig = {
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpSecure, // true for 465; false for 587
-        auth: { user, pass },
-        tls: {
-          rejectUnauthorized: isGoDaddy 
-            ? false // GoDaddy cert issues - accept their cert
-            : !!(config.email && config.email.tlsRejectUnauthorized),
-          minVersion: "TLSv1.2",
-          servername: smtpHost, // SNI for hosted SMTP
-          ciphers: isGoDaddy ? 'SSLv3' : undefined, // GoDaddy compatibility
-        },
-        requireTLS: smtpPort === 587, // Force STARTTLS on 587
-        pool: false, // Disable pooling for better reliability in production
-        maxConnections: 1,
-        maxMessages: 1,
-        connectionTimeout: 60000, // 60 seconds
-        greetingTimeout: 30000,
-        socketTimeout: 60000,
-        logger: emailDebug,
-        debug: emailDebug,
-      };
+  host: smtpHost,
+  port: smtpPort,                 // 587 recommended
+  secure: smtpSecure,             // false for 587 (STARTTLS), true only for 465
+  auth: { user, pass },
+  requireTLS: smtpPort === 587,   // force STARTTLS on 587
+  tls: {
+    // Start lenient; set to true once stable and certs are clean
+    rejectUnauthorized: isGoDaddy ? false : !!(config.email && config.email.tlsRejectUnauthorized),
+    minVersion: "TLSv1.2",
+    servername: smtpHost,         // SNI
+    // ❌ REMOVE this line (breaks modern TLS):
+    // ciphers: isGoDaddy ? 'SSLv3' : undefined,
+  },
+  pool: false,
+  maxConnections: 1,
+  maxMessages: 1,
+  connectionTimeout: 60000,
+  greetingTimeout: 30000,
+  socketTimeout: 60000,
+  logger: emailDebug,
+  debug: emailDebug,
+};
 
       logger.info("🔧 Initializing SMTP transporter:", {
         host: smtpHost,
