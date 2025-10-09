@@ -74,6 +74,7 @@ function baseEmailShell({ title = BRAND_NAME, bodyHtml = "", preheader = "" }) {
 class EmailService {
   constructor() {
     this.transporter = null;
+    this.isConfigured = false;
     this.initializeTransporter();
   }
 
@@ -83,93 +84,19 @@ class EmailService {
       const smtpPortRaw = config.email?.smtpPort ?? process.env.EMAIL_SMTP_PORT ?? 0;
       const smtpPort = Number(smtpPortRaw) || null;
 
-      // Prefer explicit secure from config when provided; else infer from port
+      // For GoDaddy's secureserver.net, port 465 MUST use secure:true
+      const isGoDaddy = smtpHost && smtpHost.includes('secureserver.net');
       const smtpSecure =
         typeof config.email?.smtpSecure === "boolean"
           ? config.email.smtpSecure
-          : smtpPort === 465;
+          : smtpPort === 465; // Default: 465=secure, 587=STARTTLS
 
       const user = config.email?.user || process.env.EMAIL_USER;
       const pass = config.email?.password || process.env.EMAIL_PASSWORD;
 
-      // Allow forcing debug in any env with EMAIL_DEBUG=true
       const emailDebug = String(process.env.EMAIL_DEBUG || "").toLowerCase() === "true";
 
-      if (smtpHost && smtpPort && user && pass) {
-        const transportConfig = {
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpSecure, // true for 465; false for 587 (STARTTLS)
-          auth: { user, pass },
-          tls: {
-            // Use value as-is from config (default false = lenient).
-            rejectUnauthorized: !!(config.email && config.email.tlsRejectUnauthorized),
-            minVersion: "TLSv1.2",
-            // Do NOT force legacy ciphers; let Node choose sane defaults
-            // servername helps SNI on some providers
-            servername: smtpHost,
-          },
-          // STARTTLS upgrade handled automatically when secure:false
-          requireTLS: smtpPort === 587,
-          pool: false,
-          connectionTimeout: 30000,
-          greetingTimeout: 30000,
-          socketTimeout: 30000,
-          logger: emailDebug,
-          debug: emailDebug,
-          // Optional: override EHLO name if needed
-          name: process.env.EMAIL_CLIENT_NAME || undefined,
-        };
-
-        logger.info("Initializing SMTP transporter with config:", {
-          host: smtpHost,
-          port: smtpPort,
-          secure: transportConfig.secure,
-          user,
-          tlsRejectUnauthorized: transportConfig.tls.rejectUnauthorized,
-          requireTLS: transportConfig.requireTLS,
-        });
-
-        this.transporter = nodemailer.createTransport(transportConfig);
-
-        // Verify connection
-        this.transporter.verify((err) => {
-          if (err) {
-            logger.error("Email transporter verification failed:", {
-              code: err.code,
-              command: err.command,
-              response: err.response,
-              responseCode: err.responseCode,
-              message: err.message,
-            });
-
-            if (err.code === "EAUTH") {
-              logger.error("Authentication failed. Check:");
-              logger.error("1) Username/password");
-              logger.error("2) Mailbox active and allowed for SMTP");
-              logger.error("3) Use full email as username");
-              logger.error("4) If 2FA exists, use an app password");
-            } else if (err.code === "ECONNECTION") {
-              logger.error("Connection failed. Check:");
-              logger.error("1) SMTP host/port correct");
-              logger.error("2) Outbound 465/587 allowed by firewall/VPC");
-              logger.error("3) SMTP service status");
-            }
-          } else {
-            logger.info("✓ Email transporter verified successfully");
-          }
-        });
-      } else if (config.email && config.email.service) {
-        // Fallback to nodemailer well-known services if configured that way
-        const user2 = config.email?.user || process.env.EMAIL_USER;
-        const pass2 = config.email?.password || process.env.EMAIL_PASSWORD;
-        this.transporter = nodemailer.createTransport({
-          service: config.email.service,
-          auth: user2 && pass2 ? { user: user2, pass: pass2 } : undefined,
-          logger: emailDebug,
-          debug: emailDebug,
-        });
-      } else {
+      if (!smtpHost || !smtpPort || !user || !pass) {
         const missingBits = [
           !smtpHost && "EMAIL_SMTP_HOST",
           !smtpPort && "EMAIL_SMTP_PORT",
@@ -180,16 +107,86 @@ class EmailService {
           .join(", ");
 
         logger.warn(
-          "Email config incomplete. Missing: " + (missingBits || "unknown fields")
+          "❌ Email config incomplete. Missing: " + (missingBits || "unknown fields")
         );
-        logger.warn("Emails will be logged to console only.");
+        logger.warn("⚠️  Emails will be logged to console only (not sent).");
+        this.isConfigured = false;
+        return;
       }
 
-      if (this.transporter) {
-        logger.info("Email service initialized");
-      }
+      // GoDaddy-specific config adjustments
+      const transportConfig = {
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpSecure, // true for 465; false for 587
+        auth: { user, pass },
+        tls: {
+          rejectUnauthorized: isGoDaddy 
+            ? false // GoDaddy cert issues - accept their cert
+            : !!(config.email && config.email.tlsRejectUnauthorized),
+          minVersion: "TLSv1.2",
+          servername: smtpHost, // SNI for hosted SMTP
+        },
+        requireTLS: smtpPort === 587, // Force STARTTLS on 587
+        pool: false,
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 30000,
+        logger: emailDebug,
+        debug: emailDebug,
+      };
+
+      logger.info("🔧 Initializing SMTP transporter:", {
+        host: smtpHost,
+        port: smtpPort,
+        secure: transportConfig.secure,
+        user,
+        isGoDaddy,
+        tlsRejectUnauthorized: transportConfig.tls.rejectUnauthorized,
+        requireTLS: transportConfig.requireTLS,
+      });
+
+      this.transporter = nodemailer.createTransport(transportConfig);
+
+      // Verify connection (critical for catching config errors)
+      this.transporter.verify((err) => {
+        if (err) {
+          this.isConfigured = false;
+          logger.error("❌ Email transporter verification FAILED:", {
+            code: err.code,
+            command: err.command,
+            response: err.response,
+            responseCode: err.responseCode,
+            message: err.message,
+          });
+
+          if (err.code === "EAUTH") {
+            logger.error("🔐 Authentication failed. Check:");
+            logger.error("   1) Username is full email: admin@theppl.in");
+            logger.error("   2) Password is correct (no extra spaces)");
+            logger.error("   3) GoDaddy email account is active");
+            logger.error("   4) SMTP access is enabled in GoDaddy settings");
+          } else if (err.code === "ECONNECTION" || err.code === "ETIMEDOUT") {
+            logger.error("🔌 Connection failed. Check:");
+            logger.error("   1) SMTP host: smtpout.secureserver.net");
+            logger.error("   2) Port 465 for SSL or 587 for TLS");
+            logger.error("   3) Firewall/VPC allows outbound to GoDaddy SMTP");
+            logger.error("   4) No IP blocking by GoDaddy");
+          } else if (err.code === "ESOCKET") {
+            logger.error("🔒 SSL/TLS issue. Check:");
+            logger.error("   1) Port matches secure setting (465=SSL, 587=TLS)");
+            logger.error("   2) GoDaddy cert is valid");
+          }
+        } else {
+          this.isConfigured = true;
+          logger.info("✅ Email transporter verified successfully");
+          logger.info(`📧 Emails will be sent from: ${this._resolveDefaultFrom()}`);
+        }
+      });
+
     } catch (error) {
-      logger.error("Failed to initialize email transporter:", error?.message || error);
+      this.isConfigured = false;
+      logger.error("💥 Failed to initialize email transporter:", error?.message || error);
       this.transporter = null;
     }
   }
@@ -199,54 +196,80 @@ class EmailService {
     const explicitFrom = config.email?.from || process.env.EMAIL_FROM;
     if (explicitFrom) return explicitFrom;
 
-    // Safest default: send from the authenticated mailbox
-    if (authUser && authUser.includes("@")) return authUser;
+    // For GoDaddy, MUST send from authenticated email
+    if (authUser && authUser.includes("@")) {
+      return `"${BRAND_NAME}" <${authUser}>`;
+    }
 
-    // Fallback: generic no-reply on same domain if inferrable
     const domain = (authUser.split("@")[1] || "").trim() || "example.com";
-    return `no-reply@${domain}`;
+    return `"${BRAND_NAME}" <no-reply@${domain}>`;
   }
 
   async sendEmail(to, subject, html, text = null) {
     try {
-      if (!this.transporter) {
-        logger.info("Email (console fallback) — to:", to, "subject:", subject);
+      // CRITICAL: Check if configured before attempting to send
+      if (!this.transporter || !this.isConfigured) {
+        logger.warn("⚠️  Email not configured - logging instead of sending");
+        logger.info("📧 Email (console fallback):");
+        logger.info(`   To: ${to}`);
+        logger.info(`   Subject: ${subject}`);
         if (process.env.NODE_ENV !== "production") {
-          logger.info("Email HTML preview (first 500 chars):", String(html || "").slice(0, 500));
+          logger.info(`   HTML preview: ${String(html || "").slice(0, 300)}...`);
         }
-        return { success: true, messageId: "console-fallback" };
+        return { 
+          success: false, 
+          messageId: "console-fallback",
+          error: "Email not configured - check SMTP settings" 
+        };
       }
 
       const fromAddress = this._resolveDefaultFrom();
 
       const mailOptions = {
-        from: `"${BRAND_NAME}" <${fromAddress}>`,
+        from: fromAddress,
         to,
         subject,
         html,
         text: text || String(html || "").replace(/<[^>]*>/g, ""),
       };
 
-      logger.info("Attempting to send email:", { to, subject, from: mailOptions.from });
+      logger.info("📤 Sending email:", { to, subject, from: mailOptions.from });
 
       const info = await this.transporter.sendMail(mailOptions);
-      logger.info("✓ Email sent successfully", {
+      
+      logger.info("✅ Email sent successfully:", {
         to,
         subject,
         messageId: info.messageId,
         response: info.response,
+        accepted: info.accepted,
+        rejected: info.rejected,
       });
-      return { success: true, messageId: info.messageId, raw: info };
+
+      return { 
+        success: true, 
+        messageId: info.messageId, 
+        raw: info 
+      };
     } catch (error) {
-      logger.error("Failed to send email:", {
+      logger.error("❌ Failed to send email:", {
         to,
         subject,
         code: error.code,
         command: error.command,
         response: error.response,
+        responseCode: error.responseCode,
         message: error.message,
+        stack: error.stack,
       });
-      return { success: false, error: error?.message || error, raw: error };
+
+      // Return detailed error for debugging
+      return { 
+        success: false, 
+        error: error?.message || error, 
+        code: error?.code,
+        raw: error 
+      };
     }
   }
 
