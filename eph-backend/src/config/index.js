@@ -94,13 +94,13 @@ const config = {
 
   email: {
     smtpHost: env('EMAIL_SMTP_HOST'),
-    smtpPort: envInt('EMAIL_SMTP_PORT', 587),
-    smtpSecure: envBool('EMAIL_SMTP_SECURE', false), // true for 465, false for 587/STARTTLS
+    smtpPort: envInt('EMAIL_SMTP_PORT', 465),
+    smtpSecure: envBool('EMAIL_SMTP_SECURE', true), // true for 465, false for 587/STARTTLS
     user: env('EMAIL_USER'),
     password: env('EMAIL_PASSWORD'),
     from: env('EMAIL_FROM'),
     // allow disabling TLS verification for dev/self-signed SMTP
-    tlsRejectUnauthorized: envBool('EMAIL_TLS_REJECT_UNAUTHORIZED', true),
+    tlsRejectUnauthorized: envBool('EMAIL_TLS_REJECT_UNAUTHORIZED', false),
   },
 
   security: {

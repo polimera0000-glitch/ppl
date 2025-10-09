@@ -23,7 +23,6 @@ const logger = {
 const BRAND_NAME = "PPL Platform";
 const BRAND_TAGLINE = "Empowering Students, Connecting Opportunities";
 const FRONTEND_BASE =
-  config.app?.frontendBaseUrl ||
   process.env.FRONTEND_BASE_URL ||
   "https://ppl-frontend-vzuv.onrender.com";
 const DEEP_LINK_SCHEME =
