@@ -130,9 +130,9 @@ class EmailService {
   pool: false,
   maxConnections: 1,
   maxMessages: 1,
-  connectionTimeout: 60000,
-  greetingTimeout: 30000,
-  socketTimeout: 60000,
+  connectionTimeout: 120000,
+  greetingTimeout: 60000,
+  socketTimeout: 120000,
   logger: emailDebug,
   debug: emailDebug,
 };
@@ -154,7 +154,7 @@ class EmailService {
       const verifyTimeout = setTimeout(() => {
         logger.error("❌ Email verification timeout after 30 seconds");
         this.isConfigured = false;
-      }, 30000);
+      }, 60000);
 
       this.transporter.verify((err) => {
         clearTimeout(verifyTimeout);
