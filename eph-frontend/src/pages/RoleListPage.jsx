@@ -171,7 +171,7 @@ const RoleListPage = ({ role: roleProp }) => {
                     year: 3,
                     created_at: "2023-01-01T00:00:00Z",
                     is_active: true,
-                    is_verified: true,
+                    verified: true,
                   },
                   {
                     id: 2,
@@ -183,7 +183,7 @@ const RoleListPage = ({ role: roleProp }) => {
                     year: 2,
                     created_at: "2023-02-01T00:00:00Z",
                     is_active: true,
-                    is_verified: false,
+                    verified: false,
                   },
                 ],
               },
@@ -388,7 +388,7 @@ const RoleListPage = ({ role: roleProp }) => {
                     u?.firm_name ||
                     (u?.created_at ? new Date(u.created_at).toLocaleDateString() : "") ||
                     "";
-                  const verified = !!u?.is_verified;
+                  const verified = !!u?.verified;
                   const rank = u.__rank ?? idx + 1;
                   const userInitials = initialsOf(name);
 
@@ -397,7 +397,7 @@ const RoleListPage = ({ role: roleProp }) => {
                     "name","email","role","college","branch","year","phone",
                     "company_name","company_website","team_size","firm_name",
                     "investment_stage","website","xp","badges","created_at",
-                    "updated_at","is_verified","is_active",
+                    "updated_at","verified","is_active",
                   ];
                   const entries = Object.entries(u || {})
                     .filter(([k]) => !isSensitiveKey(k))
