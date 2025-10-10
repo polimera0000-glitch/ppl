@@ -594,77 +594,78 @@ const authController = {
   // LOGIN (blocked if !is_verified)
   // ----------------------------
   login: async (req, res) => {
-    try {
-      const { email, password, role } = req.body;
+  try {
+    const { email, password, role } = req.body;
 
-      const user = await User.findByEmail(email);
-      if (!user) {
-        return res.status(401).json({ success: false, message: 'Invalid email or password' });
-      }
+    const user = await User.findByEmail(email);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
 
-      if (role && user.role !== role) {
+    // optional: soften role check (compare lowercase)
+    if (role && (user.role || '').toLowerCase() !== String(role).toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        message: `User does not have the '${role}' role`,
+      });
+    }
+
+    const isValidPassword = await user.validatePassword(password);
+    if (!isValidPassword) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
+
+    // 🚫 Block unverified logins — but queue verification email asynchronously
+    if (!user.verified) {
+      try {
+        const ipAddress = typeof req.ip === 'string' ? req.ip : (req.headers['x-forwarded-for'] || null);
+        const userAgent = req.get?.('User-Agent') || req.headers['user-agent'] || null;
+
+        const rec = await authService.createEmailVerificationToken(user.id, {
+          ipAddress: ipAddress ? String(ipAddress) : null,
+          userAgent: userAgent ? String(userAgent) : null,
+        });
+
+        // 🔔 do NOT await — return instantly
+        emailService
+          .sendVerificationEmail(user.email, user.name, rec.token, { nonBlocking: true })
+          .then(() => logger.info('Login-triggered verification email queued', { to: user.email }))
+          .catch((err) => logger.warn('Failed to queue verification email during login', { err: err?.message, userId: user.id }));
+      } catch (e) {
+        logger.warn('Failed to prepare verification email during login', { error: e?.message, userId: user.id });
         return res.status(403).json({
           success: false,
-          message: `User does not have the '${role}' role`,
+          code: 'EMAIL_NOT_VERIFIED',
+          message:
+            'Your email is not verified yet. Please check your inbox for the original verification link or use "Resend verification" from the login screen.',
         });
       }
 
-      const isValidPassword = await user.validatePassword(password);
-      if (!isValidPassword) {
-        return res.status(401).json({ success: false, message: 'Invalid email or password' });
-      }
-
-      // BLOCK UNVERIFIED LOGINS → also send a fresh verification link
-if (!user.verified) {
-  try {
-    const ipAddress = typeof req.ip === 'string' ? req.ip : (req.headers['x-forwarded-for'] || null);
-    const userAgent = req.get?.('User-Agent') || req.headers['user-agent'] || null;
-
-    // (optional) tiny cooldown to avoid spamming – keep simple (60s)
-    // If you already track tokens with timestamps, check the latest one here.
-    const rec = await authService.createEmailVerificationToken(user.id, {
-      ipAddress: ipAddress ? String(ipAddress) : null,
-      userAgent: userAgent ? String(userAgent) : null,
-    });
-
-    await emailService.sendVerificationEmail(user.email, user.name, rec.token);
-    logger.info('Login-triggered verification email sent', { to: user.email });
-  } catch (e) {
-    logger.warn('Failed to send verification email during login', { error: e?.message, userId: user.id });
-    // continue – still block login, but message won’t claim "sent"
-    return res.status(403).json({
-      success: false,
-      code: 'EMAIL_NOT_VERIFIED',
-      message:
-        'Your email is not verified yet. Please check your inbox for the original verification link or use "Resend verification" from the login screen.',
-    });
-  }
-
-  return res.status(403).json({
-    success: false,
-    code: 'EMAIL_VERIFICATION_SENT',
-    message: 'Your email is not verified yet. We’ve sent a new verification link to your email.',
-    data: { emailSentTo: maskEmail(user.email) },
-  });
-}
-
-
-      user.last_login = new Date();
-      await user.save();
-
-      const token = authService.generateToken(user);
-      const mustChangePassword = user.force_password_change === true;
-
-      return res.json({
-        success: true,
-        message: 'Login successful',
-        data: { user: user.toJSON(), token, mustChangePassword },
+      return res.status(403).json({
+        success: false,
+        code: 'EMAIL_VERIFICATION_SENT',
+        message: 'Your email is not verified yet. We’ve sent a new verification link to your email.',
+        data: { emailSentTo: maskEmail(user.email) },
       });
-    } catch (error) {
-      logger.error('Login error:', error);
-      return res.status(500).json({ success: false, message: 'Login failed', error: error.message });
     }
-  },
+
+    // ✅ Verified: proceed
+    user.last_login = new Date();
+    await user.save();
+
+    const token = authService.generateToken(user);
+    const mustChangePassword = user.force_password_change === true;
+
+    return res.json({
+      success: true,
+      message: 'Login successful',
+      data: { user: user.toJSON(), token, mustChangePassword },
+    });
+  } catch (error) {
+    logger.error('Login error:', error);
+    return res.status(500).json({ success: false, message: 'Login failed', error: error.message });
+  }
+},
 
   // ----------------------------
   // CHANGE PASSWORD
@@ -808,37 +809,45 @@ if (!user.verified) {
     // CRITICAL: Await email send and log result
     logger.info('Attempting to send verification email...', { to: user.email });
     
-    const emailResult = await emailService.sendVerificationEmail(
-      user.email, 
-      user.name, 
-      vRec.token
-    );
+    // const emailResult = await emailService.sendVerificationEmail(
+    //   user.email, 
+    //   user.name, 
+    //   vRec.token
+    // );
 
-    if (emailResult.success) {
-      logger.info('✅ Verification email sent successfully', { 
-        to: user.email,
-        messageId: emailResult.messageId 
-      });
-    } else {
-      logger.error('❌ Failed to send verification email', { 
-        to: user.email,
-        error: emailResult.error,
-        code: emailResult.code 
-      });
-      // Don't fail registration, but warn user
-      return res.status(201).json({
-        success: true,
-        message: 'Account created but verification email failed to send. Please contact support.',
-        data: { user: user.toJSON() },
-        emailError: emailResult.error
-      });
-    }
+    // if (emailResult.success) {
+    //   logger.info('✅ Verification email sent successfully', { 
+    //     to: user.email,
+    //     messageId: emailResult.messageId 
+    //   });
+    // } else {
+    //   logger.error('❌ Failed to send verification email', { 
+    //     to: user.email,
+    //     error: emailResult.error,
+    //     code: emailResult.code 
+    //   });
+    //   // Don't fail registration, but warn user
+    //   return res.status(201).json({
+    //     success: true,
+    //     message: 'Account created but verification email failed to send. Please contact support.',
+    //     data: { user: user.toJSON() },
+    //     emailError: emailResult.error
+    //   });
+    // }
 
-    return res.status(201).json({
-      success: true,
-      message: 'Account created. Please check your email to verify your account.',
-      data: { user: user.toJSON() },
-    });
+    // return res.status(201).json({
+    //   success: true,
+    //   message: 'Account created. Please check your email to verify your account.',
+    //   data: { user: user.toJSON() },
+    // });
+
+    emailService.sendVerificationEmail(user.email, user.name, vRec.token, { nonBlocking: true });
+     // Immediately reply; don’t wait on SMTP
+     return res.status(201).json({
+       success: true,
+       message: 'Account created. Please check your email to verify your account.',
+       data: { user: user.toJSON() },
+     });
   } catch (error) {
     logger.error('Registration error:', error);
 
