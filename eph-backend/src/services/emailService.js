@@ -79,6 +79,16 @@ class EmailService {
     this.initializeTransporter();
   }
 
+  // Add anywhere inside the class
+_sendWithTimeout(mailOptions, hardTimeoutMs = 90000) {
+  const sendPromise = this.transporter.sendMail(mailOptions);
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(`Email send timeout after ${hardTimeoutMs} ms`)), hardTimeoutMs)
+  );
+  return Promise.race([sendPromise, timeout]);
+}
+
+
   initializeTransporter() {
     try {
       const smtpHost = config.email?.smtpHost || process.env.EMAIL_SMTP_HOST;
@@ -128,9 +138,9 @@ class EmailService {
         pool: true,              // ✅ Enable connection pooling
         maxConnections: 5,       // Allow multiple connections
         maxMessages: 100,        // Reuse connections
-        connectionTimeout: 120000,  // 2 minutes
-        greetingTimeout: 120000,
-        socketTimeout: 120000,
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 30000,
         logger: emailDebug,
         debug: emailDebug,
       };
@@ -224,7 +234,9 @@ class EmailService {
     return `"${BRAND_NAME}" <no-reply@${domain}>`;
   }
 
-  async sendEmail(to, subject, html, text = null) {
+  async sendEmail(to, subject, html, text = null, opts = {}) {
+    const nonBlocking = opts?.nonBlocking === true;
+    const maxWaitMs = Number(opts?.maxWaitMs) || 0; // if provided with blocking mode
     try {
       // Lazy verification: verify connection on first send
       if (!this.verificationAttempted && this.transporter) {
@@ -257,22 +269,41 @@ class EmailService {
         text: text || String(html || "").replace(/<[^>]*>/g, ""),
       };
 
-      logger.info("📤 Sending email:", { 
-        to, 
-        subject, 
-        from: mailOptions.from,
-        env: process.env.NODE_ENV 
-      });
+      // logger.info("📤 Sending email:", { 
+      //   to, 
+      //   subject, 
+      //   from: mailOptions.from,
+      //   env: process.env.NODE_ENV 
+      // });
 
-      // Send with extended timeout
-      const sendPromise = this.transporter.sendMail(mailOptions);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Email send timeout after 90 seconds')), 90000)
-      );
+      // // Send with extended timeout
+      // const sendPromise = this.transporter.sendMail(mailOptions);
+      // const timeoutPromise = new Promise((_, reject) => 
+      //   setTimeout(() => reject(new Error('Email send timeout after 90 seconds')), 90000)
+      // );
 
-      const info = await Promise.race([sendPromise, timeoutPromise]);
-      
-      logger.info("✅ Email sent successfully:", {
+      // const info = await Promise.race([sendPromise, timeoutPromise]);
+
+      logger.info("📤 Sending email:", { to, subject, from: mailOptions.from, env: process.env.NODE_ENV });
+
+      // 🚀 Non-blocking path: fire-and-forget
+      if (nonBlocking) {
+        setImmediate(async () => {
+          try {
+            const info = await this._sendWithTimeout(mailOptions, 90000);
+            logger.info("✅ (bg) Email sent:", { to, subject, messageId: info.messageId });
+          } catch (error) {
+            logger.warn("❌ (bg) Email failed:", { to, subject, code: error.code, message: error.message });
+          }
+        });
+        return { success: true, queued: true }; // return immediately
+      }
+
+      // Blocking path (used by password reset etc.)
+      const hardTimeout = maxWaitMs > 0 ? maxWaitMs : 90000;
+      const info = await this._sendWithTimeout(mailOptions, hardTimeout);
+     
+       logger.info("✅ Email sent successfully:", {
         to,
         subject,
         messageId: info.messageId,
@@ -308,7 +339,7 @@ class EmailService {
   }
 
   // ---------------- Verification ----------------
-  async sendVerificationEmail(email, name, verificationToken) {
+  async sendVerificationEmail(email, name, verificationToken, opts = {}) {
     const webLink = `${frontend}/verify-email?token=${encodeURIComponent(verificationToken)}`;
     const deepLink = `${DEEP_LINK_SCHEME}://verify-email?token=${encodeURIComponent(verificationToken)}`;
 
@@ -350,7 +381,7 @@ App: ${deepLink}
 
 If you didn't create an account, you can ignore this email.`;
 
-    return this.sendEmail(email, subject, html, text);
+    return this.sendEmail(email, subject, html, text, opts);
   }
 
   // [Keep all other email methods unchanged - they call sendEmail() which handles everything]

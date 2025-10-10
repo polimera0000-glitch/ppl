@@ -418,12 +418,8 @@ getAllUsers: async (req, res) => {
         });
       }
 
-      await user.update({ is_active: false });
-
-      res.json({
-        success: true,
-        message: 'User deactivated successfully'
-      });
+      await user.destroy(); // hard delete; switch to soft-delete if needed
+      return res.json({ success: true, message: 'User deleted successfully' });
 
     } catch (error) {
       logger.error('Deactivate user error:', error);
