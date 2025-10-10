@@ -579,6 +579,16 @@ const emailService = require('../services/emailService');
 const logger = require('../utils/logger');
 const config = require('../config');
 
+// helpers at top of file (add once)
+const maskEmail = (e) => {
+  if (!e) return '';
+  const [u, d] = String(e).split('@');
+  if (!d) return e;
+  const vis = Math.min(2, u.length);
+  return `${u.slice(0, vis)}${'*'.repeat(Math.max(0, u.length - vis))}@${d}`;
+};
+
+
 const authController = {
   // ----------------------------
   // LOGIN (blocked if !is_verified)
@@ -604,13 +614,40 @@ const authController = {
         return res.status(401).json({ success: false, message: 'Invalid email or password' });
       }
 
-      // BLOCK UNVERIFIED LOGINS
-      if (!user.verified) {
-        return res.status(403).json({
-          success: false,
-          message: 'Please verify your email to continue. Check your inbox for the verification link.',
-        });
-      }
+      // BLOCK UNVERIFIED LOGINS → also send a fresh verification link
+if (!user.verified) {
+  try {
+    const ipAddress = typeof req.ip === 'string' ? req.ip : (req.headers['x-forwarded-for'] || null);
+    const userAgent = req.get?.('User-Agent') || req.headers['user-agent'] || null;
+
+    // (optional) tiny cooldown to avoid spamming – keep simple (60s)
+    // If you already track tokens with timestamps, check the latest one here.
+    const rec = await authService.createEmailVerificationToken(user.id, {
+      ipAddress: ipAddress ? String(ipAddress) : null,
+      userAgent: userAgent ? String(userAgent) : null,
+    });
+
+    await emailService.sendVerificationEmail(user.email, user.name, rec.token);
+    logger.info('Login-triggered verification email sent', { to: user.email });
+  } catch (e) {
+    logger.warn('Failed to send verification email during login', { error: e?.message, userId: user.id });
+    // continue – still block login, but message won’t claim "sent"
+    return res.status(403).json({
+      success: false,
+      code: 'EMAIL_NOT_VERIFIED',
+      message:
+        'Your email is not verified yet. Please check your inbox for the original verification link or use "Resend verification" from the login screen.',
+    });
+  }
+
+  return res.status(403).json({
+    success: false,
+    code: 'EMAIL_VERIFICATION_SENT',
+    message: 'Your email is not verified yet. We’ve sent a new verification link to your email.',
+    data: { emailSentTo: maskEmail(user.email) },
+  });
+}
+
 
       user.last_login = new Date();
       await user.save();

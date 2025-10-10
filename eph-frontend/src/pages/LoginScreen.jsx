@@ -82,7 +82,15 @@ const LoginScreen = () => {
           });
         }
       } else {
-        setErrorMsg(result.message || "Login failed");
+        // NEW: special case – backend auto-sent a verification link
+  if (result.code === 'EMAIL_VERIFICATION_SENT') {
+    const email = formData.email.trim();
+    navigate(`/verify-email-sent?email=${encodeURIComponent(email)}`, { replace: true });
+    return;
+  }
+
+  // fallback – old message
+  setErrorMsg(result.message || "Login failed");
       }
     } catch (err) {
       setErrorMsg(`Network error: ${err.message}`);
