@@ -41,7 +41,7 @@ const SplashScreen = () => {
           </div>
         </div>
         
-        <h1 className="text-4xl font-bold text-white mb-2">EPH Platform</h1>
+        <h1 className="text-4xl font-bold text-white mb-2">PPL</h1>
         <p className="text-white/80 text-lg mb-8">Engineering Projects Hub</p>
         
         <div className="flex items-center justify-center space-x-2">

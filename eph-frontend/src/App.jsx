@@ -31,6 +31,7 @@ import MainNav from "./pages/MainNav.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import AdminHubScreen from "./pages/AdminHubScreen.jsx";
 import RoleListPage from "./pages/RoleListPage.jsx";
+import Courses from "./pages/courses.jsx";
 
 import CompetitionRegisterScreen from "./pages/CompetitionRegisterScreen.jsx";
 import CompetitionSubmitScreen from "./pages/CompetitionSubmitScreen.jsx";
@@ -89,6 +90,10 @@ function App() {
               <Route
                 path="/competitions"
                 element={<PublicCompetitionScreen />}
+              />
+              <Route
+                path="/courses"
+                element={<Courses />}
               />
               <Route
                 path="/about"
