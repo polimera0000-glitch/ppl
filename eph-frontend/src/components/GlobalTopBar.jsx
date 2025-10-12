@@ -12,7 +12,7 @@ const GlobalTopBar = ({
   navLinks = [
     { href: "#about", label: "About", type: "scroll" },
     { href: "#how-it-works", label: "How It Works", type: "scroll" },
-    { href: "#course", label: "Course", type: "scroll" },
+    { href: "/courses", label: "Course", type: "route" },
     { href: "#why-ppl", label: "Why PPL", type: "scroll" },
     { href: "/competitions", label: "Competitions", type: "route" },
   ],
