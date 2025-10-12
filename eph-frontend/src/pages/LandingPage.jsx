@@ -1035,7 +1035,7 @@ export default function LandingPage({ embedded = false }) {
             href="mailto:contact@ppl.com"
             className="text-primary-text hover:text-primary transition-colors break-all"
           >
-            contact@ppl.com
+            support@theppl.com
           </a>
         </div>
       </div>
