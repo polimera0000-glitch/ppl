@@ -22,7 +22,7 @@ import { useAuth } from "../hooks/useAuth";
 import ContactModal from "../components/ContactModal";
 import TermsModal from "../components/TermsModal";
 import PrivacyModal from "../components/PrivacyModal";
-import RefundModal from "../components/RefundModal";
+import RefundModal from "../components/refundmodal";
 import Courses from "../pages/courses.jsx";
 
 // InfoCard
