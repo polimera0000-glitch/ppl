@@ -18,6 +18,7 @@ import { useAuth } from "./hooks/useAuth";
 
 // Pages
 import SplashScreen from "./pages/SplashScreen.jsx";
+import AppInitializer from "./components/AppInitializer.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import PublicCompetitionScreen from "./pages/PublicCompetitionScreen.jsx";
 import RoleSelectionScreen from "./pages/RoleSelectionScreen.jsx";
@@ -84,9 +85,9 @@ function App() {
             <Routes>
               {/* Public */}
               <Route path="/splash" element={<SplashScreen />} />
-              {/* <Route path="/" element={<LandingPage />} /> */}
-              {/* Root now decides between Landing (public) and Main/Admin (authed) */}
-              <Route path="/" element={<RootGate />} />
+              <Route path="/landing" element={<LandingPage />} />
+              {/* Root now shows AppInitializer which handles splash screen logic */}
+              <Route path="/" element={<AppInitializer />} />
               <Route
                 path="/competitions"
                 element={<PublicCompetitionScreen />}

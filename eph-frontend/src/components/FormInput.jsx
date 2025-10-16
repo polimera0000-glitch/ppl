@@ -23,7 +23,7 @@ const FormInput = ({
         ].join(" ")}
       >
         {Icon && (
-          <Icon className="w-5 h-5 absolute left-3 text-secondary-text" />
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 sm:left-4 text-secondary-text" />
         )}
         <input
           type={showPasswordToggle && showPassword ? "text" : type}
@@ -31,13 +31,13 @@ const FormInput = ({
           onChange={onChange}
           placeholder={placeholder}
           required={required}
-          className="w-full px-10 py-3 bg-transparent outline-none text-primary-text placeholder-secondary-text"
+          className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 bg-transparent outline-none text-primary-text placeholder-secondary-text text-base focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-surface rounded-lg"
         />
         {showPasswordToggle && (
           <button
             type="button"
             onClick={() => setShowPassword((s) => !s)}
-            className="absolute right-3 text-secondary-text hover:text-primary-text"
+            className="absolute right-3 sm:right-4 text-secondary-text hover:text-primary-text transition-colors touch-manipulation p-1"
           >
             {showPassword ? "🙈" : "👁️"}
           </button>

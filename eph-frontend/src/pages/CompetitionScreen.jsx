@@ -301,17 +301,17 @@ const CompetitionScreen = () => {
       <button
         onClick={onClick}
         className={[
-          "px-4 py-3 rounded-xl transition-all duration-200 border",
+          "px-3 py-2 sm:px-4 sm:py-3 rounded-xl transition-all duration-200 border touch-manipulation",
           selected ? "bg-surface ring-2 "+color.ring+" border-border" : "bg-surface hover:bg-border border-border/70"
         ].join(' ')}
       >
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-full ${color.bg} flex items-center justify-center`}>
-            <Icon className={`w-5 h-5 ${color.text}`} />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${color.bg} flex items-center justify-center flex-shrink-0`}>
+            <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${color.text}`} />
           </div>
-          <div className="text-left">
-            <div className="text-primary-text font-bold text-lg">{count}</div>
-            <div className="text-secondary-text text-sm">{label}</div>
+          <div className="text-left min-w-0">
+            <div className="text-primary-text font-bold text-sm sm:text-lg">{count}</div>
+            <div className="text-secondary-text text-xs sm:text-sm truncate">{label}</div>
           </div>
         </div>
       </button>
@@ -433,9 +433,9 @@ const CompetitionScreen = () => {
         tabIndex={0}
         onClick={handleCardOpen}
         onKeyUp={(e) => (e.key === 'Enter' ? handleCardOpen() : null)}
-        className="bg-surface rounded-xl p-6 border border-border hover:bg-border transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30"
+        className="bg-surface rounded-xl p-4 sm:p-6 border border-border hover:bg-border transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 touch-manipulation"
       >
-        <div className="flex flex-col sm:flex-row items-start gap-4">
+        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
           <div className="w-full aspect-[16/9] sm:w-20 sm:h-20 sm:aspect-auto rounded-lg bg-background flex items-center justify-center flex-shrink-0 overflow-hidden border border-border">
             {competition.banner_image_url ? (
               <img
@@ -610,16 +610,16 @@ const CompetitionScreen = () => {
           <div className="mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
-                <h2 className="text-2xl font-bold text-primary-text">Competitions</h2>
-                <p className="text-secondary-text">Discover and join exciting competitions</p>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary-text">Competitions</h2>
+                <p className="text-sm sm:text-base text-secondary-text">Discover and join exciting competitions</p>
               </div>
               {isAdmin && (
                 <button
                   onClick={() => navigate('/competition/create')}
-                  className="w-full sm:w-auto px-4 py-2 bg-surface hover:bg-border border border-border text-primary-text rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 bg-surface hover:bg-border border border-border text-primary-text rounded-lg font-medium transition-colors flex items-center justify-center gap-2 touch-manipulation"
                 >
-                  <Rocket className="w-4 h-4" />
-                  Create Competition
+                  <Rocket className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-sm sm:text-base">Create Competition</span>
                 </button>
               )}
             </div>
@@ -639,7 +639,7 @@ const CompetitionScreen = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:gap-1 gap-2 sm:gap-3 mb-4">
               <MetricButton label="Ongoing"  count={counts.ongoing}  selected={activeFilter === FILTERS.ONGOING}  onClick={() => setActiveFilter(FILTERS.ONGOING)}  Icon={Activity} palette="green" />
               <MetricButton label="Upcoming" count={counts.upcoming} selected={activeFilter === FILTERS.UPCOMING} onClick={() => setActiveFilter(FILTERS.UPCOMING)} Icon={Clock3} palette="amber" />
               <MetricButton label="Completed" count={counts.completed} selected={activeFilter === FILTERS.COMPLETED} onClick={() => setActiveFilter(FILTERS.COMPLETED)} Icon={CheckCircle2} palette="gray" />
@@ -647,15 +647,15 @@ const CompetitionScreen = () => {
             </div>
 
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-secondary-text" />
+              <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 sm:h-5 sm:w-5 text-secondary-text" />
               </div>
               <input
                 type="text"
                 placeholder="Search competitions, sponsors, tags..."
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 bg-surface border border-border rounded-xl text-primary-text placeholder-secondary-text focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 bg-surface border border-border rounded-xl text-primary-text placeholder-secondary-text focus:outline-none focus:ring-2 focus:ring-primary/30 text-base"
               />
               {!!searchText && (
                 <button onClick={() => setSearchText('')} className="absolute inset-y-0 right-0 pr-3 flex items-center" aria-label="Clear search">

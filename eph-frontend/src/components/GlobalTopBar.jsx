@@ -17,11 +17,13 @@ const GlobalTopBar = ({
     { href: "/competitions", label: "Competitions", type: "route" },
   ],
   showRegister = true,
+  onMobileMenuToggle,
+  scrollOffset = -80,
 }) => {
   const [open, setOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false); // ✅ modal state
   const location = useLocation();
-  const onLanding = location.pathname === "/";
+  const onLanding = location.pathname === "/" || location.pathname === "/landing";
 
   const { user, isAuthenticated } = useAuth?.() || {};
   const isAdmin = (user?.role || "").toLowerCase() === "admin";
@@ -48,9 +50,9 @@ const GlobalTopBar = ({
 
   return (
     <>
-      <nav className="backdrop-blur-xl shadow-header sticky top-0 z-50 bg-surface/80 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-5">
-          <div className="flex justify-between items-center h-20">
+      <nav className="backdrop-blur-xl shadow-header sticky top-0 z-50 bg-surface/80 border-b border-border safe-top mb-4 sm:mb-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16 sm:h-18 md:h-20">
             {/* Brand (logo acts as Home / Dashboard) */}
             <RouterLink
               to={homeHref}
@@ -60,22 +62,22 @@ const GlobalTopBar = ({
               <img
                 src={logo}
                 alt="PPL Logo"
-                className="h-20 w-30 object-cover rounded-lg"
+                className="h-8 w-auto sm:h-10 md:h-12 object-contain rounded-lg"
               />
             </RouterLink>
 
             {/* Desktop nav */}
-            <div className="hidden md:flex items-center space-x-6">
+            <div className="hidden lg:flex items-center space-x-6">
               {navLinks.map((link) => {
                 if (link.type === "scroll" && onLanding) {
                   return (
                     <Link
-                      key={link.label}
+                      key={`${link.label}-${scrollOffset}`}
                       to={link.href.replace("#", "")}
                       smooth
                       duration={800}
-                      offset={-80}
-                      className="font-medium cursor-pointer text-secondary-text hover:text-primary-text transition-colors"
+                      offset={scrollOffset}
+                      className="font-medium cursor-pointer text-secondary-text hover:text-primary-text transition-colors text-sm lg:text-base"
                     >
                       {link.label}
                     </Link>
@@ -85,7 +87,7 @@ const GlobalTopBar = ({
                   <RouterLink
                     key={link.label}
                     to={resolveHref(link)}
-                    className="font-medium text-secondary-text hover:text-primary-text transition-colors"
+                    className="font-medium text-secondary-text hover:text-primary-text transition-colors text-sm lg:text-base"
                   >
                     {link.label}
                   </RouterLink>
@@ -122,17 +124,23 @@ const GlobalTopBar = ({
             </div>
 
             {/* Mobile buttons */}
-            <div className="md:hidden flex items-center gap-3">
+            <div className="lg:hidden flex items-center gap-3">
               <ThemeToggle />
               <button
-                onClick={() => setOpen((v) => !v)}
-                className="text-primary-text"
+                onClick={() => {
+                  const newOpen = !open;
+                  setOpen(newOpen);
+                  if (onMobileMenuToggle) {
+                    onMobileMenuToggle(newOpen);
+                  }
+                }}
+                className="p-2 rounded-lg border border-border bg-surface hover:bg-border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 touch-manipulation"
                 aria-label="Toggle menu"
               >
                 {open ? (
-                  <X className="h-7 w-7" />
+                  <X className="h-5 w-5" />
                 ) : (
-                  <Menu className="h-7 w-7" />
+                  <Menu className="h-5 w-5" />
                 )}
               </button>
             </div>
@@ -141,19 +149,24 @@ const GlobalTopBar = ({
 
         {/* Mobile sheet */}
         {open && (
-          <div className="md:hidden border-t bg-surface border-border transition-colors">
-            <div className="px-4 pt-2 pb-4 space-y-2">
+          <div className="lg:hidden border-t bg-surface border-border transition-colors animate-fade-in">
+            <div className="px-4 sm:px-6 pt-4 pb-6 space-y-3">
               {navLinks.map((link) => {
                 if (link.type === "scroll" && onLanding) {
                   return (
                     <Link
-                      key={link.label}
+                      key={`${link.label}-${scrollOffset}`}
                       to={link.href.replace("#", "")}
                       smooth
                       duration={800}
-                      offset={-80}
-                      onClick={() => setOpen(false)}
-                      className="block py-2 rounded-md text-base font-medium cursor-pointer text-secondary-text hover:text-primary-text transition-colors"
+                      offset={scrollOffset}
+                      onClick={() => {
+                        setOpen(false);
+                        if (onMobileMenuToggle) {
+                          onMobileMenuToggle(false);
+                        }
+                      }}
+                      className="block py-3 px-3 rounded-lg text-base font-medium cursor-pointer text-secondary-text hover:text-primary-text hover:bg-border transition-all duration-200 touch-manipulation"
                     >
                       {link.label}
                     </Link>
@@ -163,8 +176,13 @@ const GlobalTopBar = ({
                   <RouterLink
                     key={link.label}
                     to={resolveHref(link)}
-                    onClick={() => setOpen(false)}
-                    className="block py-2 rounded-md text-base font-medium text-secondary-text hover:text-primary-text transition-colors"
+                    onClick={() => {
+                      setOpen(false);
+                      if (onMobileMenuToggle) {
+                        onMobileMenuToggle(false);
+                      }
+                    }}
+                    className="block py-3 px-3 rounded-lg text-base font-medium text-secondary-text hover:text-primary-text hover:bg-border transition-all duration-200 touch-manipulation"
                   >
                     {link.label}
                   </RouterLink>
@@ -176,9 +194,12 @@ const GlobalTopBar = ({
                 type="button"
                 onClick={() => {
                   setOpen(false);
+                  if (onMobileMenuToggle) {
+                    onMobileMenuToggle(false);
+                  }
                   setTimeout(openContact, 150); // close sheet first, then open modal
                 }}
-                className="block w-full text-left py-2 rounded-md text-base font-medium text-secondary-text hover:text-primary-text transition-colors"
+                className="block w-full text-left py-3 px-3 rounded-lg text-base font-medium text-secondary-text hover:text-primary-text hover:bg-border transition-all duration-200 touch-manipulation"
               >
                 Contact
               </button>
@@ -197,15 +218,25 @@ const GlobalTopBar = ({
                 <>
                   <RouterLink
                     to="/login"
-                    onClick={() => setOpen(false)}
-                    className="block w-full text-center py-2 rounded-md font-semibold border border-border bg-surface text-primary-text hover:bg-border transition-colors"
+                    onClick={() => {
+                      setOpen(false);
+                      if (onMobileMenuToggle) {
+                        onMobileMenuToggle(false);
+                      }
+                    }}
+                    className="block w-full text-center py-3 px-4 rounded-lg font-semibold border border-border bg-surface text-primary-text hover:bg-border transition-all duration-200 touch-manipulation"
                   >
                     Login
                   </RouterLink>
                   <RouterLink
                     to="/roles"
-                    onClick={() => setOpen(false)}
-                    className="block w-full text-center py-2 rounded-md font-semibold bg-primary text-white hover:bg-primary-hover transition-colors"
+                    onClick={() => {
+                      setOpen(false);
+                      if (onMobileMenuToggle) {
+                        onMobileMenuToggle(false);
+                      }
+                    }}
+                    className="block w-full text-center py-3 px-4 rounded-lg font-semibold bg-primary text-white hover:bg-primary-hover transition-all duration-200 touch-manipulation"
                   >
                     Sign Up
                   </RouterLink>

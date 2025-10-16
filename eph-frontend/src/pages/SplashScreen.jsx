@@ -33,24 +33,21 @@ const SplashScreen = () => {
   }, [loading, isAuthenticated, mustChangePassword, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-center">
-        <div className="w-24 h-24 mx-auto mb-8 bg-white/10 rounded-full flex items-center justify-center">
-          <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-            <span className="text-2xl font-bold text-white">E</span>
+        <div className="w-24 h-24 mx-auto mb-8 bg-primary/10 rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
+            <span className="text-2xl font-bold text-primary">P</span>
           </div>
         </div>
-        
-        <h1 className="text-4xl font-bold text-white mb-2">PPL</h1>
-        <p className="text-white/80 text-lg mb-8">Engineering Projects Hub</p>
-        
+        <h1 className="text-4xl font-bold text-primary-text mb-2">PPL Platform</h1>
+        <p className="text-secondary-text text-lg mb-8">Student Projects League</p>
         <div className="flex items-center justify-center space-x-2">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-          <span className="text-white/70">Loading...</span>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+          <span className="text-secondary-text">Loading...</span>
         </div>
-        
-        <p className="text-white/60 text-sm mt-12">
-          Empowering Students, Connecting Opportunities
+        <p className="text-secondary-text text-sm mt-12">
+          Where Student Projects Meet Real Investors
         </p>
       </div>
     </div>
