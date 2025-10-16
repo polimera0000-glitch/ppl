@@ -11,8 +11,8 @@ import ProfileScreen from './ProfileScreen';
 import AdminHubScreen from './AdminHubScreen';
 
 // Put Dashboard first
-const TABS_FOR_USER  = ['dashboard', 'competitions', 'feed', 'perks', 'profile'];
-const TABS_FOR_ADMIN = ['dashboard', 'competitions', 'feed', 'perks', 'profile', 'admin'];
+const TABS_FOR_USER  = ['dashboard', 'competitions', 'feed', 'perks', 'profile', 'courses'];
+const TABS_FOR_ADMIN = ['dashboard', 'competitions', 'feed', 'perks', 'profile', 'admin', 'courses'];
 
 const MainNav = ({ initialPage = 'dashboard' }) => {
   const location = useLocation();
@@ -74,6 +74,8 @@ const MainNav = ({ initialPage = 'dashboard' }) => {
         return <PerksScreen />;
       case 'profile':
         return <ProfileScreen />;
+      case 'courses':
+        return null;                               // Courses content is handled by SidebarLayout
       case 'admin':
         return isAdmin ? <AdminHubScreen /> : <CompetitionScreen />;
       default:

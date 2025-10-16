@@ -27,7 +27,11 @@ const RoleSelectionScreen = () => {
   ];
 
   const handleContinue = () => {
-    if (selectedRole) navigate("/login", { state: { role: selectedRole } });
+    if (selectedRole) {
+      // Student goes to register, Admin goes to login
+      const destination = selectedRole === "student" ? "/register" : "/login";
+      navigate(destination, { state: { role: selectedRole } });
+    }
   };
 
   const handleSkip = () => navigate("/login");

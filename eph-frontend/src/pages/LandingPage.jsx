@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
   Rocket,
@@ -22,7 +22,7 @@ import { useAuth } from "../hooks/useAuth";
 import ContactModal from "../components/ContactModal";
 import TermsModal from "../components/TermsModal";
 import PrivacyModal from "../components/PrivacyModal";
-import RefundModal from "../components/refundmodal";
+import RefundModal from "../components/RefundModal";
 import Courses from "../pages/courses.jsx";
 
 // InfoCard
@@ -45,11 +45,20 @@ export default function LandingPage({ embedded = false }) {
   const [termsOpen, setTermsOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [RefundOpen, setRefundOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAuthenticated } = useAuth?.() || {};
   const isAdmin = (user?.role || "").toLowerCase() === "admin";
   const exploreTo = isAuthenticated
     ? `${isAdmin ? "/admin" : "/main"}?tab=competitions`
     : "/competitions";
+
+  // Calculate dynamic scroll offset based on mobile menu state
+  const getScrollOffset = () => {
+    if (mobileMenuOpen) {
+      return -200; // Account for mobile menu height when open
+    }
+    return -80; // Normal offset when menu is closed
+  };
 
   return (
     <div className="min-h-screen font-sans bg-background text-primary-text transition-colors">
@@ -64,11 +73,13 @@ export default function LandingPage({ embedded = false }) {
             { href: "/competitions", label: "Competitions", type: "route" },
           ]}
           showRegister
+          onMobileMenuToggle={setMobileMenuOpen}
+          scrollOffset={getScrollOffset()}
         />
       )}
 
       {/* Hero */}
-      <section className="relative text-center py-16 sm:py-24 px-4 bg-surface/60 overflow-hidden">
+      <section className="relative text-center pt-20 pb-16 sm:pt-24 sm:pb-24 md:pt-32 md:pb-32 px-4 overflow-hidden bg-surface/60 safe-top">
         <div className="max-w-4xl mx-auto relative z-10">
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6 leading-tight text-primary-text">
             Where Student Projects Meet Real Investors
@@ -82,10 +93,10 @@ export default function LandingPage({ embedded = false }) {
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center w-full sm:w-auto">
             <RouterLink
               to={exploreTo}
-              className="px-6 sm:px-8 py-3 rounded-full font-semibold bg-primary text-white hover:bg-primary-hover transition-all duration-300 transform hover:scale-[1.02] text-center"
+              className="px-6 sm:px-8 py-3 rounded-full font-semibold bg-primary text-white hover:bg-primary-hover transition-all duration-300 transform hover:scale-[1.02] text-center touch-manipulation"
             >
               <div className="flex items-center justify-center gap-2">
-                <Compass className="h-5 w-5" />
+              <Compass className="h-5 w-5" />
                 <span>Explore Competitions</span>
               </div>
             </RouterLink>
@@ -93,10 +104,10 @@ export default function LandingPage({ embedded = false }) {
             {!isAuthenticated && (
               <RouterLink
                 to="/roles"
-                className="px-6 sm:px-8 py-3 rounded-full font-semibold border border-border bg-surface text-primary-text hover:bg-border transition-all duration-300 transform hover:scale-[1.02] text-center"
+                className="px-6 sm:px-8 py-3 rounded-full font-semibold border border-border bg-surface text-primary-text hover:bg-border transition-all duration-300 transform hover:scale-[1.02] text-center touch-manipulation"
               >
                 <div className="flex items-center justify-center gap-2">
-                  <Rocket className="h-5 w-5" />
+                <Rocket className="h-5 w-5" />
                   <span>Get Started</span>
                 </div>
               </RouterLink>
@@ -106,7 +117,7 @@ export default function LandingPage({ embedded = false }) {
       </section>
 
       {/* About */}
-      <section id="about" className="py-14 sm:py-20 px-4 bg-background">
+      <section id="about" className="pt-24 pb-16 sm:pt-32 sm:pb-24 px-4 bg-background">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-2xl sm:text-4xl font-bold mb-4 text-primary-text">
             About PPL
@@ -134,7 +145,7 @@ export default function LandingPage({ embedded = false }) {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="py-16 sm:py-24 px-4 bg-surface">
+      <section id="how-it-works" className="pt-24 pb-16 sm:pt-32 sm:pb-24 px-4 bg-surface">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-12 sm:mb-16 text-primary-text">
             How PPL Works
@@ -165,7 +176,7 @@ export default function LandingPage({ embedded = false }) {
       </section>
 
       {/* Course */}
-      <section id="course" className="py-16 sm:py-24 px-4 bg-background">
+      <section id="course" className="pt-24 pb-16 sm:pt-32 sm:pb-24 px-4 bg-background">
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-primary-text">
             PPL Startup Course
@@ -196,7 +207,7 @@ export default function LandingPage({ embedded = false }) {
       </section>
 
       {/* Why PPL */}
-      <section id="why-ppl" className="py-16 sm:py-24 px-4 bg-surface">
+      <section id="why-ppl" className="pt-24 pb-16 sm:pt-32 sm:pb-24 px-4 bg-surface">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-10 sm:mb-12 text-primary-text">
             Why PPL?
@@ -225,7 +236,7 @@ export default function LandingPage({ embedded = false }) {
       </section>
 
       {/* Evaluation */}
-      <section className="py-16 sm:py-24 px-4 bg-background">
+      <section className="pt-24 pb-16 sm:pt-32 sm:pb-24 px-4 bg-background">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-10 sm:mb-12 text-primary-text">
             Evaluation Criteria
@@ -250,7 +261,7 @@ export default function LandingPage({ embedded = false }) {
       </section>
 
       {/* Investor Day */}
-      <section className="py-16 sm:py-24 px-4 text-white bg-primary">
+      <section className="pt-24 pb-16 sm:pt-32 sm:pb-24 px-4 text-white bg-primary">
         <div className="max-w-6xl mx-auto text-center">
           <Award className="h-14 w-14 sm:h-16 sm:w-16 mx-auto mb-5 sm:mb-6 text-white" />
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
@@ -439,11 +450,11 @@ export default function LandingPage({ embedded = false }) {
             type="email"
             required
             placeholder="you@example.com"
-            className="w-full rounded-lg px-4 py-2 bg-background border border-border text-primary-text placeholder:text-secondary-text focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full rounded-lg px-4 py-3 bg-background border border-border text-primary-text placeholder:text-secondary-text focus:outline-none focus:ring-2 focus:ring-primary/50 text-base"
           />
           <button
             type="submit"
-            className="w-full sm:w-auto px-4 py-2 rounded-lg font-semibold bg-primary text-white hover:bg-primary-hover transition-colors"
+            className="w-full sm:w-auto px-6 py-3 rounded-lg font-semibold bg-primary text-white hover:bg-primary-hover transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-surface touch-manipulation text-center md:text-center"
           >
             Join
           </button>

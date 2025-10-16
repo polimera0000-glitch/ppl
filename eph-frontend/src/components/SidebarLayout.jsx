@@ -21,14 +21,14 @@ const NavButton = ({ active, label, icon: Icon, onClick }) => (
   <button
     onClick={onClick}
     className={[
-      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors border",
+      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors border touch-manipulation",
       active
         ? "bg-surface text-primary-text border-border ring-2 ring-primary/20"
         : "text-secondary-text hover:text-primary-text bg-surface hover:bg-border border-border",
     ].join(" ")}
   >
-    <Icon className="w-4 h-4" />
-    <span>{label}</span>
+    <Icon className="w-4 h-4 flex-shrink-0" />
+    <span className="truncate">{label}</span>
   </button>
 );
 
@@ -83,6 +83,8 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
     setOpenMenu(false);
     try {
       await logout?.();
+      // Set flag to skip splash screen after logout
+      sessionStorage.setItem('ppl-from-logout', 'true');
     } catch {}
     navigate("/", { replace: true });
   };
@@ -136,30 +138,35 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
     // Anchor the app shell to the viewport; kill outer scrollbar
     <div className="fixed inset-0 overflow-hidden bg-background text-primary-text">
       <div className="flex h-full">
-        {/* Sidebar: off-canvas on mobile, sticky on md+ */}
+        {/* Sidebar: off-canvas on mobile, sticky on xl+ */}
         <aside
           className={[
-            "fixed inset-y-0 left-0 z-40 w-72 transform transition-transform duration-200",
+            "fixed inset-y-0 left-0 z-40 w-72 sm:w-80 transform transition-transform duration-300 ease-in-out",
             mobileOpen ? "translate-x-0" : "-translate-x-full",
-            "bg-surface/80 backdrop-blur-xl border-r border-border p-4 flex flex-col",
-            "md:static md:translate-x-0 md:w-64 md:sticky md:top-0 md:h-screen md:overflow-y-auto",
+            "bg-surface/95 backdrop-blur-xl border-r border-border p-4 flex flex-col",
+            "xl:static xl:translate-x-0 xl:w-64 xl:top-0 xl:h-screen xl:overflow-y-auto",
+            "shadow-mobile-menu xl:shadow-none",
           ].join(" ")}
         >
           {/* Logo */}
-          <div className="flex items-center justify-center mb-3">
+          <div className="flex items-center justify-center mb-4 sm:mb-6">
             <button
               type="button"
               onClick={() => navigate(logoDest)}
-              className="rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 hover:scale-105 transition-transform duration-200"
               aria-label="Go to home"
               title="Home"
             >
-              <img src={logo} alt="PPL Logo" className="w-30 h-20 object-cover" />
+              <img 
+                src={logo} 
+                alt="PPL Logo" 
+                className="h-12 w-auto sm:h-16 object-contain rounded-lg" 
+              />
             </button>
           </div>
 
           {/* Nav */}
-          <nav className="space-y-2">
+          <nav className="space-y-2 sm:space-y-3">
             <NavButton
               label="Home"
               active={currentPage === "dashboard"}
@@ -264,14 +271,14 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
         {mobileOpen && (
           <div
             onClick={() => setMobileOpen(false)}
-            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm xl:hidden animate-fade-in"
             aria-hidden
           />
         )}
 
         {/* Right column: sticky header + scrollable main */}
         <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full">
-          <header className="sticky top-0 z-20 bg-surface/80 backdrop-blur-xl border-b border-border">
+          <header className="sticky top-0 z-20 bg-surface/80 backdrop-blur-xl border-b border-border safe-top mb-4 sm:mb-0">
             <div className="px-4 py-3 md:px-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <h1 className="text-base md:text-lg font-bold text-primary-text">{headerTitle}</h1>
@@ -290,7 +297,7 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
                 <button
                   type="button"
                   onClick={() => setMobileOpen((v) => !v)}
-                  className="md:hidden px-3 py-2 rounded-lg border border-border bg-surface hover:bg-border transition focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="xl:hidden p-2 rounded-lg border border-border bg-surface hover:bg-border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 touch-manipulation"
                   aria-label="Open menu"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -301,7 +308,7 @@ const SidebarLayout = ({ currentPage, onPageChange, children }) => {
             </div>
           </header>
 
-          <main className="flex-1 min-h-0 overflow-auto bg-background">{content}</main>
+          <main className="flex-1 min-h-0 overflow-auto bg-background safe-bottom">{content}</main>
         </div>
       </div>
     </div>
