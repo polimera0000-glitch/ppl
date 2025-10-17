@@ -1320,21 +1320,27 @@ const CompetitionRegisterScreen = () => {
     try {
       // Update profile
       try {
-        await apiService.makeRequest('/auth/update-profile', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: applicant.name.trim(),
-            phone: normalizePhone(applicant.phone),
-            org: applicant.org.trim(),
-            gender: applicant.gender,
-            edu_type: applicant.edu_type,
-            work_experience_years: applicant.edu_type === 'graduate' ? Number(applicant.work_experience_years || 0) : 0,
-            agree_tnc: !!agreeTnC,
-            agree_privacy: !!agreePrivacy,
-          }),
-        });
-      } catch (_) {}
+        const profileUpdatePayload = {
+          name: applicant.name.trim(),
+          phone: normalizePhone(applicant.phone),
+          org: applicant.org.trim(),
+          gender: applicant.gender,
+          edu_type: applicant.edu_type,
+          work_experience_years: applicant.edu_type === 'graduate' ? Number(applicant.work_experience_years || 0) : 0,
+          agree_tnc: !!agreeTnC,
+          agree_privacy: !!agreePrivacy,
+        };
+        
+        const profileResponse = await apiService.updateProfile(profileUpdatePayload);
+        if (profileResponse?.success) {
+          console.log('Profile updated successfully during registration');
+        } else {
+          console.warn('Profile update failed during registration:', profileResponse?.message);
+        }
+      } catch (profileError) {
+        console.error('Profile update error during registration:', profileError);
+        // Continue with registration even if profile update fails
+      }
 
       // ========== PAYMENT SECTION COMMENTED OUT ==========
       /*
@@ -1413,6 +1419,18 @@ const CompetitionRegisterScreen = () => {
 
       if (response?.success) {
         showToast('success', 'Registration submitted successfully!');
+        
+        // Refresh user profile data to ensure it's up to date
+        try {
+          const profileResponse = await apiService.getProfile();
+          if (profileResponse?.success && profileResponse?.data?.user) {
+            authService.setUser?.(profileResponse.data.user);
+            console.log('Profile refreshed after registration');
+          }
+        } catch (profileError) {
+          console.warn('Failed to refresh profile after registration:', profileError);
+        }
+        
         navigate('/main?tab=competitions', {
           replace: true,
           state: { justRegisteredCompetitionId: id },

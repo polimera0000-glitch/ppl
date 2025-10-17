@@ -972,6 +972,7 @@
 
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { apiService } from "../services/apiService";
 import { authService } from "../services/authService";
 import {
@@ -1016,12 +1017,12 @@ const SkillChip = ({ text, canRemove, onRemove }) => (
 
 /** Label + value row (view mode) */
 const LabelValue = ({ label, icon: Icon, children }) => (
-  <div className="flex flex-col sm:flex-row sm:items-start gap-2">
-    <div className="sm:w-44 shrink-0 text-secondary-text font-semibold inline-flex items-center gap-2">
+  <div className="flex flex-col gap-1 sm:gap-2">
+    <div className="text-secondary-text font-semibold inline-flex items-center gap-2 text-sm">
       {Icon && <Icon className="w-4 h-4" />}
       {label}
     </div>
-    <div className="text-primary-text">{children ?? "—"}</div>
+    <div className="text-primary-text text-sm sm:text-base break-words">{children ?? "—"}</div>
   </div>
 );
 
@@ -1031,8 +1032,8 @@ const TextField = React.forwardRef(
     { label, hint, type = "text", icon: Icon, defaultValue, onChange, ...rest },
     ref
   ) => (
-    <div className="flex flex-col sm:flex-row gap-2">
-      <div className="sm:w-44 shrink-0 text-secondary-text font-semibold inline-flex items-center gap-2">
+    <div className="flex flex-col gap-1 sm:gap-2">
+      <div className="text-secondary-text font-semibold inline-flex items-center gap-2 text-sm">
         {Icon && <Icon className="w-4 h-4" />}
         {label}
       </div>
@@ -1042,7 +1043,7 @@ const TextField = React.forwardRef(
         defaultValue={defaultValue}
         onChange={onChange}
         placeholder={hint}
-        className="flex-1 rounded-xl border border-border bg-surface text-primary-text placeholder-secondary-text px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30"
+        className="w-full rounded-xl border border-border bg-surface text-primary-text placeholder-secondary-text px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30 text-sm sm:text-base"
         {...rest}
       />
     </div>
@@ -1050,6 +1051,7 @@ const TextField = React.forwardRef(
 );
 
 const ProfileScreen = () => {
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -1081,42 +1083,54 @@ const ProfileScreen = () => {
     e.target.value = e.target.value.replace(/\D/g, "").slice(0, 15);
   };
 
-  // load (local -> remote)
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  // Function to load profile data
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        const local = authService.getUser?.();
-        if (local) {
-          applyUserToForm(local);
-          setUser(local);
-          setNavUser(local);
-        }
-
-        if (authService.getToken()) {
-          const res = await apiService.getProfile();
-          if (res?.success) {
-            const remote = res?.data?.user ?? res?.user ?? res?.data ?? null;
-            if (remote) {
-              authService.setUser?.(remote);
-              applyUserToForm(remote);
-              setUser(remote);
-              setNavUser(remote);
-            }
-          } else if (res && res.message) {
-            setError(res.message);
-          }
-        }
-      } catch (e) {
-        setError(e?.message || "Failed to load profile");
-      } finally {
-        setLoading(false);
+      const local = authService.getUser?.();
+      if (local) {
+        applyUserToForm(local);
+        setUser(local);
+        setNavUser(local);
       }
-    })();
+
+      if (authService.getToken()) {
+        const res = await apiService.getProfile();
+        if (res?.success) {
+          const remote = res?.data?.user ?? res?.user ?? res?.data ?? null;
+          if (remote) {
+            authService.setUser?.(remote);
+            applyUserToForm(remote);
+            setUser(remote);
+            setNavUser(remote);
+          }
+        } else if (res && res.message) {
+          setError(res.message);
+        }
+      }
+    } catch (e) {
+      setError(e?.message || "Failed to load profile");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load profile on mount
+  useEffect(() => {
+    loadProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Listen for profile refresh signals from navigation
+  useEffect(() => {
+    if (location.state?.refreshProfile) {
+      loadProfile();
+      // Clear the state to prevent unnecessary re-fetches
+      window.history.replaceState({}, document.title, location.pathname);
+    }
+  }, [location.state, loadProfile, location.pathname]);
 
   const applyUserToForm = (u) => {
     if (nameRef.current) nameRef.current.value = (u?.name ?? "").toString();
@@ -1250,31 +1264,31 @@ const ProfileScreen = () => {
 
   return (
     <div className="flex-1 overflow-auto">
-      <div className="p-6">
+      <div className="p-3 sm:p-6">
         {/* Header */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-primary-text">Profile</h2>
-          <p className="text-secondary-text">Manage your account and view your activity</p>
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-primary-text">Profile</h2>
+          <p className="text-secondary-text text-sm sm:text-base">Manage your account and view your activity</p>
         </div>
 
         <div className="space-y-4">
           {/* Summary card */}
-          <div className="bg-surface rounded-xl p-5 border border-border">
+          <div className="bg-surface rounded-xl p-4 sm:p-5 border border-border">
             {loading ? (
               <div className="text-secondary-text">Loading...</div>
             ) : (
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-background border border-border flex items-center justify-center">
-                    <span className="text-primary-text font-bold">{initials}</span>
+                  <div className="w-12 h-12 sm:w-10 sm:h-10 rounded-lg bg-background border border-border flex items-center justify-center flex-shrink-0">
+                    <span className="text-primary-text font-bold text-sm sm:text-base">{initials}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-primary-text text-xl font-bold truncate">
+                    <div className="text-primary-text text-lg sm:text-xl font-bold truncate">
                       {user?.name || "-"}
                     </div>
-                    <div className="text-secondary-text text-sm truncate">{user?.email}</div>
+                    <div className="text-secondary-text text-xs sm:text-sm truncate">{user?.email}</div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <Pill>{(user?.role || "student").toString().toUpperCase()}</Pill>
                   </div>
                 </div>
@@ -1282,17 +1296,17 @@ const ProfileScreen = () => {
                 <div className="flex justify-end">
                   <button
                     onClick={toggleEditing}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface hover:bg-border border border-border text-primary-text transition-colors"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface hover:bg-border border border-border text-primary-text transition-colors text-sm"
                   >
                     {editing ? (
                       <>
                         <X className="w-4 h-4" />
-                        Cancel
+                        <span className="hidden sm:inline">Cancel</span>
                       </>
                     ) : (
                       <>
                         <PencilLine className="w-4 h-4" />
-                        Edit
+                        <span className="hidden sm:inline">Edit</span>
                       </>
                     )}
                   </button>
@@ -1302,11 +1316,11 @@ const ProfileScreen = () => {
           </div>
 
           {/* Details card */}
-          <div className="bg-surface rounded-xl p-5 border border-border">
+          <div className="bg-surface rounded-xl p-4 sm:p-5 border border-border">
             {loading ? (
               <div className="text-secondary-text">Loading details...</div>
             ) : (
-              <div className="space-y-5">
+              <div className="space-y-4 sm:space-y-5">
                 <LabelValue label="Email" icon={Mail}>
                   {user?.email || "-"}
                 </LabelValue>
@@ -1416,15 +1430,15 @@ const ProfileScreen = () => {
 
                 {/* NEW: Gender */}
                 {editing ? (
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="sm:w-44 shrink-0 text-secondary-text font-semibold inline-flex items-center gap-2">
+                  <div className="flex flex-col gap-1 sm:gap-2">
+                    <div className="text-secondary-text font-semibold inline-flex items-center gap-2 text-sm">
                       <UserIcon className="w-4 h-4" />
                       Gender
                     </div>
                     <select
                       ref={genderRef}
                       defaultValue={user?.gender ?? "prefer_not_to_say"}
-                      className="flex-1 rounded-xl border border-border bg-surface text-primary-text px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30"
+                      className="w-full rounded-xl border border-border bg-surface text-primary-text px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30 text-sm sm:text-base"
                     >
                       <option value="male">Male</option>
                       <option value="female">Female</option>
@@ -1441,8 +1455,8 @@ const ProfileScreen = () => {
                 {/* NEW: Type + conditional Work Experience */}
                 {editing ? (
                   <>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="sm:w-44 shrink-0 text-secondary-text font-semibold inline-flex items-center gap-2">
+                    <div className="flex flex-col gap-1 sm:gap-2">
+                      <div className="text-secondary-text font-semibold inline-flex items-center gap-2 text-sm">
                         <GraduationCap className="w-4 h-4" />
                         Type
                       </div>
@@ -1450,7 +1464,7 @@ const ProfileScreen = () => {
                         ref={eduTypeRef}
                         defaultValue={user?.edu_type ?? "undergraduate"}
                         onChange={(e) => setEduTypeState(e.target.value)}
-                        className="flex-1 rounded-xl border border-border bg-surface text-primary-text px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30"
+                        className="w-full rounded-xl border border-border bg-surface text-primary-text px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30 text-sm sm:text-base"
                       >
                         <option value="undergraduate">Undergraduate</option>
                         <option value="graduate">Graduate</option>
@@ -1487,54 +1501,52 @@ const ProfileScreen = () => {
                 )}
 
                 {/* Skills */}
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className="sm:w-44 shrink-0 text-secondary-text font-semibold inline-flex items-center gap-2">
+                <div className="flex flex-col gap-1 sm:gap-2">
+                  <div className="text-secondary-text font-semibold inline-flex items-center gap-2 text-sm">
                     <TagIcon className="w-4 h-4" />
                     Skills
                   </div>
-                  <div className="flex-1">
-                    <div className="flex flex-wrap gap-2">
-                      {skills.length > 0 ? (
-                        skills.map((s) => (
-                          <SkillChip
-                            key={s}
-                            text={s}
-                            canRemove={editing}
-                            onRemove={removeSkill}
-                          />
-                        ))
-                      ) : editing ? (
-                        <span className="text-secondary-text text-sm">
-                          Add skills (comma separated)
-                        </span>
-                      ) : (
-                        <span className="text-secondary-text">—</span>
-                      )}
+                  <div className="flex flex-wrap gap-2">
+                    {skills.length > 0 ? (
+                      skills.map((s) => (
+                        <SkillChip
+                          key={s}
+                          text={s}
+                          canRemove={editing}
+                          onRemove={removeSkill}
+                        />
+                      ))
+                    ) : editing ? (
+                      <span className="text-secondary-text text-sm">
+                        Add skills (comma separated)
+                      </span>
+                    ) : (
+                      <span className="text-secondary-text">—</span>
+                    )}
 
-                      {editing && (
-                        <div className="inline-flex items-center rounded-lg bg-surface border border-border px-2 py-1">
-                          <input
-                            ref={skillInputRef}
-                            placeholder="Add skill"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                addSkillsFromInput();
-                              }
-                            }}
-                            className="bg-transparent outline-none text-primary-text placeholder-secondary-text text-sm w-40"
-                          />
-                          <button
-                            type="button"
-                            onClick={addSkillsFromInput}
-                            className="ml-1 px-2 py-0.5 rounded-md hover:bg-border text-secondary-text"
-                            title="Add"
-                          >
-                            +
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    {editing && (
+                      <div className="inline-flex items-center rounded-lg bg-surface border border-border px-2 py-1 w-full sm:w-auto">
+                        <input
+                          ref={skillInputRef}
+                          placeholder="Add skill"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addSkillsFromInput();
+                            }
+                          }}
+                          className="bg-transparent outline-none text-primary-text placeholder-secondary-text text-sm flex-1 sm:w-40"
+                        />
+                        <button
+                          type="button"
+                          onClick={addSkillsFromInput}
+                          className="ml-1 px-2 py-0.5 rounded-md hover:bg-border text-secondary-text"
+                          title="Add"
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1562,8 +1574,8 @@ const ProfileScreen = () => {
                       disabled={saving}
                       onClick={saveProfile}
                       className={[
-                        "inline-flex items-center justify-center px-4 py-2 rounded-lg",
-                        "bg-surface hover:bg-border border border-border text-primary-text transition-colors",
+                        "inline-flex items-center justify-center px-4 py-2 rounded-lg w-full sm:w-auto",
+                        "bg-surface hover:bg-border border border-border text-primary-text transition-colors text-sm sm:text-base",
                         saving && "opacity-60 cursor-not-allowed",
                       ].join(" ")}
                     >
@@ -1572,7 +1584,7 @@ const ProfileScreen = () => {
                   ) : (
                     <button
                       onClick={logout}
-                      className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-surface hover:bg-border border border-border text-primary-text transition-colors"
+                      className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-surface hover:bg-border border border-border text-primary-text transition-colors w-full sm:w-auto text-sm sm:text-base"
                     >
                       Logout
                     </button>

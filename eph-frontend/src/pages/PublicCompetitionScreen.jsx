@@ -607,10 +607,10 @@
 
 // src/pages/PublicCompetitionScreen.jsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { apiService } from "../services/apiService";
-import { Compass, Rocket, CheckCircle, X, Activity, Clock3, CheckCircle2, Search } from "lucide-react";
+import { Compass, Rocket, CheckCircle, X, Activity, Clock3, CheckCircle2, Search, CalendarDays } from "lucide-react";
 
 import GlobalTopBar from "../components/GlobalTopBar";
 
@@ -724,84 +724,85 @@ const CompetitionDetailsDrawer = ({ compId, open, onClose }) => {
       />
       {/* drawer */}
       <div
-        className={`absolute right-0 top-0 h-full w-full md:w-[880px] transform transition-transform
+        className={`absolute right-0 top-0 h-full w-full sm:w-[95vw] md:w-[90vw] lg:w-[880px] transform transition-transform
         ${open ? "translate-x-0" : "translate-x-full"} bg-surface border-l border-border shadow-2xl`}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 px-4 py-3 border-b border-border bg-surface/80 backdrop-blur-md">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+        <div className="sticky top-0 z-10 px-3 sm:px-4 py-3 border-b border-border bg-surface/80 backdrop-blur-md">
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               {comp?.banner_image_url && (
                 <img
                   src={comp.banner_image_url}
                   alt={comp?.title}
-                  className="w-10 h-10 rounded-lg object-cover border border-border"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover border border-border flex-shrink-0"
                 />
               )}
-              <div>
-                <h2 className="text-primary-text font-semibold leading-tight">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-primary-text font-semibold leading-tight text-sm sm:text-base truncate">
                   {comp?.title || "Competition"}
                 </h2>
                 {comp?.sponsor && (
-                  <p className="text-secondary-text text-xs">Sponsor: {comp.sponsor}</p>
+                  <p className="text-secondary-text text-xs truncate">Sponsor: {comp.sponsor}</p>
                 )}
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg bg-surface hover:bg-border border border-border text-primary-text transition"
+              className="p-1.5 sm:p-2 rounded-lg bg-surface hover:bg-border border border-border text-primary-text transition flex-shrink-0"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
 
         {/* Body */}
-        <div className="p-5 space-y-5 overflow-y-auto h-[calc(100%-56px)]">
+        <div className="p-3 sm:p-5 space-y-4 sm:space-y-5 overflow-y-auto h-[calc(100%-56px)]">
           {/* Banner */}
           {comp?.banner_image_url && (
             <div className="rounded-xl overflow-hidden border border-border">
-              <img src={comp.banner_image_url} alt={comp?.title} className="w-full max-h-[260px] object-cover" />
+              <img src={comp.banner_image_url} alt={comp?.title} className="w-full max-h-[200px] sm:max-h-[260px] object-cover" />
             </div>
           )}
 
           {/* Tabs */}
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2 flex-wrap">
             {["overview","leaderboard","timeline","rules"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={[
-                  "px-4 py-2 rounded-t-lg text-sm font-medium transition-colors",
+                  "px-2 sm:px-3 py-1.5 sm:py-2 rounded-t-lg text-xs sm:text-sm font-medium transition-colors flex-shrink-0",
                   activeTab === tab
                     ? "bg-border text-primary-text"
                     : "text-secondary-text hover:text-primary-text hover:bg-border",
                 ].join(" ")}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                <span className="hidden sm:inline">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+                <span className="sm:hidden">{tab.charAt(0).toUpperCase()}</span>
               </button>
             ))}
           </div>
 
           {/* Panel */}
-          <div className="p-5 rounded-b-xl rounded-tr-xl border border-border bg-surface">
+          <div className="p-3 sm:p-5 rounded-b-xl rounded-tr-xl border border-border bg-surface">
             {/* Overview */}
             {activeTab === "overview" && (
               <>
                 {(comp?.description_long || comp?.overview || comp?.description) && (
-                  <div>
-                    <h4 className="text-sm font-semibold uppercase tracking-wider mb-2 text-primary-text">Overview</h4>
-                    <p className="text-secondary-text whitespace-pre-wrap">
+                  <div className="mb-4">
+                    <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider mb-2 text-primary-text">Overview</h4>
+                    <p className="text-secondary-text whitespace-pre-wrap text-sm sm:text-base leading-relaxed">
                       {comp.description_long || comp.overview || comp.description}
                     </p>
                   </div>
                 )}
 
-                <div className="grid sm:grid-cols-2 gap-3 mt-4">
-                  <div className="px-3 py-2 rounded-lg border border-border bg-surface text-primary-text">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                  <div className="px-3 py-2 rounded-lg border border-border bg-surface text-primary-text text-sm">
                     <strong>Start:</strong> {fmtShort(comp?.start_date)}
                   </div>
-                  <div className="px-3 py-2 rounded-lg border border-border bg-surface text-primary-text">
+                  <div className="px-3 py-2 rounded-lg border border-border bg-surface text-primary-text text-sm">
                     <strong>End:</strong> {fmtShort(comp?.end_date)}
                   </div>
                 </div>
@@ -825,13 +826,13 @@ const CompetitionDetailsDrawer = ({ compId, open, onClose }) => {
             {/* Leaderboard (unchanged) */}
             {activeTab === "leaderboard" && (
               <>
-                <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <h4 className="text-sm font-semibold uppercase tracking-wider text-primary-text">Leaderboard</h4>
                   <input
                     value={lbQuery}
                     onChange={(e) => setLbQuery(e.target.value)}
                     placeholder="Search..."
-                    className="px-3 py-2 rounded-lg border border-border outline-none bg-surface text-primary-text placeholder-secondary-text"
+                    className="px-3 py-2 rounded-lg border border-border outline-none bg-surface text-primary-text placeholder-secondary-text w-full sm:w-auto sm:min-w-[200px]"
                   />
                 </div>
 
@@ -846,21 +847,28 @@ const CompetitionDetailsDrawer = ({ compId, open, onClose }) => {
                     <table className="min-w-full text-sm">
                       <thead className="bg-border/50 text-primary-text">
                         <tr>
-                          <th className="text-left px-4 py-2">Rank</th>
-                          <th className="text-left px-4 py-2">Team/User</th>
-                          <th className="text-left px-4 py-2">Score</th>
-                          <th className="text-left px-4 py-2">Status</th>
+                          <th className="text-left px-2 sm:px-4 py-2">Rank</th>
+                          <th className="text-left px-2 sm:px-4 py-2">Team/User</th>
+                          <th className="text-left px-2 sm:px-4 py-2 hidden sm:table-cell">Score</th>
+                          <th className="text-left px-2 sm:px-4 py-2">Status</th>
                         </tr>
                       </thead>
                       <tbody className="text-primary-text">
                         {filteredLb.map((row, i) => (
                           <tr key={i} className={i % 2 ? "bg-background" : "bg-surface"}>
-                            <td className="px-4 py-2">{row.rank ?? i + 1}</td>
-                            <td className="px-4 py-2">{row.team_name || row.leader?.name || "—"}</td>
-                            <td className="px-4 py-2">
+                            <td className="px-2 sm:px-4 py-2">{row.rank ?? i + 1}</td>
+                            <td className="px-2 sm:px-4 py-2">
+                              <div className="flex flex-col">
+                                <span className="font-medium">{row.team_name || row.leader?.name || "—"}</span>
+                                <span className="text-xs text-secondary-text sm:hidden">
+                                  Score: {typeof row.final_score === "number" ? row.final_score.toFixed(3) : row.score?.toFixed?.(3) || "—"}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-2 sm:px-4 py-2 hidden sm:table-cell">
                               {typeof row.final_score === "number" ? row.final_score.toFixed(3) : row.score?.toFixed?.(3) || "—"}
                             </td>
-                            <td className="px-4 py-2">
+                            <td className="px-2 sm:px-4 py-2">
                               <span
                                 className={[
                                   "px-2 py-1 rounded text-xs",
@@ -947,15 +955,19 @@ const PublicCompetitionScreen = () => {
 
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const fetchCompetitions = useCallback(async () => {
     setLoading(true);            // NEW: ensure loader also shows on retry
     try {
       const response = await apiService.listCompetitions();
+      console.log('API Response:', response);
       const allComps = response?.data?.competitions || response?.competitions || [];
+      console.log('All competitions from API:', allComps);
       setCompetitions(allComps);
       setError(null);            // NEW: clear error if success
     } catch (err) {
+      console.error('Error fetching competitions:', err);
       setError(err.message || "Failed to load competitions");
     } finally {
       setLoading(false);
@@ -964,6 +976,15 @@ const PublicCompetitionScreen = () => {
 
   useEffect(() => { fetchCompetitions(); }, [fetchCompetitions]);
 
+  // Listen for refresh state from navigation
+  useEffect(() => {
+    if (location.state?.refreshCompetitions) {
+      fetchCompetitions();
+      // Clear the state to prevent unnecessary re-fetches
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, fetchCompetitions, navigate, location.pathname]);
+
   // NEW: simple retry helper (used by fallback UI)
   const handleRetry = () => {
     setError(null);
@@ -971,7 +992,17 @@ const PublicCompetitionScreen = () => {
   };
 
   const filteredCompetitions = useMemo(() => {
-    const byTab = competitions.filter((c) => computeStatus(c) === activeTab);
+    console.log('All competitions:', competitions);
+    console.log('Active tab:', activeTab);
+    
+    const byTab = competitions.filter((c) => {
+      const status = computeStatus(c);
+      console.log(`Competition "${c.title}": start=${c.start_date}, end=${c.end_date}, computed_status=${status}`);
+      return status === activeTab;
+    });
+    
+    console.log('Filtered by tab:', byTab);
+    
     if (!searchText) return byTab;
     const q = searchText.toLowerCase();
     return byTab.filter(
@@ -1012,14 +1043,14 @@ const PublicCompetitionScreen = () => {
   const TabButton = ({ id, label, Icon }) => {
     const selected = activeTab === id;
     const base =
-      "px-4 py-2 rounded-lg border transition-colors flex items-center gap-2";
+      "px-4 sm:px-4 py-3 sm:py-2.5 rounded-lg border transition-colors flex items-center gap-2 sm:gap-2 text-sm sm:text-sm font-medium min-w-0 flex-shrink-0";
     const cls = selected
-      ? "bg-surface text-primary-text border-border ring-2 ring-primary/30"
-      : "bg-surface text-secondary-text hover:bg-border border-border";
+      ? "bg-primary text-white border-primary shadow-lg ring-2 ring-primary/30"
+      : "bg-surface text-secondary-text hover:bg-border border-border hover:text-primary-text hover:border-primary/50";
     return (
       <button onClick={() => setActiveTab(id)} className={`${base} ${cls}`}>
-        <Icon className="w-4 h-4" />
-        {label}
+        <Icon className="w-4 h-4 sm:w-4 sm:h-4 flex-shrink-0" />
+        <span className="truncate">{label}</span>
       </button>
     );
   };
@@ -1091,50 +1122,62 @@ const PublicCompetitionScreen = () => {
       />
 
       {/* Hero */}
-      <section className="relative text-center py-20 sm:py-28 px-4 overflow-hidden bg-surface/60">
-        <div className="absolute top-0 left-0 w-64 h-64 rounded-full opacity-40 -translate-x-16 -translate-y-16 blur-2xl bg-primary/20" />
-        <div className="absolute bottom-0 right-0 w-72 h-72 rounded-full opacity-40 translate-x-16 translate-y-16 blur-2xl bg-primary-hover/20" />
+      <section className="relative text-center py-12 sm:py-20 md:py-28 px-4 overflow-hidden bg-surface/60">
+        <div className="absolute top-0 left-0 w-32 h-32 sm:w-64 sm:h-64 rounded-full opacity-40 -translate-x-8 sm:-translate-x-16 -translate-y-8 sm:-translate-y-16 blur-2xl bg-primary/20" />
+        <div className="absolute bottom-0 right-0 w-36 h-36 sm:w-72 sm:h-72 rounded-full opacity-40 translate-x-8 sm:translate-x-16 translate-y-8 sm:translate-y-16 blur-2xl bg-primary-hover/20" />
         <div className="max-w-4xl mx-auto relative z-10">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight tracking-tighter text-primary-text">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 leading-tight tracking-tighter text-primary-text px-2">
             {activeTab === "upcoming" && "Explore Upcoming Competitions"}
             {activeTab === "ongoing" && "Live Competitions"}
             {activeTab === "completed" && "Completed Competitions"}
           </h1>
-          <p className="text-secondary-text text-lg md:text-xl mb-10">
+          <p className="text-secondary-text text-base sm:text-lg md:text-xl mb-6 sm:mb-8 md:mb-10 px-4 max-w-3xl mx-auto">
             {activeTab === "upcoming" && "Join challenges, collaborate with peers, and showcase your ideas to the world."}
             {activeTab === "ongoing" && "See what's live right now and follow along."}
             {activeTab === "completed" && "Browse previous challenges and their results."}
           </p>
-          <div className="flex flex-wrap gap-3 justify-center items-center">
-            <TabButton id="ongoing" label="Ongoing" Icon={Activity} />
-            <TabButton id="upcoming" label="Upcoming" Icon={Clock3} />
-            <TabButton id="completed" label="Completed" Icon={CheckCircle2} />
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-3 justify-center items-center px-4 w-full max-w-md mx-auto">
+            {/* First row: Ongoing and Upcoming */}
+            <div className="flex gap-3 sm:hidden">
+              <TabButton id="ongoing" label="Ongoing" Icon={Activity} />
+              <TabButton id="upcoming" label="Upcoming" Icon={Clock3} />
+            </div>
+            {/* Second row: Completed */}
+            <div className="flex gap-3 sm:hidden">
+              <TabButton id="completed" label="Completed" Icon={CheckCircle2} />
+            </div>
+            {/* Desktop layout: all in one row */}
+            <div className="hidden sm:flex gap-3">
+              <TabButton id="ongoing" label="Ongoing" Icon={Activity} />
+              <TabButton id="upcoming" label="Upcoming" Icon={Clock3} />
+              <TabButton id="completed" label="Completed" Icon={CheckCircle2} />
+            </div>
           </div>
         </div>
       </section>
 
       {/* Search + List */}
-      <section id="list" className="py-12 px-4 bg-background">
+      <section id="list" className="py-8 sm:py-12 px-4 bg-background">
         <div className="max-w-7xl mx-auto">
           {/* Search */}
-          <div className="mb-6 relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-secondary-text" />
+          <div className="mb-6 sm:mb-8 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 sm:h-5 sm:w-5 text-secondary-text" />
             </div>
             <input
               type="text"
               placeholder={`Search ${activeTab} competitions...`}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-full pl-10 pr-10 py-3 rounded-xl outline-none border border-border bg-surface text-primary-text placeholder-secondary-text"
+              className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 sm:py-3 rounded-xl outline-none border border-border bg-surface text-primary-text placeholder-secondary-text text-sm sm:text-base focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
             />
             {!!searchText && (
               <button
                 onClick={() => setSearchText("")}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center"
                 aria-label="Clear search"
               >
-                <svg className="h-5 w-5 text-secondary-text hover:text-primary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 sm:h-5 sm:w-5 text-secondary-text hover:text-primary-text transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -1167,7 +1210,7 @@ const PublicCompetitionScreen = () => {
             </div>
           ) : (
             <>
-              <div className="grid gap-6">
+              <div className="grid gap-4 sm:gap-6">
                 {filteredCompetitions.map((comp) => {
                   const pill = STATUS_PILL[computeStatus(comp)];
                   const status = computeStatus(comp);
@@ -1175,38 +1218,41 @@ const PublicCompetitionScreen = () => {
                     <div
                       key={comp.id}
                       onClick={() => { setDetailsId(comp.id); setShowDetails(true); }}
-                      className="rounded-xl p-6 transition-colors cursor-pointer border border-border hover:shadow bg-surface"
+                      className="rounded-xl p-4 sm:p-6 transition-all cursor-pointer border border-border hover:shadow-lg hover:border-primary/30 bg-surface active:scale-[0.98]"
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-border">
+                      <div className="flex flex-row items-start gap-3 sm:gap-4">
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-border border border-border/50">
                           {comp.banner_image_url ? (
                             <img src={comp.banner_image_url} alt={comp.title} className="w-full h-full object-cover rounded-lg" />
                           ) : (
-                            <Compass className="text-secondary-text w-10 h-10" />
+                            <Compass className="text-secondary-text w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10" />
                           )}
                         </div>
 
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-3 gap-3">
-                            <h3 className="text-primary-text text-lg font-bold">{comp.title}</h3>
-                            <div className={`px-3 py-1 rounded-full ${pill.chipClass}`}>
-                              <span className="text-sm font-medium">{pill.icon} {pill.label}</span>
+                        <div className="flex-1 w-full min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-2 sm:mb-3 gap-2 sm:gap-3">
+                            <h3 className="text-primary-text text-base sm:text-lg font-bold leading-tight break-words">{comp.title}</h3>
+                            <div className={`px-2.5 sm:px-3 py-1 rounded-full ${pill.chipClass} self-start flex-shrink-0`}>
+                              <span className="text-xs sm:text-sm font-medium flex items-center gap-1">
+                                {pill.icon} {pill.label}
+                              </span>
                             </div>
                           </div>
 
                           {(comp.start_date || comp.end_date) && (
-                            <div className="text-secondary-text flex items-center gap-2 mb-2 text-sm">
-                              <span>{fmtShort(comp.start_date)} – {fmtShort(comp.end_date)}</span>
+                            <div className="text-secondary-text flex items-center gap-2 mb-2 text-xs sm:text-sm">
+                              <CalendarDays className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                              <span className="truncate">{fmtShort(comp.start_date)} – {fmtShort(comp.end_date)}</span>
                             </div>
                           )}
 
-                          <p className="text-secondary-text mb-4 line-clamp-2">
+                          <p className="text-secondary-text mb-3 sm:mb-4 line-clamp-2 text-sm sm:text-base leading-relaxed">
                             {comp.description}
                           </p>
 
-                          <div className="flex items-center justify-between">
-                            <div className="text-secondary-text flex items-center gap-2 text-sm">
-                              <CheckCircle className="w-4 h-4" />
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="text-secondary-text flex items-center gap-2 text-xs sm:text-sm">
+                              <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                               <span>{comp.stats?.totalRegistrations || 0} registered</span>
                             </div>
 
@@ -1214,7 +1260,7 @@ const PublicCompetitionScreen = () => {
                             {status === "upcoming" && (
                               <button
                                 onClick={(e) => handleRegisterClick(e, comp)}
-                                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+                                className="px-3 sm:px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors w-full sm:w-auto text-sm sm:text-base active:scale-95"
                               >
                                 Register
                               </button>
