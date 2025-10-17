@@ -215,7 +215,8 @@ async deleteUser(id) {
 
   // ===== Competitions =====
   async listCompetitions() {
-    return this.makeRequest('/competitions');
+    // Fetch all competitions by setting a high limit
+    return this.makeRequest('/competitions?limit=1000');
   }
 
   async getCompetition(id) {

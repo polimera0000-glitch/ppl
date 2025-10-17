@@ -10,12 +10,16 @@ const AppInitializer = () => {
   const { isAuthenticated, loading, mustChangePassword } = useAuth();
 
   useEffect(() => {
-    // Check if this is a fresh page load (not from logout)
+    // Check if this is the very first app load (not from refresh or logout)
+    const hasSeenSplash = localStorage.getItem('ppl-has-seen-splash');
     const isFromLogout = sessionStorage.getItem('ppl-from-logout');
     
-    if (!isFromLogout) {
-      // Fresh page load - show splash screen
+    if (!hasSeenSplash && !isFromLogout) {
+      // Very first app load - show splash screen
       setShowSplash(true);
+      
+      // Mark that user has seen the splash screen
+      localStorage.setItem('ppl-has-seen-splash', 'true');
       
       const timer = setTimeout(() => {
         setShowSplash(false);
@@ -41,8 +45,10 @@ const AppInitializer = () => {
 
       return () => clearTimeout(timer);
     } else {
-      // Coming from logout - skip splash screen
-      sessionStorage.removeItem('ppl-from-logout');
+      // Coming from refresh or logout - skip splash screen
+      if (isFromLogout) {
+        sessionStorage.removeItem('ppl-from-logout');
+      }
       
       if (!loading) {
         if (isAuthenticated) {

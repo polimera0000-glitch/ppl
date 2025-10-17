@@ -65,9 +65,9 @@ const SearchBar = ({ value, onChange, placeholder }) => (
 );
 
 const DetailRow = ({ k, v }) => (
-  <div className="flex gap-3">
-    <div className="w-40 shrink-0 text-secondary-text font-semibold text-xs">{prettyKey(k)}</div>
-    <div className="text-primary-text text-sm">{v?.toString() || "—"}</div>
+  <div className="flex flex-col md:flex-row md:gap-3 gap-1">
+    <div className="w-full md:w-40 shrink-0 text-secondary-text font-semibold text-xs">{prettyKey(k)}</div>
+    <div className="text-primary-text text-sm break-words">{v?.toString() || "—"}</div>
   </div>
 );
 
@@ -76,33 +76,33 @@ const InviteAdminCard = ({ onInvite, loading, message }) => {
   const emailRef = useRef(null);
 
   return (
-    <div className="p-4 rounded-xl bg-surface border border-border">
-      <div className="text-primary-text font-semibold">Invite Admin</div>
+    <div className="p-3 sm:p-4 rounded-xl bg-surface border border-border">
+      <div className="text-primary-text font-semibold text-sm sm:text-base">Invite Admin</div>
       <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
         <input
           ref={nameRef}
           placeholder="Full name"
-          className="rounded-lg px-3 py-2 bg-background border border-border text-primary-text placeholder-secondary-text outline-none"
+          className="rounded-lg px-3 py-2 bg-background border border-border text-primary-text placeholder-secondary-text outline-none text-sm"
         />
         <input
           ref={emailRef}
           placeholder="Email address"
           type="email"
-          className="rounded-lg px-3 py-2 bg-background border border-border text-primary-text placeholder-secondary-text outline-none"
+          className="rounded-lg px-3 py-2 bg-background border border-border text-primary-text placeholder-secondary-text outline-none text-sm"
         />
       </div>
-      <div className="mt-3 flex items-center gap-3">
+      <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
         <button
           disabled={loading}
           onClick={() => onInvite(nameRef.current?.value || "", emailRef.current?.value || "")}
-          className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-surface hover:bg-border border border-border text-primary-text disabled:opacity-60 transition-colors"
+          className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-surface hover:bg-border border border-border text-primary-text disabled:opacity-60 transition-colors text-sm"
         >
           {loading ? "Sending..." : "Send Invite"}
         </button>
         {message && (
           <div
             className={
-              "text-sm " + (/(error|fail)/i.test(message) ? "text-red-300" : "text-emerald-300")
+              "text-xs sm:text-sm " + (/(error|fail)/i.test(message) ? "text-red-300" : "text-emerald-300")
             }
           >
             {message}
@@ -292,35 +292,35 @@ const RoleListPage = ({ role: roleProp }) => {
   return (
     <SidebarLayout currentPage="admin" onPageChange={() => {}}>
       <div className="flex-1 overflow-auto">
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {/* Header (match Admin Hub / Create / Details style) */}
-          <div className="bg-surface rounded-xl p-4 border border-border mb-6">
+          <div className="bg-surface rounded-xl p-3 sm:p-4 border border-border mb-4 sm:mb-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-background border border-border flex items-center justify-center">
-                  <Rocket className="w-5 h-5 text-primary-text" />
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-background border border-border flex items-center justify-center flex-shrink-0">
+                  <Rocket className="w-4 h-4 sm:w-5 sm:h-5 text-primary-text" />
                 </div>
-                <div>
-                  <h1 className="text-lg font-bold text-primary-text">{label}</h1>
-                  <p className="text-secondary-text text-sm">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-base sm:text-lg font-bold text-primary-text truncate">{label}</h1>
+                  <p className="text-secondary-text text-xs sm:text-sm truncate">
                     Browse and manage {role || "users"}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => navigate(-1)}
-                className="p-2 rounded-lg bg-surface hover:bg-border border border-border transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg bg-surface hover:bg-border border border-border transition-colors flex-shrink-0"
                 aria-label="Close"
               >
-                <X className="w-5 h-5 text-secondary-text" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-secondary-text" />
               </button>
             </div>
           </div>
 
           {/* Filters / Search */}
-          <div className="bg-surface rounded-xl p-4 border border-border mb-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div className="flex items-center gap-2">
+          <div className="bg-surface rounded-xl p-3 sm:p-4 border border-border mb-4">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs bg-background border border-border text-secondary-text">
                   {role || "users"}
                 </span>
@@ -328,7 +328,7 @@ const RoleListPage = ({ role: roleProp }) => {
                   {filtered.length} total
                 </span>
               </div>
-              <div className="w-full md:w-72">
+              <div className="w-full lg:w-80">
                 <SearchBar
                   value={q}
                   onChange={setQ}
@@ -347,8 +347,8 @@ const RoleListPage = ({ role: roleProp }) => {
 
           {/* Table/Card list */}
           <div className="rounded-xl border border-border bg-surface overflow-hidden">
-            {/* table header (md+) */}
-            <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 border-b border-border text-xs text-secondary-text">
+            {/* table header (lg+) */}
+            <div className="hidden lg:grid grid-cols-12 gap-2 px-4 py-3 border-b border-border text-xs text-secondary-text">
               <div className="col-span-1">#</div>
               <div className="col-span-4">User</div>
               <div className="col-span-3">Email</div>
@@ -416,8 +416,8 @@ const RoleListPage = ({ role: roleProp }) => {
 
                   return (
                     <li key={u.id ?? idx} className="group">
-                      {/* row (md+) */}
-                      <div className="hidden md:grid grid-cols-12 gap-2 items-center px-4 py-3 hover:bg-background transition-colors">
+                      {/* row (lg+) */}
+                      <div className="hidden lg:grid grid-cols-12 gap-2 items-center px-4 py-3 hover:bg-background transition-colors">
                         <div className="col-span-1">
                           <div className="w-8 h-8 rounded-lg bg-background border border-border text-primary-text flex items-center justify-center font-semibold">
                             {rank}
@@ -477,55 +477,55 @@ const RoleListPage = ({ role: roleProp }) => {
                         </div>
                       </div>
 
-                      {/* mobile card */}
-                      <div className="md:hidden px-3 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-background border border-border flex items-center justify-center">
-                            <span className="text-primary-text text-xs font-bold">{userInitials}</span>
+                      {/* mobile/tablet card */}
+                      <div className="lg:hidden px-3 sm:px-4 py-4">
+                        <div className="flex items-start gap-3 sm:gap-4">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-background border border-border flex items-center justify-center flex-shrink-0">
+                            <span className="text-primary-text text-sm sm:text-base font-bold">{userInitials}</span>
                           </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <div className="text-primary-text font-semibold">{name}</div>
-                              <span className="px-2 py-0.5 rounded-md text-[10px] bg-background border border-border text-secondary-text">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="text-primary-text font-semibold text-sm sm:text-base truncate">{name}</div>
+                              <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-xs bg-background border border-border text-secondary-text flex-shrink-0">
                                 #{rank}
                               </span>
                             </div>
-                            <div className="text-xs text-secondary-text">{email}</div>
-                            <div className="text-[11px] text-secondary-text">
+                            <div className="text-xs sm:text-sm text-secondary-text mb-1 truncate">{email}</div>
+                            <div className="text-[11px] sm:text-xs text-secondary-text mb-2">
                               {(u?.role ? prettyKey(u.role) : "—")}
                               {meta ? ` • ${meta}` : ""}
                             </div>
-                          </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <span className={`px-2 py-1 rounded-md text-[10px] ${chipCls(verified)}`}>
-                              {verified ? "Verified" : "Pending"}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              {/* 🔹 ADD: Delete button (mobile) */}
-                              {canDelete && (
+                            <div className="flex items-center justify-between">
+                              <span className={`px-2 py-1 rounded-md text-[10px] sm:text-xs ${chipCls(verified)}`}>
+                                {verified ? "Verified" : "Pending"}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {/* 🔹 ADD: Delete button (mobile/tablet) */}
+                                {canDelete && (
+                                  <button
+                                    onClick={() => onDelete(u.id, u.name)}
+                                    disabled={deletingId === u.id}
+                                    className="px-2 py-1 rounded-lg text-[10px] sm:text-xs border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 disabled:opacity-60"
+                                    title="Delete user"
+                                  >
+                                    {deletingId === u.id ? "Deleting..." : "Delete"}
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => onDelete(u.id, u.name)}
-                                  disabled={deletingId === u.id}
-                                  className="px-2 py-1 rounded-lg text-[10px] border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 disabled:opacity-60"
-                                  title="Delete user"
+                                  onClick={() => {
+                                    u.__open = !open;
+                                    setFiltered((prev) => [...prev]);
+                                  }}
+                                  className="text-secondary-text hover:text-primary-text p-1"
+                                  title={open ? "Collapse" : "Expand"}
                                 >
-                                  {deletingId === u.id ? "Deleting..." : "Delete"}
+                                  <ChevronDown
+                                    className={
+                                      "w-4 h-4 sm:w-5 sm:h-5 transition-transform " + (open ? "rotate-180" : "")
+                                    }
+                                  />
                                 </button>
-                              )}
-                              <button
-                                onClick={() => {
-                                  u.__open = !open;
-                                  setFiltered((prev) => [...prev]);
-                                }}
-                                className="text-secondary-text hover:text-primary-text"
-                                title={open ? "Collapse" : "Expand"}
-                              >
-                                <ChevronDown
-                                  className={
-                                    "w-5 h-5 transition-transform " + (open ? "rotate-180" : "")
-                                  }
-                                />
-                              </button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -533,10 +533,10 @@ const RoleListPage = ({ role: roleProp }) => {
 
                       {/* expandable details */}
                       {open && (
-                        <div className="px-4 md:px-6 pb-4">
+                        <div className="px-3 lg:px-6 pb-4">
                           <div className="mt-3 p-3 rounded-xl bg-background border border-border space-y-2">
-                            <div className="text-primary-text font-semibold">Details</div>
-                            <div className="grid md:grid-cols-2 gap-2">
+                            <div className="text-primary-text font-semibold text-sm">Details</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               {entries.map(([k, v]) => (
                                 <DetailRow key={k} k={k} v={v} />
                               ))}
