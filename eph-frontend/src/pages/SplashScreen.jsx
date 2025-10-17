@@ -41,7 +41,7 @@ const SplashScreen = () => {
           </div>
         </div>
         <h1 className="text-4xl font-bold text-primary-text mb-2">Project Premier League</h1>
-        <p className="text-secondary-text text-lg mb-8">Powered by YB Educators</p>
+        <p className="text-secondary-text text-lg mb-8">Powered by VB Educators</p>
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           <span className="text-secondary-text">Loading...</span>
