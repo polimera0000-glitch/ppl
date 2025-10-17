@@ -481,6 +481,9 @@ export default function LandingPage({ embedded = false }) {
       <p className="text-center md:text-left">
         © {new Date().getFullYear()} Premier Project League. All rights reserved.
       </p>
+      <p className="text-center md:text-left">
+        Powered by <br/> YB Educators
+      </p>
       <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
         <button
           type="button"
