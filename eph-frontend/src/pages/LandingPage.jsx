@@ -470,6 +470,7 @@ export default function LandingPage({ embedded = false }) {
             support@theppl.com
           </a>
         </div>
+        <p>📍65-4-421, Near Hanuman temple, Gajuwaka bus depot, Visakhapatnam-530026</p>
       </div>
     </div>
 
