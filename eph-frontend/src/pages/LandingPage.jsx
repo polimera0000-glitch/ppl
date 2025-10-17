@@ -125,7 +125,11 @@ export default function LandingPage({ embedded = false }) {
           <p className="text-base sm:text-lg mb-10 sm:mb-12 text-secondary-text max-w-3xl mx-auto">
             The{" "}
             <span className="font-bold text-primary">
-              Premier Project League (PPL)
+              Project Premier League (PPL)
+            </span>
+            , owned and operated by{" "}
+            <span className="font-bold text-primary">
+              VB Educators
             </span>{" "}
             is India's first platform connecting students, colleges, and
             investors to turn academic projects into startup opportunities.
