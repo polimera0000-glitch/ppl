@@ -109,9 +109,9 @@ export default function ContactModal({ open, onClose }) {
           <div className="bg-background border border-border rounded-xl p-4 mb-6">
             <h3 className="font-semibold mb-3 text-primary-text">Contact Information</h3>
             <ul className="space-y-1.5 text-secondary-text text-sm">
-              <li>📧 admin@theppl.in</li>
+              <li>📧 support@theppl.in</li>
               <li>📞 +91 8688272429</li>
-              <li>📍 Gajuwaka, Visakhapatnam, India</li>
+              <li>📍 65-4-421, Near Hanuman temple, Gajuwaka bus depot, Visakhapatnam-530026</li>
             </ul>
           </div>
 
