@@ -52,13 +52,6 @@ export default function LandingPage({ embedded = false }) {
     ? `${isAdmin ? "/admin" : "/main"}?tab=competitions`
     : "/competitions";
 
-  // Calculate dynamic scroll offset based on mobile menu state
-  const getScrollOffset = () => {
-    if (mobileMenuOpen) {
-      return -200; // Account for mobile menu height when open
-    }
-    return -80; // Normal offset when menu is closed
-  };
 
   return (
     <div className="min-h-screen font-sans bg-background text-primary-text transition-colors">
@@ -74,7 +67,6 @@ export default function LandingPage({ embedded = false }) {
           ]}
           showRegister
           onMobileMenuToggle={setMobileMenuOpen}
-          scrollOffset={getScrollOffset()}
         />
       )}
 
