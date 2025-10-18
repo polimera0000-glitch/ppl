@@ -1,4 +1,6 @@
 const { ContactRequest, User, Submission } = require('../models');
+const emailService = require('../services/emailService');
+const logger = require('../utils/logger');
 
 const contactController = {
   // Create a contact request (hiring/investor/admin → student)
@@ -44,6 +46,42 @@ const contactController = {
       };
 
       const cr = await ContactRequest.create(payload);
+
+      // Send email notifications (non-blocking)
+      try {
+        // Send notification to student
+        await emailService.sendContactNotificationEmail(
+          recipient.email,
+          recipient.name,
+          me.name,
+          me.role,
+          subject.trim(),
+          message.trim(),
+          contact_email || me.email
+        );
+
+        // Send confirmation to sender
+        await emailService.sendContactConfirmationEmail(
+          me.email,
+          me.name,
+          recipient.name,
+          subject.trim()
+        );
+
+        logger.info('Contact emails sent successfully', {
+          sender: me.name,
+          recipient: recipient.name,
+          subject: subject.trim()
+        });
+      } catch (emailError) {
+        // Log email error but don't fail the request
+        logger.warn('Contact email failed (request still created)', {
+          error: emailError.message,
+          sender: me.name,
+          recipient: recipient.name
+        });
+      }
+
       return res.status(201).json({ success: true, data: cr });
     } catch (err) {
       console.error('Contact create error:', err);

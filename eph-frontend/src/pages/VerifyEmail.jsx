@@ -50,8 +50,7 @@ export default function VerifyEmail() {
           throw new Error(m);
         }
         setStatus("success");
-        setMsg("Your email has been verified. You can close this window and log in.");
-        timerRef.current = setTimeout(() => navigate("/", { replace: true }), 5000);
+        setMsg("Your email has been successfully verified! You can now log in to your account.");
       })
       .catch((err) => {
         if (ac.signal.aborted) return;
@@ -96,15 +95,8 @@ export default function VerifyEmail() {
         {status === "success" && (
           <>
             <div className="text-6xl">✅</div>
-            <h1 className="mt-4 text-2xl font-semibold">Email verified</h1>
+            <h1 className="mt-4 text-2xl font-semibold">Email verified successfully!</h1>
             <p className="mt-2 text-gray-600">{msg}</p>
-            <p className="mt-2 text-sm text-gray-500">Redirecting to our website…</p>
-            <button
-              className="mt-6 px-5 py-2 rounded-lg bg-blue-600 text-white"
-              onClick={() => navigate("/", { replace: true })}
-            >
-              Go now
-            </button>
           </>
         )}
 

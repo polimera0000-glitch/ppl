@@ -62,8 +62,7 @@ const ResetPasswordScreen = () => {
 
       if (result.success) {
         setSuccess(true);
-        setMessage(result.message || 'Password reset successful. Redirecting to login…');
-        setTimeout(() => navigate('/login'), 1200);
+        setMessage('Your password has been successfully reset! You can now log in with your new password.');
       } else {
         setSuccess(false);
         setMessage(result.message || 'Reset failed. The token may be invalid or expired.');
@@ -162,16 +161,6 @@ const ResetPasswordScreen = () => {
               {loading ? 'Saving…' : 'Save new password'}
             </button>
 
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => navigate('/login')}
-                className="text-secondary-text hover:text-primary-text transition-colors text-sm inline-flex items-center gap-1"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Login
-              </button>
-            </div>
           </form>
         </div>
       </div>

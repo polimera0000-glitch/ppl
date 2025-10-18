@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Link } from "react-scroll";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
@@ -18,7 +17,6 @@ const GlobalTopBar = ({
   ],
   showRegister = true,
   onMobileMenuToggle,
-  scrollOffset = -80,
 }) => {
   const [open, setOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false); // ✅ modal state
@@ -71,16 +69,25 @@ const GlobalTopBar = ({
               {navLinks.map((link) => {
                 if (link.type === "scroll" && onLanding) {
                   return (
-                    <Link
-                      key={`${link.label}-${scrollOffset}`}
-                      to={link.href.replace("#", "")}
-                      smooth
-                      duration={800}
-                      offset={scrollOffset}
+                    <button
+                      key={link.label}
+                      onClick={() => {
+                        const targetId = link.href.replace("#", "");
+                        const targetElement = document.getElementById(targetId);
+                        if (targetElement) {
+                          const screenWidth = window.innerWidth;
+                          const offset = screenWidth < 768 ? 40 : screenWidth < 1024 ? 30 : 20;
+                          const targetPosition = targetElement.offsetTop - offset;
+                          window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'smooth'
+                          });
+                        }
+                      }}
                       className="font-medium cursor-pointer text-secondary-text hover:text-primary-text transition-colors text-sm lg:text-base"
                     >
                       {link.label}
-                    </Link>
+                    </button>
                   );
                 }
                 return (
@@ -154,22 +161,33 @@ const GlobalTopBar = ({
               {navLinks.map((link) => {
                 if (link.type === "scroll" && onLanding) {
                   return (
-                    <Link
-                      key={`${link.label}-${scrollOffset}`}
-                      to={link.href.replace("#", "")}
-                      smooth
-                      duration={800}
-                      offset={scrollOffset}
+                    <button
+                      key={link.label}
                       onClick={() => {
+                        // Close mobile menu first
                         setOpen(false);
                         if (onMobileMenuToggle) {
                           onMobileMenuToggle(false);
                         }
+                        // Then scroll manually after menu closes
+                        setTimeout(() => {
+                          const targetId = link.href.replace("#", "");
+                          const targetElement = document.getElementById(targetId);
+                          if (targetElement) {
+                            const screenWidth = window.innerWidth;
+                            const offset = screenWidth < 768 ? 40 : screenWidth < 1024 ? 30 : 20;
+                            const targetPosition = targetElement.offsetTop - offset;
+                            window.scrollTo({
+                              top: targetPosition,
+                              behavior: 'smooth'
+                            });
+                          }
+                        }, 200);
                       }}
-                      className="block py-3 px-3 rounded-lg text-base font-medium cursor-pointer text-secondary-text hover:text-primary-text hover:bg-border transition-all duration-200 touch-manipulation"
+                      className="block py-3 px-3 rounded-lg text-base font-medium cursor-pointer text-secondary-text hover:text-primary-text hover:bg-border transition-all duration-200 touch-manipulation w-full text-left"
                     >
                       {link.label}
-                    </Link>
+                    </button>
                   );
                 }
                 return (

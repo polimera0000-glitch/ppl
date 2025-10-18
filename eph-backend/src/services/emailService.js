@@ -341,7 +341,6 @@ _sendWithTimeout(mailOptions, hardTimeoutMs = 90000) {
   // ---------------- Verification ----------------
   async sendVerificationEmail(email, name, verificationToken, opts = {}) {
     const webLink = `${frontend}/verify-email?token=${encodeURIComponent(verificationToken)}`;
-    const deepLink = `${DEEP_LINK_SCHEME}://verify-email?token=${encodeURIComponent(verificationToken)}`;
 
     const subject = `Verify your email — ${BRAND_NAME}`;
     const bodyHtml = `
@@ -357,10 +356,9 @@ _sendWithTimeout(mailOptions, hardTimeoutMs = 90000) {
             Verify Email
           </a>
         </div>
-        <p style="margin:16px 0 0;color:#475569;font-size:13px;">If the button doesn't work, use one of these links:</p>
+        <p style="margin:16px 0 0;color:#475569;font-size:13px;">If the button doesn't work, copy and paste this link:</p>
         <p style="word-break:break-all;color:#0f1724;font-size:13px;margin:8px 0 0;">
-          <strong>Web:</strong> <a href="${webLink}">${webLink}</a><br/>
-          <strong>App:</strong> <a href="${deepLink}">${deepLink}</a>
+          <a href="${webLink}">${webLink}</a>
         </p>
         <hr style="border:none;border-top:1px solid #eef2ff;margin:20px 0;" />
         <p style="color:#64748b;font-size:12px;margin:0;">If you didn't create an account, please ignore this email.</p>
@@ -376,8 +374,7 @@ _sendWithTimeout(mailOptions, hardTimeoutMs = 90000) {
 
 Welcome to ${BRAND_NAME}! Please verify your email to activate your account.
 
-Web: ${webLink}
-App: ${deepLink}
+${webLink}
 
 If you didn't create an account, you can ignore this email.`;
 
@@ -513,19 +510,9 @@ If this wasn't you, reset your password and contact support immediately.`;
       ? Math.round(opts.expiresInSeconds / 60)
       : 60;
 
-    const deepLink =
-      opts.deepLink ||
-      (tokenString
-        ? `${DEEP_LINK_SCHEME}://reset-password?token=${encodeURIComponent(tokenString)}`
-        : null);
-
-    const webFallback =
-      opts.webFallback ||
-      (tokenString
-        ? `${frontend}/reset-password?token=${encodeURIComponent(tokenString)}`
-        : null);
-
-    const buttonHref = webFallback || deepLink || "#";
+    const webLink = tokenString
+      ? `${frontend}/reset-password?token=${encodeURIComponent(tokenString)}`
+      : null;
 
     const subject = `Reset your password — ${BRAND_NAME}`;
     const bodyHtml = `
@@ -536,15 +523,14 @@ If this wasn't you, reset your password and contact support immediately.`;
       <tr><td style="padding:18px 32px;">
         <p style="margin:0 0 16px;color:#334155;font-size:15px;">This link is valid for <strong>${expiryMinutes} minutes</strong>.</p>
         <div style="text-align:center;margin:18px 0;">
-          <a href="${buttonHref}" target="_blank" rel="noopener"
+          <a href="${webLink}" target="_blank" rel="noopener"
              style="display:inline-block;padding:12px 22px;border-radius:8px;background:#dc2626;color:#fff;font-weight:600;">
             Reset Password
           </a>
         </div>
-        <p style="margin:16px 0 0;color:#475569;font-size:13px;">If the button doesn't work, use one of these links:</p>
+        <p style="margin:16px 0 0;color:#475569;font-size:13px;">If the button doesn't work, copy and paste this link:</p>
         <p style="word-break:break-all;color:#0f1724;font-size:13px;margin:8px 0 0;">
-          ${webFallback ? `<strong>Web:</strong> <a href="${webFallback}">${webFallback}</a><br/>` : ""}
-          ${deepLink ? `<strong>App:</strong> <a href="${deepLink}">${deepLink}</a>` : ""}
+          <a href="${webLink}">${webLink}</a>
         </p>
         <hr style="border:none;border-top:1px solid #eef2ff;margin:20px 0;" />
         <p style="color:#64748b;font-size:12px;margin:0;">If you didn't request this, you can safely ignore this email.</p>
@@ -560,7 +546,7 @@ If this wasn't you, reset your password and contact support immediately.`;
 We received a request to reset your ${BRAND_NAME} password.
 This link is valid for ${expiryMinutes} minutes.
 
-${webFallback || deepLink || ""}
+${webLink || ""}
 
 If you didn't request this, you can ignore this email.`;
 
@@ -781,6 +767,61 @@ Please change your password immediately after your first login.`;
     `;
     const html = baseEmailShell({ title: subject, preheader: "Team change.", bodyHtml });
     return this.sendEmail(email, subject, html, text);
+  }
+
+  // ---------------- Contact Notifications ----------------
+  async sendContactNotificationEmail(recipientEmail, recipientName, senderName, senderRole, subject, message, contactEmail) {
+    const dashboardUrl = `${frontend}/dashboard`;
+    const subject_line = `New contact request from ${senderName} — ${BRAND_NAME}`;
+    const roleText = senderRole === 'hiring' ? 'hiring manager' : senderRole === 'investor' ? 'investor' : 'admin';
+    
+    const bodyHtml = `
+      <tr><td style="padding:14px 18px;background:#3B82F6;color:#fff;">
+        <strong>New Contact Request</strong>
+      </tr></td>
+      <tr><td style="padding:18px 32px;">
+        <p>Hi ${recipientName || "there"},</p>
+        <p>A ${roleText} has reached out to you through ${BRAND_NAME}!</p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin:16px 0;">
+          <p style="margin:0 0 8px;font-weight:600;color:#1e293b;">From: ${senderName}</p>
+          <p style="margin:0 0 8px;font-weight:600;color:#1e293b;">Subject: ${subject}</p>
+          <p style="margin:0;color:#475569;font-size:14px;">${message}</p>
+        </div>
+        <p style="margin:16px 0 0;color:#334155;font-size:15px;">You can reply directly to this email or contact them at: <strong>${contactEmail}</strong></p>
+        <p style="text-align:center;margin:20px 0;">
+          <a href="${dashboardUrl}" style="display:inline-block;background:#3B82F6;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;">View Dashboard</a>
+        </p>
+      </td></tr>
+    `;
+    const html = baseEmailShell({ title: subject_line, bodyHtml });
+    const text = `Hi ${recipientName || "there"}, a ${roleText} has contacted you through ${BRAND_NAME}!\n\nFrom: ${senderName}\nSubject: ${subject}\nMessage: ${message}\n\nReply to: ${contactEmail}\n\nView your dashboard: ${dashboardUrl}`;
+    return this.sendEmail(recipientEmail, subject_line, html, text);
+  }
+
+  async sendContactConfirmationEmail(senderEmail, senderName, recipientName, subject) {
+    const dashboardUrl = `${frontend}/dashboard`;
+    const subject_line = `Contact request sent to ${recipientName} — ${BRAND_NAME}`;
+    
+    const bodyHtml = `
+      <tr><td style="padding:14px 18px;background:#10B981;color:#fff;">
+        <strong>Contact Request Sent</strong>
+      </tr></td>
+      <tr><td style="padding:18px 32px;">
+        <p>Hi ${senderName || "there"},</p>
+        <p>Your contact request has been successfully sent to <strong>${recipientName}</strong>.</p>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:16px 0;">
+          <p style="margin:0 0 8px;font-weight:600;color:#166534;">Subject: ${subject}</p>
+          <p style="margin:0;color:#166534;font-size:14px;">The student will receive an email notification and can reply directly to you.</p>
+        </div>
+        <p style="margin:16px 0 0;color:#334155;font-size:15px;">You can track your contact history in your dashboard.</p>
+        <p style="text-align:center;margin:20px 0;">
+          <a href="${dashboardUrl}" style="display:inline-block;background:#10B981;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;">View Dashboard</a>
+        </p>
+      </td></tr>
+    `;
+    const html = baseEmailShell({ title: subject_line, bodyHtml });
+    const text = `Hi ${senderName || "there"}, your contact request has been sent to ${recipientName}.\n\nSubject: ${subject}\n\nThe student will receive an email notification and can reply directly to you.\n\nView your dashboard: ${dashboardUrl}`;
+    return this.sendEmail(senderEmail, subject_line, html, text);
   }
 }
 
