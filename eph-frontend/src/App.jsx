@@ -42,6 +42,7 @@ import MySubmission from "./pages/MySubmission.jsx";
 import CompetitionLeaderboard from "./pages/CompetitionLeaderboard.jsx";
 import ViewCompetitionScreen from "./pages/ViewCompetitionScreen.jsx";
 import CompetitionDetails from "./pages/CompetitionDetails.jsx";
+import InvitationResponse from "./pages/InvitationResponse.jsx";
 
 import ContactPage from "./pages/ContactPage.jsx";
 
@@ -139,6 +140,10 @@ function App() {
               <Route path="/verify-email-sent" element={<EmailVerificationNotice />} />
 
               <Route path="/auth/callback" element={<OAuthCallbackScreen />} />
+              
+              {/* Invitation Response Route */}
+              <Route path="/invitations/respond/:token" element={<InvitationResponse />} />
+              
               <Route
                 path="/competition/:competitionId/leaderboard"
                 element={<CompetitionLeaderboard />}

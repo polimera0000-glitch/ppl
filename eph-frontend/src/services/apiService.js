@@ -392,6 +392,17 @@ async getCompetitionRegistrationStats(competitionId) {
       method: 'DELETE'
     });
   }
+
+  async getInvitationByToken(token) {
+    return this.makeRequest(`/invitations/token/${token}`);
+  }
+
+  async respondToInvitation(token, action) {
+    return this.makeRequest(`/invitations/respond/${token}`, {
+      method: 'POST',
+      body: { action }
+    });
+  }
 }
 
 export const apiService = new ApiService();
