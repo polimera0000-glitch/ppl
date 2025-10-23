@@ -42,8 +42,11 @@ const InvitationResponse = () => {
       setError(null);
       
       // Get invitation details by token
-      const response = await apiService.makeRequest(`/invitations/token/${token}`);
+      const response = await apiService.getInvitationByToken(token);
       const invitationData = response?.data || response;
+      
+      console.log('Invitation API response:', response);
+      console.log('Invitation data:', invitationData);
       
       setInvitation(invitationData);
       
@@ -68,10 +71,7 @@ const InvitationResponse = () => {
       setError(null);
       
       // Send response to backend
-      const response = await apiService.makeRequest(`/invitations/respond/${token}`, {
-        method: 'POST',
-        body: { action: responseAction }
-      });
+      const response = await apiService.respondToInvitation(token, responseAction);
       
       setSuccess(true);
       setMessage(response?.message || `Invitation ${responseAction}ed successfully!`);
@@ -186,36 +186,36 @@ const InvitationResponse = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Team:</span>
-                  <span className="font-medium">{invitation.teamName || 'Team Name'}</span>
+                  <span className="font-medium">{invitation.team?.name || 'Team Name'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Leader:</span>
-                  <span className="font-medium">{invitation.teamLeader || 'Team Leader'}</span>
+                  <span className="font-medium">{invitation.team?.leader?.name || 'Team Leader'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Competition:</span>
-                  <span className="font-medium">{invitation.competitionTitle || 'Competition'}</span>
+                  <span className="font-medium">{invitation.competition?.title || 'Competition'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status:</span>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getActionColor(invitation.status)}`}>
-                    {invitation.status || 'Pending'}
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${getActionColor(invitation.invitation?.status)}`}>
+                    {invitation.invitation?.status || 'Pending'}
                   </span>
                 </div>
               </div>
             </div>
 
-            {invitation.competitionDescription && (
+            {invitation.competition?.description && (
               <div className="bg-blue-50 rounded-lg p-4">
                 <h4 className="font-medium text-blue-800 mb-2">About the Competition</h4>
-                <p className="text-blue-700 text-sm">{invitation.competitionDescription}</p>
+                <p className="text-blue-700 text-sm">{invitation.competition.description}</p>
               </div>
             )}
           </div>
         )}
 
         {/* Action Buttons */}
-        {!action && invitation?.status === 'pending' && (
+        {!action && invitation?.invitation?.status === 'pending' && !invitation?.invitation?.is_expired && (
           <div className="space-y-3">
             <CustomButton
               text={processing ? 'Processing...' : '✅ Accept Invitation'}
