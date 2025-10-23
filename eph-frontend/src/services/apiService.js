@@ -22,6 +22,17 @@ class ApiService {
   async makeRequest(url, options = {}) {
     const token = authService.getToken?.();
 
+    // Check if token is expired before making request
+    if (token && !authService.isTokenValid?.()) {
+      console.warn('Token is expired or invalid, clearing auth state');
+      authService.clearToken();
+      // Redirect to login or refresh page
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+      throw new Error('Authentication token has expired. Please login again.');
+    }
+
     // Detect FormData bodies so we DON'T set JSON headers or stringify
     const isFormData =
       typeof FormData !== 'undefined' && options?.body instanceof FormData;
@@ -64,6 +75,15 @@ class ApiService {
     }
 
     if (!resp.ok) {
+      // Handle token expiry from server response
+      if (resp.status === 401 && data && (data.message || '').toLowerCase().includes('expired')) {
+        console.warn('Server returned token expired, clearing auth state');
+        authService.clearToken();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+      }
+
       const message =
         (data && (data.message || data.error)) ||
         `HTTP ${resp.status} ${resp.statusText}`;
