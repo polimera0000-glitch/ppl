@@ -52,7 +52,10 @@ const InvitationResponse = () => {
       
       // If action is specified in URL, auto-process it
       if (action && (action === 'accept' || action === 'reject')) {
-        await handleResponse(action);
+        console.log('Auto-processing action:', action);
+        setTimeout(() => {
+          handleResponse(action);
+        }, 1000); // Wait 1 second to ensure invitation data is loaded
       }
       
     } catch (err) {
@@ -220,7 +223,7 @@ const InvitationResponse = () => {
         )}
 
         {/* Action Buttons */}
-        {!action && invitation?.invitation?.status === 'pending' && !invitation?.invitation?.is_expired && (
+        {invitation?.invitation?.status === 'pending' && !invitation?.invitation?.is_expired && (
           <div className="space-y-3">
             <CustomButton
               text={processing ? 'Processing...' : '✅ Accept Invitation'}
@@ -243,6 +246,16 @@ const InvitationResponse = () => {
             />
           </div>
         )}
+
+        {/* Debug Information */}
+        <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
+          <strong>Debug Info:</strong><br/>
+          Action from URL: {action || 'none'}<br/>
+          Invitation Status: {invitation?.invitation?.status || 'unknown'}<br/>
+          Is Expired: {invitation?.invitation?.is_expired ? 'yes' : 'no'}<br/>
+          Processing: {processing ? 'yes' : 'no'}<br/>
+          Success: {success ? 'yes' : 'no'}
+        </div>
 
         {/* Back Button */}
         <div className="mt-6 pt-4 border-t border-gray-200">
