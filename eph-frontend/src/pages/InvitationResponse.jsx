@@ -233,6 +233,7 @@ const InvitationResponse = () => {
               variant="primary"
               size="md"
               fullWidth={true}
+              className="bg-green-600 hover:bg-green-700 text-white border-green-600 font-semibold shadow-lg"
             />
             <CustomButton
               text={processing ? 'Processing...' : '❌ Decline Invitation'}
@@ -242,20 +243,12 @@ const InvitationResponse = () => {
               variant="outline"
               size="md"
               fullWidth={true}
-              className="text-red-600 border-red-200 hover:bg-red-50"
+              className="text-red-600 border-red-500 hover:bg-red-50 border-2 font-semibold"
             />
           </div>
         )}
 
-        {/* Debug Information */}
-        <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
-          <strong>Debug Info:</strong><br/>
-          Action from URL: {action || 'none'}<br/>
-          Invitation Status: {invitation?.invitation?.status || 'unknown'}<br/>
-          Is Expired: {invitation?.invitation?.is_expired ? 'yes' : 'no'}<br/>
-          Processing: {processing ? 'yes' : 'no'}<br/>
-          Success: {success ? 'yes' : 'no'}
-        </div>
+
 
         {/* Back Button */}
         <div className="mt-6 pt-4 border-t border-gray-200">
