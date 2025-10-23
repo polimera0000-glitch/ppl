@@ -329,11 +329,29 @@ const competitionController = {
       const confirmedRegistrations =
         competitionData.registrations?.filter(r => r.status === 'confirmed')?.length || 0;
 
-      // Check user status
-      const user_registered = !!(
-        currentUserId &&
-        competitionData.registrations?.some(r => String(r.leader_id) === String(currentUserId))
-      );
+      // Check user status and get detailed registration info
+      let user_registered = false;
+      let user_registration = null;
+
+      if (currentUserId) {
+        const userRegistration = competitionData.registrations?.find(r => 
+          String(r.leader_id) === String(currentUserId) ||
+          r.teamMembers?.some(member => String(member.id) === String(currentUserId))
+        );
+
+        if (userRegistration) {
+          user_registered = true;
+          user_registration = {
+            id: userRegistration.id,
+            type: userRegistration.type,
+            status: userRegistration.status,
+            teamName: userRegistration.team_name,
+            isLeader: String(userRegistration.leader_id) === String(currentUserId),
+            registeredAt: userRegistration.created_at,
+            invitationStatus: userRegistration.invitation_status
+          };
+        }
+      }
 
       const user_submitted = !!(
         currentUserId &&
@@ -372,6 +390,7 @@ const competitionController = {
             posted_by: postedBy,
             createdBy: competitionData.createdBy,
             user_registered,
+            user_registration,
             user_submitted,
             stats
           }
@@ -711,8 +730,26 @@ if (Object.prototype.hasOwnProperty.call(updateData, 'resources') && typeof upda
   registerForCompetition: async (req, res) => {
     try {
       const { id: competitionId } = req.params;
-      const { type = 'individual', team_name, member_emails = [], abstract } = req.body;
+      const { type = 'individual', team_name, member_emails = [], members = [], abstract } = req.body;
       const userId = req.user.id;
+
+      // Handle both frontend formats - extract emails from members array if provided
+      let teamMemberEmails = member_emails;
+      if (members && members.length > 0 && teamMemberEmails.length === 0) {
+        teamMemberEmails = members.map(member => member.email).filter(email => email);
+      }
+
+      // Debug logging
+      logger.info('Registration attempt:', {
+        competitionId,
+        type,
+        team_name,
+        member_emails: teamMemberEmails,
+        userId,
+        originalMemberEmails: member_emails,
+        membersArray: members,
+        extractedEmails: teamMemberEmails
+      });
 
       const competition = await Competition.findByPk(competitionId);
       if (!competition) {
@@ -740,10 +777,7 @@ if (Object.prototype.hasOwnProperty.call(updateData, 'resources') && typeof upda
       }
 
       // Check if user already registered
-      const existingRegistration = await Registration.findOne({
-        where: { competition_id: competitionId, leader_id: userId }
-      });
-
+      const existingRegistration = await Registration.checkUserRegistration(competitionId, userId);
       if (existingRegistration) {
         return res.status(400).json({
           success: false,
@@ -768,48 +802,254 @@ if (Object.prototype.hasOwnProperty.call(updateData, 'resources') && typeof upda
         });
       }
 
-      // For team registration, validate team members
-      let memberUsers = [];
-      if (type === 'team' && member_emails.length > 0) {
-        memberUsers = await User.findAll({
-          where: { email: { [Op.in]: member_emails }, is_active: true }
+      // Handle individual registration
+      if (type === 'individual') {
+        // Create individual registration
+        const registration = await Registration.create({
+          competition_id: competitionId,
+          leader_id: userId,
+          type: 'individual',
+          team_name: null,
+          abstract: abstract?.trim() || null,
+          status: 'confirmed',
+          invitation_status: 'complete'
         });
 
-        if (memberUsers.length !== member_emails.length) {
+        // Update seats remaining
+        await competition.update({
+          seats_remaining: competition.seats_remaining - 1
+        });
+
+        // Send confirmation email
+        try {
+          const user = await User.findByPk(userId);
+          await emailService.sendCompetitionRegistrationEmail(
+            user.email,
+            user.name,
+            competition.title
+          );
+        } catch (emailError) {
+          logger.warn('Registration email failed:', emailError.message);
+        }
+
+        // Load registration with associations for response
+        const registrationWithDetails = await Registration.findByPk(registration.id, {
+          include: [
+            {
+              model: User,
+              as: 'leader',
+              attributes: ['id', 'name', 'email']
+            },
+            {
+              model: Competition,
+              as: 'competition',
+              attributes: ['id', 'title', 'start_date', 'end_date']
+            }
+          ]
+        });
+
+        return res.status(201).json({
+          success: true,
+          message: 'Individual registration successful',
+          data: {
+            registration: registrationWithDetails.toJSON()
+          }
+        });
+      }
+
+      // Handle team registration with invitation system
+      if (type === 'team') {
+        // Validate team name
+        if (!team_name || team_name.trim().length < 3) {
           return res.status(400).json({
             success: false,
-            message: 'Some team members not found or inactive'
+            message: 'Team name must be at least 3 characters long'
           });
         }
 
-        // Check if any team member is already registered
-        for (const member of memberUsers) {
-          const memberRegistration = await Registration.findOne({
-            where: { competition_id: competitionId, leader_id: member.id }
+        // Validate member emails
+        if (!teamMemberEmails || teamMemberEmails.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'At least one team member email is required for team registration'
           });
-          if (memberRegistration) {
-            return res.status(400).json({
-              success: false,
-              message: `Team member ${member.name} is already registered for this competition`
-            });
-          }
+        }
+
+        // Create team registration with pending invitation status
+        const registration = await Registration.create({
+          competition_id: competitionId,
+          leader_id: userId,
+          type: 'team',
+          team_name: team_name.trim(),
+          abstract: abstract?.trim() || null,
+          status: 'pending', // Keep as pending until invitations are resolved
+          invitation_status: 'pending_invitations'
+        });
+
+        // Send team invitations using the invitation service
+        try {
+          const invitationService = require('../services/invitationService');
+          const invitationResult = await invitationService.sendBatchInvitations(
+            registration,
+            teamMemberEmails,
+            userId
+          );
+
+          logger.info(`Team registration created with ${invitationResult.successful} invitations sent`);
+
+          // Load registration with associations for response
+          const registrationWithDetails = await Registration.findByPk(registration.id, {
+            include: [
+              {
+                model: User,
+                as: 'leader',
+                attributes: ['id', 'name', 'email']
+              },
+              {
+                model: Competition,
+                as: 'competition',
+                attributes: ['id', 'title', 'start_date', 'end_date']
+              }
+            ]
+          });
+
+          return res.status(201).json({
+            success: true,
+            message: `Team registration created. ${invitationResult.successful} invitations sent successfully.`,
+            data: {
+              registration: registrationWithDetails.toJSON(),
+              invitations: {
+                sent: invitationResult.successful,
+                failed: invitationResult.failed,
+                total: teamMemberEmails.length
+              }
+            }
+          });
+
+        } catch (invitationError) {
+          logger.error('Error sending team invitations:', invitationError.message);
+          
+          // If invitation sending fails, we should still create the registration
+          // but inform the user about the issue
+          const registrationWithDetails = await Registration.findByPk(registration.id, {
+            include: [
+              {
+                model: User,
+                as: 'leader',
+                attributes: ['id', 'name', 'email']
+              },
+              {
+                model: Competition,
+                as: 'competition',
+                attributes: ['id', 'title', 'start_date', 'end_date']
+              }
+            ]
+          });
+
+          return res.status(201).json({
+            success: true,
+            message: 'Team registration created, but there was an issue sending invitations. You can resend them from your dashboard.',
+            data: {
+              registration: registrationWithDetails.toJSON(),
+              invitations: {
+                sent: 0,
+                failed: teamMemberEmails.length,
+                total: teamMemberEmails.length,
+                error: invitationError.message
+              }
+            }
+          });
         }
       }
 
-      // Create registration
-      const registration = await Registration.create({
-        competition_id: competitionId,
-        leader_id: userId,
-        type,
-        team_name: type === 'team' ? team_name : null,
-        abstract: abstract?.trim() || null,
-        status: 'confirmed'
+    } catch (error) {
+      logger.error('Register for competition error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to register for competition',
+        error: error.message
+      });
+    }
+  },
+
+  // Complete team registration when all invitations are resolved
+  completeTeamRegistration: async (req, res) => {
+    try {
+      const { registrationId } = req.params;
+      const userId = req.user.id;
+
+      // Find registration and verify ownership
+      const registration = await Registration.findByPk(registrationId, {
+        include: [
+          { model: User, as: 'leader' },
+          { model: Competition, as: 'competition' }
+        ]
       });
 
-      // Add team members if it's a team registration
-      if (type === 'team' && memberUsers.length > 0) {
-        await registration.addTeamMembers(memberUsers);
+      if (!registration) {
+        return res.status(404).json({
+          success: false,
+          message: 'Registration not found'
+        });
       }
+
+      // Check if user is the team leader
+      if (registration.leader_id !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only team leaders can complete registrations'
+        });
+      }
+
+      // Check if registration is a team registration
+      if (registration.type !== 'team') {
+        return res.status(400).json({
+          success: false,
+          message: 'Only team registrations can be completed'
+        });
+      }
+
+      // Check if registration is still pending
+      if (registration.status !== 'pending') {
+        return res.status(400).json({
+          success: false,
+          message: 'Registration is not in pending status'
+        });
+      }
+
+      // Check if all invitations are resolved
+      const areAllResolved = await registration.areAllInvitationsResolved();
+      if (!areAllResolved) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot complete registration while invitations are still pending'
+        });
+      }
+
+      // Get accepted invitations to add members
+      const acceptedInvitations = await registration.getAcceptedInvitations();
+      
+      // Add accepted members to the team
+      for (const invitation of acceptedInvitations) {
+        if (invitation.invitee_id) {
+          await registration.addMemberFromInvitation(invitation.invitee_id);
+        }
+      }
+
+      // Check if we have enough seats
+      const competition = registration.competition;
+      if (competition.seats_remaining <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No seats remaining for this competition'
+        });
+      }
+
+      // Complete the registration
+      await registration.update({
+        status: 'confirmed',
+        invitation_status: 'complete'
+      });
 
       // Update seats remaining
       await competition.update({
@@ -818,19 +1058,18 @@ if (Object.prototype.hasOwnProperty.call(updateData, 'resources') && typeof upda
 
       // Send confirmation email
       try {
-        const user = await User.findByPk(userId);
+        const user = registration.leader;
         await emailService.sendCompetitionRegistrationEmail(
           user.email,
           user.name,
           competition.title
         );
       } catch (emailError) {
-        logger.warn('Registration email failed:', emailError.message);
-        // Don't fail the registration if email fails
+        logger.warn('Registration confirmation email failed:', emailError.message);
       }
 
-      // Load registration with associations for response
-      const registrationWithDetails = await Registration.findByPk(registration.id, {
+      // Load updated registration with team members
+      const updatedRegistration = await Registration.findByPk(registration.id, {
         include: [
           {
             model: User,
@@ -851,18 +1090,207 @@ if (Object.prototype.hasOwnProperty.call(updateData, 'resources') && typeof upda
         ]
       });
 
-      res.status(201).json({
+      logger.info(`Team registration ${registrationId} completed by user ${userId}`);
+
+      res.status(200).json({
         success: true,
-        message: 'Registration successful',
+        message: 'Team registration completed successfully',
         data: {
-          registration: registrationWithDetails.toJSON()
+          registration: updatedRegistration.toJSON(),
+          team_size: updatedRegistration.getTeamSize()
         }
       });
+
     } catch (error) {
-      logger.error('Register for competition error:', error);
+      logger.error('Complete team registration error:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to register for competition',
+        message: 'Failed to complete team registration',
+        error: error.message
+      });
+    }
+  },
+
+  // Get user's registration status for a specific competition
+  getRegistrationStatus: async (req, res) => {
+    try {
+      const { id: competitionId } = req.params;
+      const userId = req.user.id;
+
+      // Find the competition
+      const competition = await Competition.findByPk(competitionId);
+      if (!competition) {
+        return res.status(404).json({
+          success: false,
+          message: 'Competition not found'
+        });
+      }
+
+      // Check if user is registered for this competition
+      const registration = await Registration.checkUserRegistration(competitionId, userId);
+
+      if (!registration) {
+        return res.json({
+          success: true,
+          data: {
+            isRegistered: false,
+            competition: {
+              id: competition.id,
+              title: competition.title,
+              maxTeamSize: competition.max_team_size,
+              seatsRemaining: competition.seats_remaining
+            },
+            permissions: {
+              canRegister: competition.canUserRegister(),
+              canRegisterIndividual: true,
+              canRegisterTeam: competition.max_team_size > 1
+            }
+          }
+        });
+      }
+
+      // Load registration with full details
+      const fullRegistration = await Registration.findByPk(registration.id, {
+        include: [
+          { model: User, as: 'leader', attributes: ['id', 'name', 'email'] },
+          { model: Competition, as: 'competition', attributes: ['id', 'title', 'max_team_size'] }
+        ]
+      });
+
+      const responseData = {
+        isRegistered: true,
+        registration: {
+          id: fullRegistration.id,
+          type: fullRegistration.type,
+          status: fullRegistration.status,
+          teamName: fullRegistration.team_name,
+          registeredAt: fullRegistration.created_at,
+          invitationStatus: fullRegistration.invitation_status
+        },
+        permissions: {
+          canWithdraw: fullRegistration.status === 'pending' || fullRegistration.status === 'confirmed',
+          canManageTeam: fullRegistration.leader_id === userId && fullRegistration.type === 'team',
+          canInviteMembers: fullRegistration.leader_id === userId && 
+                           fullRegistration.type === 'team' && 
+                           fullRegistration.getTeamSize() < competition.max_team_size
+        }
+      };
+
+      // Add team details if it's a team registration
+      if (fullRegistration.type === 'team') {
+        try {
+          const invitationService = require('../services/invitationService');
+          const invitationData = await invitationService.getInvitationStatus(fullRegistration.id);
+
+          responseData.team = {
+            name: fullRegistration.team_name,
+            leader: fullRegistration.leader,
+            currentSize: fullRegistration.getTeamSize(),
+            maxSize: competition.max_team_size,
+            invitationStatus: fullRegistration.invitation_status
+          };
+
+          responseData.invitations = invitationData.invitations.map(invitation => ({
+            id: invitation.id,
+            email: invitation.invitee_email,
+            inviteeName: invitation.invitee ? invitation.invitee.name : null,
+            status: invitation.status,
+            sentAt: invitation.created_at,
+            expiresAt: invitation.expires_at,
+            respondedAt: invitation.responded_at,
+            isExpired: invitation.isExpired(),
+            canResend: invitation.status === 'pending' && !invitation.isExpired()
+          }));
+
+          responseData.invitationSummary = {
+            total: invitationData.totalInvitations,
+            pending: invitationData.statusCounts.pending,
+            accepted: invitationData.statusCounts.accepted,
+            rejected: invitationData.statusCounts.rejected,
+            expired: invitationData.statusCounts.expired,
+            isComplete: invitationData.isComplete
+          };
+
+        } catch (invitationError) {
+          logger.warn('Failed to load invitation data for registration status:', invitationError.message);
+          // Don't fail the request, just omit invitation data
+        }
+      }
+
+      res.json({
+        success: true,
+        data: responseData
+      });
+
+    } catch (error) {
+      logger.error('Get registration status error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get registration status',
+        error: error.message
+      });
+    }
+  },
+
+  // Get complete user context for competition page
+  getUserContext: async (req, res) => {
+    try {
+      const { id: competitionId } = req.params;
+      const userId = req.user.id;
+
+      // Get registration status
+      const registrationStatusResponse = await competitionController.getRegistrationStatus(
+        { params: { id: competitionId }, user: { id: userId } },
+        { json: (data) => data } // Mock response object
+      );
+
+      // Get user's received invitations for this competition
+      const { TeamInvitation } = require('../models');
+      const receivedInvitations = await TeamInvitation.findAll({
+        where: {
+          [require('sequelize').Op.or]: [
+            { invitee_id: userId },
+            { invitee_email: req.user.email }
+          ]
+        },
+        include: [
+          {
+            model: Registration,
+            as: 'registration',
+            where: { competition_id: competitionId },
+            include: [
+              { model: User, as: 'leader', attributes: ['name', 'email'] },
+              { model: Competition, as: 'competition', attributes: ['title'] }
+            ]
+          }
+        ]
+      });
+
+      const contextData = {
+        ...registrationStatusResponse.data,
+        receivedInvitations: receivedInvitations.map(inv => ({
+          id: inv.id,
+          token: inv.token,
+          teamName: inv.registration.team_name,
+          teamLeader: inv.registration.leader,
+          competition: inv.registration.competition,
+          status: inv.status,
+          expiresAt: inv.expires_at,
+          isExpired: inv.isExpired(),
+          canRespond: inv.canRespond()
+        }))
+      };
+
+      res.json({
+        success: true,
+        data: contextData
+      });
+
+    } catch (error) {
+      logger.error('Get user context error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get user context',
         error: error.message
       });
     }

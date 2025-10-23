@@ -64,12 +64,40 @@ const registrationController = {
         distinct: true
       });
 
+      // Add invitation status summary for team registrations
+      const registrationsWithInvitations = await Promise.all(
+        registrations.map(async (registration) => {
+          const regData = registration.toJSON();
+          
+          // Add invitation summary for team registrations
+          if (registration.type === 'team' && registration.invitation_status === 'pending_invitations') {
+            try {
+              const invitationService = require('../services/invitationService');
+              const invitationStatus = await invitationService.getInvitationStatus(registration.id);
+              regData.invitation_summary = {
+                total: invitationStatus.totalInvitations,
+                pending: invitationStatus.statusCounts.pending,
+                accepted: invitationStatus.statusCounts.accepted,
+                rejected: invitationStatus.statusCounts.rejected,
+                expired: invitationStatus.statusCounts.expired,
+                is_complete: invitationStatus.isComplete
+              };
+            } catch (error) {
+              logger.warn(`Failed to load invitation summary for registration ${registration.id}:`, error.message);
+              regData.invitation_summary = null;
+            }
+          }
+          
+          return regData;
+        })
+      );
+
       const totalPages = Math.ceil(count / limit);
 
       res.json({
         success: true,
         data: {
-          registrations,
+          registrations: registrationsWithInvitations,
           pagination: {
             currentPage: parseInt(page),
             totalPages,
@@ -135,11 +163,30 @@ const registrationController = {
         });
       }
 
+      // Include invitation data for team registrations if user is the leader or admin
+      let invitationData = null;
+      if (registration.type === 'team' && (isOwner || isAuthorized)) {
+        try {
+          const invitationService = require('../services/invitationService');
+          invitationData = await invitationService.getInvitationStatus(id);
+        } catch (invitationError) {
+          logger.warn('Failed to load invitation data:', invitationError.message);
+          // Don't fail the request if invitation data fails to load
+        }
+      }
+
+      const responseData = {
+        registration: registration.toJSON()
+      };
+
+      // Add invitation data if available
+      if (invitationData) {
+        responseData.invitations = invitationData;
+      }
+
       res.json({
         success: true,
-        data: {
-          registration: registration.toJSON()
-        }
+        data: responseData
       });
 
     } catch (error) {
@@ -147,6 +194,106 @@ const registrationController = {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch registration',
+        error: error.message
+      });
+    }
+  },
+
+  // Get detailed invitation management data for a registration
+  getRegistrationInvitations: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      const registration = await Registration.findByPk(id, {
+        include: [
+          {
+            model: Competition,
+            as: 'competition',
+            attributes: ['id', 'title', 'max_team_size']
+          },
+          {
+            model: User,
+            as: 'leader',
+            attributes: ['id', 'name', 'email']
+          }
+        ]
+      });
+
+      if (!registration) {
+        return res.status(404).json({
+          success: false,
+          message: 'Registration not found'
+        });
+      }
+
+      // Check if user is the team leader or admin
+      const isOwner = registration.leader_id === userId;
+      const isAdmin = req.user.role === 'admin';
+
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Only team leaders and admins can view invitation details.'
+        });
+      }
+
+      // Only team registrations have invitations
+      if (registration.type !== 'team') {
+        return res.status(400).json({
+          success: false,
+          message: 'Individual registrations do not have invitations'
+        });
+      }
+
+      // Get detailed invitation data
+      const invitationService = require('../services/invitationService');
+      const invitationData = await invitationService.getInvitationStatus(id);
+
+      // Get current team size
+      const currentTeamSize = registration.getTeamSize();
+      const maxTeamSize = registration.competition.max_team_size;
+
+      res.json({
+        success: true,
+        data: {
+          registration: {
+            id: registration.id,
+            team_name: registration.team_name,
+            type: registration.type,
+            status: registration.status,
+            invitation_status: registration.invitation_status,
+            current_team_size: currentTeamSize,
+            max_team_size: maxTeamSize,
+            can_add_members: currentTeamSize < maxTeamSize
+          },
+          competition: registration.competition,
+          team_leader: registration.leader,
+          invitations: invitationData.invitations.map(invitation => ({
+            id: invitation.id,
+            invitee_email: invitation.invitee_email,
+            invitee_name: invitation.invitee ? invitation.invitee.name : null,
+            status: invitation.status,
+            created_at: invitation.created_at,
+            expires_at: invitation.expires_at,
+            responded_at: invitation.responded_at,
+            is_expired: invitation.isExpired(),
+            can_resend: invitation.status === 'pending' && !invitation.isExpired()
+          })),
+          summary: {
+            total_invitations: invitationData.totalInvitations,
+            status_counts: invitationData.statusCounts,
+            is_complete: invitationData.isComplete,
+            can_complete_registration: invitationData.isComplete && registration.status === 'pending'
+          }
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get registration invitations error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch invitation details',
         error: error.message
       });
     }

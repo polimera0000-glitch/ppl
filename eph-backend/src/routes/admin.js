@@ -61,4 +61,25 @@ router.delete('/:adminId/deactivate',
   adminController.deactivateAdmin
 );
 
+// Invitation management routes
+// GET /admin/invitations/analytics - Get invitation analytics
+router.get('/invitations/analytics', adminController.getInvitationAnalytics);
+
+// POST /admin/invitations/cleanup - Run manual cleanup
+router.post('/invitations/cleanup', adminController.runInvitationCleanup);
+
+// GET /admin/invitations/service/status - Get cleanup service status
+router.get('/invitations/service/status', adminController.getInvitationServiceStatus);
+
+// POST /admin/invitations/service/control - Start/stop cleanup service
+router.post('/invitations/service/control',
+  [
+    body('action')
+      .isIn(['start', 'stop'])
+      .withMessage('Action must be "start" or "stop"')
+  ],
+  handleValidationErrors,
+  adminController.controlInvitationService
+);
+
 module.exports = router;

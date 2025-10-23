@@ -4,6 +4,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { apiService } from "../services/apiService";
 import SidebarLayout from "../components/SidebarLayout";
 import { useAuth } from "../hooks/useAuth"; // ✅ ADDED
+import RegistrationStatusComponent from "../components/RegistrationStatusComponent";
+import TeamDetailsPanel from "../components/TeamDetailsPanel";
+import InvitationProgressComponent from "../components/InvitationProgressComponent";
 
 import {
   Rocket,
@@ -527,33 +530,16 @@ const CompetitionDetails = () => {
                   </div>
                 )}
 
-                {/* --- Register CTA (only when upcoming AND not admin) --- */}
-                {!isAdmin && phase === "upcoming" && (
+                {/* Registration Status Component */}
+                {!isAdmin && (
                   <div className="pt-1 sm:pt-2">
-                    <button
-                      onClick={handleRegister}
-                      disabled={!canRegisterCTA}
-                      className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border transition-colors text-sm font-semibold ${
-                        canRegisterCTA
-                          ? "bg-primary-text text-background border-primary-text hover:opacity-90 active:opacity-80"
-                          : "bg-background text-secondary-text border-border cursor-not-allowed"
-                      }`}
-                      aria-disabled={!canRegisterCTA}
-                    >
-                      <Rocket className="w-4 h-4" />
-                      {canRegisterCTA
-                        ? "Register"
-                        : registrationEnd && now > registrationEnd
-                        ? "Registration Closed"
-                        : "Not Open Yet"}
-                    </button>
-                    {!canRegisterCTA && (
-                      <p className="mt-2 text-xs text-secondary-text">
-                        {registrationStart && now < registrationStart && `Opens on ${fmtLong(registrationStart)}`}
-                        {registrationEnd && now > registrationEnd && `Closed on ${fmtLong(registrationEnd)}`}
-                        {typeof seatsLeft === "number" && seatsLeft <= 0 && " • No seats left"}
-                      </p>
-                    )}
+                    <RegistrationStatusComponent
+                      competitionId={id}
+                      onStatusChange={(status) => {
+                        // Handle status changes if needed
+                        console.log('Registration status changed:', status);
+                      }}
+                    />
                   </div>
                 )}
               </>

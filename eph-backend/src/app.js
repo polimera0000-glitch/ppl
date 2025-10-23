@@ -218,4 +218,19 @@ app.use('*', (req, res) => {
 // Global error handler
 app.use(errorHandler);
 
+// Initialize invitation cleanup service
+if (process.env.NODE_ENV !== 'test') {
+  const invitationCleanupService = require('./services/invitationCleanupService');
+  
+  // Start the service after a short delay to ensure database is ready
+  setTimeout(() => {
+    try {
+      invitationCleanupService.start();
+      logger.info('Invitation cleanup service initialized');
+    } catch (error) {
+      logger.error('Failed to start invitation cleanup service:', error.message);
+    }
+  }, 5000); // 5 second delay
+}
+
 module.exports = app;

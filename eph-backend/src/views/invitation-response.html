@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Invitation - PPL Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .invitation-details {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+            border-left: 4px solid #10b981;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px 0;
+        }
+        
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+        }
+        
+        .detail-value {
+            color: #1f2937;
+            font-size: 14px;
+            text-align: right;
+            max-width: 60%;
+        }
+        
+        .competition-description {
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .competition-description h3 {
+            color: #1e293b;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .competition-description p {
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            text-align: center;
+            display: inline-block;
+        }
+        
+        .btn-accept {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-accept:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn-reject {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-reject:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+        }
+        
+        .status-message {
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fbbf24;
+        }
+        
+        .expired-notice {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .expired-notice h3 {
+            color: #92400e;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .expired-notice p {
+            color: #92400e;
+            font-size: 14px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            background: #f9fafb;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .footer p {
+            color: #6b7280;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 640px) {
+            .container {
+                margin: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            
+            .detail-value {
+                text-align: left;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Team Invitation</h1>
+            <p>You've been invited to join a competition team</p>
+        </div>
+        
+        <div class="content">
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Loading invitation details...</p>
+            </div>
+            
+            <div id="invitation-content" style="display: none;">
+                <div class="invitation-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Competition:</span>
+                        <span class="detail-value" id="competition-title">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Team Name:</span>
+                        <span class="detail-value" id="team-name">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Team Leader:</span>
+                        <span class="detail-value" id="team-leader">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Current Team Size:</span>
+                        <span class="detail-value" id="team-size">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Competition Start:</span>
+                        <span class="detail-value" id="start-date">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Invitation Expires:</span>
+                        <span class="detail-value" id="expires-at">-</span>
+                    </div>
+                </div>
+                
+                <div class="competition-description" id="competition-description" style="display: none;">
+                    <h3>About the Competition</h3>
+                    <p id="competition-desc-text"></p>
+                </div>
+                
+                <div id="status-message" style="display: none;"></div>
+                
+                <div id="expired-notice" class="expired-notice" style="display: none;">
+                    <h3>⏰ Invitation Expired</h3>
+                    <p>This invitation has expired. Please contact the team leader if you're still interested in joining.</p>
+                </div>
+                
+                <div id="actions" class="actions">
+                    <button class="btn btn-accept" onclick="respondToInvitation('accept')">
+                        ✅ Accept Invitation
+                    </button>
+                    <button class="btn btn-reject" onclick="respondToInvitation('reject')">
+                        ❌ Decline Invitation
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2024 PPL Platform - Empowering Students, Connecting Opportunities</p>
+        </div>
+    </div>
+
+    <script>
+        let invitationToken = '';
+        let invitationData = null;
+
+        // Extract token from URL
+        function getTokenFromUrl() {
+            const pathParts = window.location.pathname.split('/');
+            const tokenIndex = pathParts.indexOf('respond');
+            if (tokenIndex !== -1 && pathParts[tokenIndex + 1]) {
+                return pathParts[tokenIndex + 1];
+            }
+            
+            // Fallback: check URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('token');
+        }
+
+        // Load invitation details
+        async function loadInvitationDetails() {
+            try {
+                invitationToken = getTokenFromUrl();
+                if (!invitationToken) {
+                    showError('Invalid invitation link');
+                    return;
+                }
+
+                const response = await fetch(`/api/invitations/token/${invitationToken}`);
+                const result = await response.json();
+
+                if (!result.success) {
+                    showError(result.error || 'Failed to load invitation details');
+                    return;
+                }
+
+                invitationData = result.data;
+                displayInvitationDetails(invitationData);
+
+            } catch (error) {
+                console.error('Error loading invitation:', error);
+                showError('Failed to load invitation details');
+            }
+        }
+
+        // Display invitation details
+        function displayInvitationDetails(data) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('invitation-content').style.display = 'block';
+
+            // Fill in the details
+            document.getElementById('competition-title').textContent = data.competition.title;
+            document.getElementById('team-name').textContent = data.team.name;
+            document.getElementById('team-leader').textContent = data.team.leader.name;
+            document.getElementById('team-size').textContent = data.team.current_size;
+            document.getElementById('start-date').textContent = new Date(data.competition.start_date).toLocaleDateString();
+            document.getElementById('expires-at').textContent = new Date(data.invitation.expires_at).toLocaleDateString();
+
+            // Show competition description if available
+            if (data.competition.description) {
+                document.getElementById('competition-description').style.display = 'block';
+                document.getElementById('competition-desc-text').textContent = data.competition.description;
+            }
+
+            // Check if invitation can be responded to
+            if (!data.invitation.can_respond) {
+                document.getElementById('actions').style.display = 'none';
+                
+                if (data.invitation.is_expired) {
+                    document.getElementById('expired-notice').style.display = 'block';
+                } else if (data.invitation.status !== 'pending') {
+                    showStatus(`This invitation has already been ${data.invitation.status}`, 'warning');
+                }
+            }
+        }
+
+        // Respond to invitation
+        async function respondToInvitation(action) {
+            try {
+                // Disable buttons
+                const buttons = document.querySelectorAll('.btn');
+                buttons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.6';
+                    btn.style.cursor = 'not-allowed';
+                });
+
+                showStatus('Processing your response...', 'info');
+
+                const response = await fetch(`/api/invitations/respond/${invitationToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ action })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const message = action === 'accept' 
+                        ? `🎉 Great! You've successfully joined "${result.data.team_name}" for ${result.data.competition_title}. The team leader has been notified.`
+                        : `You've declined the invitation to join "${result.data.team_name}". The team leader has been notified.`;
+                    
+                    showStatus(message, 'success');
+                    document.getElementById('actions').style.display = 'none';
+                } else {
+                    showStatus(result.error || 'Failed to process your response', 'error');
+                    // Re-enable buttons on error
+                    buttons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error responding to invitation:', error);
+                showStatus('Failed to process your response. Please try again.', 'error');
+                
+                // Re-enable buttons on error
+                const buttons = document.querySelectorAll('.btn');
+                buttons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                });
+            }
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.innerHTML = message;
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('invitation-content').style.display = 'block';
+            document.getElementById('actions').style.display = 'none';
+            showStatus(message, 'error');
+        }
+
+        // Load invitation details when page loads
+        document.addEventListener('DOMContentLoaded', loadInvitationDetails);
+    </script>
+</body>
+</html>

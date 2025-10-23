@@ -101,6 +101,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
       allowNull: false
+    },
+    invitation_status: {
+      type: DataTypes.ENUM('complete', 'pending_invitations'),
+      defaultValue: 'complete',
+      allowNull: false
     }
   }, {
     tableName: 'registrations',
@@ -192,6 +197,57 @@ module.exports = (sequelize, DataTypes) => {
     if (rank) this.rank = rank;
     await this.save(['score', 'rank']);
     return this;
+  };
+
+  Registration.prototype.getPendingInvitations = async function() {
+    const TeamInvitation = sequelize.models.TeamInvitation;
+    return await TeamInvitation.findAll({
+      where: {
+        registration_id: this.id,
+        status: 'pending'
+      }
+    });
+  };
+
+  Registration.prototype.getAllInvitations = async function() {
+    const TeamInvitation = sequelize.models.TeamInvitation;
+    return await TeamInvitation.findByRegistration(this.id);
+  };
+
+  Registration.prototype.areAllInvitationsResolved = async function() {
+    const pendingInvitations = await this.getPendingInvitations();
+    return pendingInvitations.length === 0;
+  };
+
+  Registration.prototype.getAcceptedInvitations = async function() {
+    const TeamInvitation = sequelize.models.TeamInvitation;
+    return await TeamInvitation.findAll({
+      where: {
+        registration_id: this.id,
+        status: 'accepted'
+      }
+    });
+  };
+
+  Registration.prototype.updateInvitationStatus = async function() {
+    const areResolved = await this.areAllInvitationsResolved();
+    const newStatus = areResolved ? 'complete' : 'pending_invitations';
+    
+    if (this.invitation_status !== newStatus) {
+      this.invitation_status = newStatus;
+      await this.save(['invitation_status']);
+    }
+    
+    return this;
+  };
+
+  Registration.prototype.addMemberFromInvitation = async function(userId) {
+    if (!this.members.includes(userId) && this.leader_id !== userId) {
+      this.members = [...this.members, userId];
+      await this.save(['members']);
+      return true;
+    }
+    return false;
   };
 
   // Class methods

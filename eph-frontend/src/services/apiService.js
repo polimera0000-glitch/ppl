@@ -343,6 +343,35 @@ async deleteUser(id) {
 async getCompetitionRegistrationStats(competitionId) {
   return this.makeRequest(`/competitions/${competitionId}/registration-stats`);
 }
+
+  // ===== Registration Status =====
+  async getCompetitionRegistrationStatus(competitionId) {
+    return this.makeRequest(`/competitions/${competitionId}/registration-status`);
+  }
+
+  async getCompetitionUserContext(competitionId) {
+    return this.makeRequest(`/competitions/${competitionId}/user-context`);
+  }
+
+  // ===== Invitation Management =====
+  async sendInvitations(registrationId, emails) {
+    return this.makeRequest('/invitations/send', {
+      method: 'POST',
+      body: { registrationId, emails }
+    });
+  }
+
+  async resendInvitation(invitationId) {
+    return this.makeRequest(`/invitations/resend/${invitationId}`, {
+      method: 'POST'
+    });
+  }
+
+  async cancelInvitation(invitationId) {
+    return this.makeRequest(`/invitations/${invitationId}`, {
+      method: 'DELETE'
+    });
+  }
 }
 
 export const apiService = new ApiService();

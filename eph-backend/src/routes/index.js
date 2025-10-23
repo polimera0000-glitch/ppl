@@ -10,6 +10,7 @@ const perkRoutes = require('./perks');
 const adminRoutes = require('./admin');
 const submissions = require('./submissions');
 const contactRoutes = require('./contact');
+const invitationRoutes = require('./invitations');
 
 const router = express.Router();
 
@@ -34,6 +35,7 @@ router.use('/registrations', registrationRoutes);
 router.use('/videos', videoRoutes);
 router.use('/perks', perkRoutes);
 router.use('/contacts', contactRoutes);
+router.use('/invitations', invitationRoutes);
 
 // Admin routes with stricter rate limiting
 router.use('/admin', adminLimiter, adminRoutes);
@@ -59,7 +61,11 @@ router.get('/', (req, res) => {
       admin: {
         inviteAdmin: 'POST /admin/invite',
         listAdmins: 'GET /admin/list',
-        deactivateAdmin: 'DELETE /admin/:adminId/deactivate'
+        deactivateAdmin: 'DELETE /admin/:adminId/deactivate',
+        invitationAnalytics: 'GET /admin/invitations/analytics',
+        runCleanup: 'POST /admin/invitations/cleanup',
+        serviceStatus: 'GET /admin/invitations/service/status',
+        controlService: 'POST /admin/invitations/service/control'
       },
       users: {
         list: 'GET /users',
@@ -83,7 +89,9 @@ router.get('/', (req, res) => {
         register: 'POST /competitions/:id/register',
         myRegistrations: 'GET /competitions/my/registrations',
         cancelRegistration: 'DELETE /competitions/registrations/:registrationId',
-        viewRegistrations: 'GET /competitions/:id/registrations (admin/hiring/investor)'
+        viewRegistrations: 'GET /competitions/:id/registrations (admin/hiring/investor)',
+        registrationStatus: 'GET /competitions/:id/registration-status',
+        userContext: 'GET /competitions/:id/user-context'
       },
       registrations: {
         list: 'GET /registrations (admin/hiring/investor)',
@@ -93,7 +101,8 @@ router.get('/', (req, res) => {
         submitProject: 'POST /registrations/:id/submit',
         addTeamMember: 'POST /registrations/:id/members',
         removeTeamMember: 'DELETE /registrations/:id/members/:memberId',
-        leaderboard: 'GET /registrations/competition/:competitionId/leaderboard'
+        leaderboard: 'GET /registrations/competition/:competitionId/leaderboard',
+        getInvitations: 'GET /registrations/:id/invitations'
       },
       videos: {
         feed: 'GET /videos/feed',
@@ -121,6 +130,15 @@ router.get('/', (req, res) => {
         feature: 'PUT /perks/:id/feature (admin)',
         stats: 'GET /perks/admin/stats (admin)',
         redemptions: 'GET /perks/:id/redemptions (admin)'
+      },
+      invitations: {
+        send: 'POST /invitations/send',
+        respond: 'POST /invitations/respond/:token',
+        getByToken: 'GET /invitations/token/:token',
+        getStatus: 'GET /invitations/status/:registrationId',
+        resend: 'POST /invitations/resend/:invitationId',
+        cancel: 'DELETE /invitations/:invitationId',
+        myInvitations: 'GET /invitations/my-invitations'
       }
     },
     security: {

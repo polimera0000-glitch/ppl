@@ -144,6 +144,105 @@ const adminController = {
         error: error.message
       });
     }
+  },
+
+  // Get invitation analytics and system status
+  getInvitationAnalytics: async (req, res) => {
+    try {
+      const invitationCleanupService = require('../services/invitationCleanupService');
+      const analytics = await invitationCleanupService.getAnalytics();
+
+      res.json({
+        success: true,
+        data: analytics
+      });
+
+    } catch (error) {
+      logger.error('Get invitation analytics error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch invitation analytics',
+        error: error.message
+      });
+    }
+  },
+
+  // Run manual invitation cleanup
+  runInvitationCleanup: async (req, res) => {
+    try {
+      const invitationCleanupService = require('../services/invitationCleanupService');
+      const results = await invitationCleanupService.runManualCleanup();
+
+      res.json({
+        success: true,
+        message: 'Manual cleanup completed successfully',
+        data: results
+      });
+
+    } catch (error) {
+      logger.error('Manual invitation cleanup error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to run manual cleanup',
+        error: error.message
+      });
+    }
+  },
+
+  // Get invitation cleanup service status
+  getInvitationServiceStatus: async (req, res) => {
+    try {
+      const invitationCleanupService = require('../services/invitationCleanupService');
+      const status = invitationCleanupService.getStatus();
+
+      res.json({
+        success: true,
+        data: status
+      });
+
+    } catch (error) {
+      logger.error('Get invitation service status error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get service status',
+        error: error.message
+      });
+    }
+  },
+
+  // Control invitation cleanup service
+  controlInvitationService: async (req, res) => {
+    try {
+      const { action } = req.body; // 'start' or 'stop'
+      const invitationCleanupService = require('../services/invitationCleanupService');
+
+      if (action === 'start') {
+        invitationCleanupService.start();
+        res.json({
+          success: true,
+          message: 'Invitation cleanup service started'
+        });
+      } else if (action === 'stop') {
+        invitationCleanupService.stop();
+        res.json({
+          success: true,
+          message: 'Invitation cleanup service stopped'
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid action. Use "start" or "stop"'
+        });
+      }
+
+    } catch (error) {
+      logger.error('Control invitation service error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to control invitation service',
+        error: error.message
+      });
+    }
   }
 };
 

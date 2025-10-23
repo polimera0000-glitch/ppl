@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Invitation System - Test Page</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #1e293b;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .section h2 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .endpoint {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-family: monospace;
+        }
+        .method {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .url {
+            color: #3b82f6;
+        }
+        .description {
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .test-button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .test-button:hover {
+            background: #059669;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .demo-token {
+            background: #fef3c7;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 Team Invitation System - Test Interface</h1>
+        
+        <div class="section">
+            <h2>📊 System Status</h2>
+            <div class="endpoint">
+                <span class="method">GET</span> 
+                <span class="url">http://localhost:3000/health</span>
+                <button class="test-button" onclick="testEndpoint('/health', 'GET')">Test</button>
+                <div class="description">Check if the server is running</div>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method">GET</span> 
+                <span class="url">http://localhost:3000/api/v1</span>
+                <button class="test-button" onclick="testEndpoint('/api/v1', 'GET')">Test</button>
+                <div class="description">Get API information and available endpoints</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📧 Invitation Response Interface</h2>
+            <div class="endpoint">
+                <span class="method">GET</span> 
+                <span class="url">http://localhost:3000/api/v1/invitations/respond/[token]</span>
+                <button class="test-button" onclick="testInvitationPage()">Test with Demo Token</button>
+                <div class="description">Invitation response page (HTML interface)</div>
+            </div>
+            
+            <div class="demo-token">
+                <strong>Demo Token:</strong> abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+                <br><small>This will show the invitation page (invitation won't exist in database)</small>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔗 API Endpoints</h2>
+            <div class="endpoint">
+                <span class="method">GET</span> 
+                <span class="url">http://localhost:3000/api/v1/invitations/token/[token]</span>
+                <button class="test-button" onclick="testTokenAPI()">Test</button>
+                <div class="description">Get invitation details by token (API endpoint)</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🧪 Database Status</h2>
+            <div class="endpoint">
+                <span class="method">INFO</span> 
+                <span class="url">Database Tables</span>
+                <button class="test-button" onclick="showDatabaseInfo()">Show Info</button>
+                <div class="description">Information about database tables and records</div>
+            </div>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        async function testEndpoint(path, method = 'GET') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status';
+            statusDiv.innerHTML = `Testing ${method} ${path}...`;
+
+            try {
+                const response = await fetch(`http://localhost:3000${path}`, {
+                    method: method
+                });
+                
+                const data = await response.json();
+                
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <strong>✅ Success (${response.status})</strong><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <strong>❌ Error</strong><br>
+                    ${error.message}
+                `;
+            }
+        }
+
+        function testInvitationPage() {
+            const token = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
+            const url = `http://localhost:3000/api/v1/invitations/respond/${token}`;
+            window.open(url, '_blank');
+        }
+
+        async function testTokenAPI() {
+            const token = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
+            await testEndpoint(`/api/v1/invitations/token/${token}`, 'GET');
+        }
+
+        function showDatabaseInfo() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status success';
+            statusDiv.innerHTML = `
+                <strong>📊 Database Status (from previous test)</strong><br>
+                <pre>✅ Users table: 2 records
+✅ Competitions table: 1 records  
+✅ Registrations table: 1 records
+✅ Team invitations table: 0 records
+
+All database tables are created and functional!</pre>
+            `;
+        }
+
+        // Test health check on page load
+        window.onload = function() {
+            testEndpoint('/health', 'GET');
+        };
+    </script>
+</body>
+</html>

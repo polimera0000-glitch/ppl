@@ -12,6 +12,7 @@ router.use(authenticate);
 // General registration routes
 router.get('/', requireHiringOrInvestor, registrationController.getAllRegistrations);
 router.get('/:id', registrationController.getRegistrationById);
+router.get('/:id/invitations', registrationController.getRegistrationInvitations);
 
 // Admin routes - registration management
 router.put('/:id/status', requireAdmin, registrationValidation.updateStatus, registrationController.updateRegistrationStatus);

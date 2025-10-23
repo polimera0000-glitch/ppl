@@ -823,6 +823,262 @@ Please change your password immediately after your first login.`;
     const text = `Hi ${senderName || "there"}, your contact request has been sent to ${recipientName}.\n\nSubject: ${subject}\n\nThe student will receive an email notification and can reply directly to you.\n\nView your dashboard: ${dashboardUrl}`;
     return this.sendEmail(senderEmail, subject_line, html, text);
   }
+
+  // ---------------- Team Invitation Emails ----------------
+  async sendTeamInvitationEmail(inviteeEmail, inviteeName, teamLeaderName, teamName, competitionTitle, competitionDescription, invitationToken, expiresAt, opts = {}) {
+    const acceptUrl = `${frontend}/invitations/respond/${invitationToken}?action=accept`;
+    const rejectUrl = `${frontend}/invitations/respond/${invitationToken}?action=reject`;
+    const competitionUrl = opts.competitionUrl || `${frontend}/competitions`;
+    
+    const subject = `You're invited to join "${teamName}" for ${competitionTitle}`;
+    
+    const bodyHtml = `
+      <tr><td style="padding:28px 32px 12px;">
+        <h1 style="margin:0;font-size:22px;color:#0f1724;">🎉 Team Invitation</h1>
+        <p style="margin:12px 0 0;color:#475569;font-size:14px;">Hi ${inviteeName || "there"}, you've been invited to join an exciting competition team!</p>
+      </td></tr>
+      <tr><td style="padding:18px 32px;">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:16px 0;">
+          <h3 style="margin:0 0 12px;color:#1e293b;font-size:18px;">Invitation Details</h3>
+          <p style="margin:0 0 8px;color:#334155;font-size:15px;"><strong>Competition:</strong> ${competitionTitle}</p>
+          <p style="margin:0 0 8px;color:#334155;font-size:15px;"><strong>Team Name:</strong> ${teamName}</p>
+          <p style="margin:0 0 8px;color:#334155;font-size:15px;"><strong>Team Leader:</strong> ${teamLeaderName}</p>
+          <p style="margin:0;color:#334155;font-size:15px;"><strong>Expires:</strong> ${new Date(expiresAt).toLocaleDateString()}</p>
+        </div>
+        
+        ${competitionDescription ? `
+        <div style="background:#f1f5f9;padding:16px;border-radius:8px;margin:16px 0;">
+          <h4 style="margin:0 0 8px;color:#1e293b;font-size:16px;">About the Competition</h4>
+          <p style="margin:0;color:#475569;font-size:14px;">${competitionDescription}</p>
+        </div>
+        ` : ''}
+
+        <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:16px;margin:20px 0;">
+          <p style="margin:0;color:#92400e;font-size:14px;"><strong>⏰ Time Sensitive:</strong> This invitation expires on ${new Date(expiresAt).toLocaleDateString()}. Please respond as soon as possible!</p>
+        </div>
+
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${acceptUrl}" target="_blank" rel="noopener"
+             style="display:inline-block;padding:16px 32px;margin:0 8px 12px;border-radius:8px;background:#10b981;color:#fff;font-weight:600;text-decoration:none;font-size:16px;">
+            ✅ Accept Invitation
+          </a>
+          <br/>
+          <a href="${rejectUrl}" target="_blank" rel="noopener"
+             style="display:inline-block;padding:12px 24px;margin:0 8px;border-radius:8px;background:#ef4444;color:#fff;font-weight:500;text-decoration:none;font-size:14px;">
+            ❌ Decline Invitation
+          </a>
+        </div>
+
+        <div style="background:#f8fafc;padding:16px;border-radius:8px;margin:20px 0;">
+          <h4 style="margin:0 0 8px;color:#1e293b;font-size:14px;">What happens next?</h4>
+          <ul style="margin:0;padding-left:20px;color:#475569;font-size:13px;">
+            <li>If you accept, you'll be added to the team automatically</li>
+            <li>You'll be able to collaborate with your teammates</li>
+            <li>The team leader will be notified of your decision</li>
+            <li>You can start preparing for the competition together</li>
+          </ul>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #eef2ff;margin:24px 0;" />
+        <p style="color:#64748b;font-size:12px;margin:0;text-align:center;">
+          Questions? Contact the team leader directly or visit our <a href="${competitionUrl}" style="color:#3b82f6;">competitions page</a>
+        </p>
+      </td></tr>
+    `;
+
+    const html = baseEmailShell({
+      title: subject,
+      preheader: `Join ${teamName} for ${competitionTitle} - respond by ${new Date(expiresAt).toLocaleDateString()}`,
+      bodyHtml
+    });
+
+    const text = `🎉 Team Invitation
+
+Hi ${inviteeName || "there"},
+
+You've been invited to join "${teamName}" for ${competitionTitle}!
+
+INVITATION DETAILS:
+• Competition: ${competitionTitle}
+• Team Name: ${teamName}
+• Team Leader: ${teamLeaderName}
+• Expires: ${new Date(expiresAt).toLocaleDateString()}
+
+${competitionDescription ? `ABOUT THE COMPETITION:\n${competitionDescription}\n\n` : ''}
+
+⏰ IMPORTANT: This invitation expires on ${new Date(expiresAt).toLocaleDateString()}. Please respond soon!
+
+RESPOND TO INVITATION:
+✅ Accept: ${acceptUrl}
+❌ Decline: ${rejectUrl}
+
+What happens next?
+• If you accept, you'll be added to the team automatically
+• You'll be able to collaborate with your teammates  
+• The team leader will be notified of your decision
+• You can start preparing for the competition together
+
+Questions? Contact the team leader directly or visit: ${competitionUrl}`;
+
+    return this.sendEmail(inviteeEmail, subject, html, text, opts);
+  }
+
+  async sendTeamInvitationResponseNotification(teamLeaderEmail, teamLeaderName, inviteeEmail, inviteeName, teamName, competitionTitle, action, opts = {}) {
+    const actionText = action === 'accept' ? 'accepted' : 'declined';
+    const actionColor = action === 'accept' ? '#10b981' : '#ef4444';
+    const actionEmoji = action === 'accept' ? '✅' : '❌';
+    const competitionUrl = opts.competitionUrl || `${frontend}/competitions`;
+    
+    const subject = `Team invitation ${actionText} — ${teamName}`;
+    
+    const bodyHtml = `
+      <tr><td style="padding:20px 24px;background:${actionColor};color:#fff;">
+        <h2 style="margin:0;font-size:18px;">${actionEmoji} Invitation ${actionText}</h2>
+      </td></tr>
+      <tr><td style="padding:20px 24px;">
+        <p style="margin:0 0 12px;">Hi ${teamLeaderName},</p>
+        <p style="margin:0 0 16px;">
+          <strong>${inviteeName || inviteeEmail}</strong> has <strong>${actionText}</strong> your invitation to join "<strong>${teamName}</strong>" for <strong>${competitionTitle}</strong>.
+        </p>
+        
+        ${action === 'accept' ? `
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:16px 0;">
+          <h4 style="margin:0 0 8px;color:#166534;font-size:16px;">🎉 Great news!</h4>
+          <p style="margin:0;color:#166534;font-size:14px;">Your team is growing! You can now collaborate and prepare for the competition together. Consider reaching out to coordinate your next steps.</p>
+        </div>
+        ` : `
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin:16px 0;">
+          <h4 style="margin:0 0 8px;color:#991b1b;font-size:16px;">Invitation declined</h4>
+          <p style="margin:0;color:#991b1b;font-size:14px;">The invitation was declined. You may want to invite someone else or continue with your current team size.</p>
+        </div>
+        `}
+
+        <div style="background:#f8fafc;padding:16px;border-radius:8px;margin:20px 0;">
+          <h4 style="margin:0 0 8px;color:#1e293b;font-size:14px;">Next steps:</h4>
+          <ul style="margin:0;padding-left:20px;color:#475569;font-size:13px;">
+            ${action === 'accept' ? `
+            <li>Welcome your new team member</li>
+            <li>Share competition details and timeline</li>
+            <li>Set up team communication channels</li>
+            <li>Plan your project approach together</li>
+            ` : `
+            <li>Consider inviting other potential team members</li>
+            <li>Review your team strategy</li>
+            <li>Continue preparing with your current team</li>
+            <li>Focus on your competition submission</li>
+            `}
+          </ul>
+        </div>
+
+        <div style="text-align:center;margin:24px 0;">
+          <a href="${competitionUrl}" target="_blank" rel="noopener"
+             style="display:inline-block;padding:12px 24px;border-radius:8px;background:#111827;color:#fff;font-weight:600;text-decoration:none;">
+            View Competition
+          </a>
+        </div>
+      </td></tr>
+    `;
+
+    const html = baseEmailShell({
+      title: subject,
+      preheader: `${inviteeName || inviteeEmail} ${actionText} your team invitation`,
+      bodyHtml
+    });
+
+    const text = `${actionEmoji} Invitation ${actionText}
+
+Hi ${teamLeaderName},
+
+${inviteeName || inviteeEmail} has ${actionText} your invitation to join "${teamName}" for ${competitionTitle}.
+
+${action === 'accept' ? 
+`🎉 Great news! Your team is growing. You can now collaborate and prepare for the competition together.
+
+Next steps:
+• Welcome your new team member
+• Share competition details and timeline  
+• Set up team communication channels
+• Plan your project approach together` :
+`The invitation was declined. You may want to invite someone else or continue with your current team.
+
+Next steps:
+• Consider inviting other potential team members
+• Review your team strategy
+• Continue preparing with your current team
+• Focus on your competition submission`}
+
+View competition: ${competitionUrl}`;
+
+    return this.sendEmail(teamLeaderEmail, subject, html, text, opts);
+  }
+
+  async sendTeamInvitationExpiredNotification(teamLeaderEmail, teamLeaderName, expiredEmails, teamName, competitionTitle, opts = {}) {
+    const competitionUrl = opts.competitionUrl || `${frontend}/competitions`;
+    const emailList = expiredEmails.join(', ');
+    const emailCount = expiredEmails.length;
+    const pluralText = emailCount === 1 ? 'invitation has' : 'invitations have';
+    
+    const subject = `Team invitations expired — ${teamName}`;
+    
+    const bodyHtml = `
+      <tr><td style="padding:20px 24px;background:#f59e0b;color:#fff;">
+        <h2 style="margin:0;font-size:18px;">⏰ Invitations Expired</h2>
+      </td></tr>
+      <tr><td style="padding:20px 24px;">
+        <p style="margin:0 0 12px;">Hi ${teamLeaderName},</p>
+        <p style="margin:0 0 16px;">
+          ${emailCount} team ${pluralText} expired for "<strong>${teamName}</strong>" in <strong>${competitionTitle}</strong>.
+        </p>
+        
+        <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:16px;margin:16px 0;">
+          <h4 style="margin:0 0 8px;color:#92400e;font-size:16px;">Expired Invitations:</h4>
+          <p style="margin:0;color:#92400e;font-size:14px;word-break:break-all;">${emailList}</p>
+        </div>
+
+        <div style="background:#f8fafc;padding:16px;border-radius:8px;margin:20px 0;">
+          <h4 style="margin:0 0 8px;color:#1e293b;font-size:14px;">What you can do:</h4>
+          <ul style="margin:0;padding-left:20px;color:#475569;font-size:13px;">
+            <li>Send new invitations to the same people if still interested</li>
+            <li>Invite different team members</li>
+            <li>Continue with your current team size</li>
+            <li>Focus on preparing your competition submission</li>
+          </ul>
+        </div>
+
+        <div style="text-align:center;margin:24px 0;">
+          <a href="${competitionUrl}" target="_blank" rel="noopener"
+             style="display:inline-block;padding:12px 24px;border-radius:8px;background:#111827;color:#fff;font-weight:600;text-decoration:none;">
+            Manage Team
+          </a>
+        </div>
+      </td></tr>
+    `;
+
+    const html = baseEmailShell({
+      title: subject,
+      preheader: `${emailCount} team ${pluralText} expired`,
+      bodyHtml
+    });
+
+    const text = `⏰ Invitations Expired
+
+Hi ${teamLeaderName},
+
+${emailCount} team ${pluralText} expired for "${teamName}" in ${competitionTitle}.
+
+EXPIRED INVITATIONS:
+${emailList}
+
+What you can do:
+• Send new invitations to the same people if still interested
+• Invite different team members  
+• Continue with your current team size
+• Focus on preparing your competition submission
+
+Manage team: ${competitionUrl}`;
+
+    return this.sendEmail(teamLeaderEmail, subject, html, text, opts);
+  }
 }
 
 if (!global.emailService) {

@@ -28,6 +28,7 @@ const SubmissionDef = require('./Submission');
 const JudgingCriteriaDef = require('./JudgingCriteria');
 const ScoreDef = require('./Score');
 const ContactDef = require('./ContactRequest.js');
+const TeamInvitationDef = require('./TeamInvitation.js');
 
 // ---- Initialize models (no new Sequelize here) ----
 const User = UserDef(sequelize, DataTypes);
@@ -44,6 +45,7 @@ const EmailVerificationToken = EmailVerificationTokenDef(sequelize, DataTypes);
 const Submission = SubmissionDef(sequelize, DataTypes);
 const JudgingCriteria = JudgingCriteriaDef(sequelize, DataTypes);
 const Score = ScoreDef(sequelize, DataTypes);
+const TeamInvitation = TeamInvitationDef(sequelize, DataTypes);
 
 // ---- Associations ----
 
@@ -61,6 +63,7 @@ Competition.hasMany(JudgingCriteria, { as: 'criteria', foreignKey: 'competition_
 // Registration
 Registration.belongsTo(User, { foreignKey: 'leader_id', as: 'leader' });
 Registration.belongsTo(Competition, { foreignKey: 'competition_id', as: 'competition' });
+Registration.hasMany(TeamInvitation, { foreignKey: 'registration_id', as: 'invitations' });
 
 // Video
 Video.belongsTo(User, { foreignKey: 'uploader_id', as: 'uploader' });
@@ -122,6 +125,13 @@ if (Submission) {
   ContactRequest.belongsTo(Submission, { as: 'submission', foreignKey: 'submission_id' });
 }
 
+// TeamInvitation associations
+TeamInvitation.belongsTo(Registration, { foreignKey: 'registration_id', as: 'registration' });
+TeamInvitation.belongsTo(User, { foreignKey: 'inviter_id', as: 'inviter' });
+TeamInvitation.belongsTo(User, { foreignKey: 'invitee_id', as: 'invitee' });
+User.hasMany(TeamInvitation, { foreignKey: 'inviter_id', as: 'sentInvitations' });
+User.hasMany(TeamInvitation, { foreignKey: 'invitee_id', as: 'receivedInvitations' });
+
 // ---- Export ----
 module.exports = {
   sequelize,
@@ -138,4 +148,5 @@ module.exports = {
   Score,
   ContactRequest,
   EmailVerificationToken,
+  TeamInvitation,
 };

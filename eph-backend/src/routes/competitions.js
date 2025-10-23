@@ -30,6 +30,22 @@ router.delete(
   '/registrations/:registrationId',
   competitionController.cancelRegistration
 );
+router.post(
+  '/registrations/:registrationId/complete',
+  competitionController.completeTeamRegistration
+);
+
+// Get user's registration status for a competition
+router.get(
+  '/:id/registration-status',
+  competitionController.getRegistrationStatus
+);
+
+// Get complete user context for competition page
+router.get(
+  '/:id/user-context',
+  competitionController.getUserContext
+);
 
 /* ------------------- Admin routes (CRUD competitions) ------------------- */
 router.post(
