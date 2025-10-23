@@ -70,14 +70,19 @@ const InvitationResponse = () => {
       setProcessing(true);
       setError(null);
       
+      console.log(`Attempting to ${responseAction} invitation with token:`, token);
+      
       // Send response to backend
       const response = await apiService.respondToInvitation(token, responseAction);
+      
+      console.log(`${responseAction} response:`, response);
       
       setSuccess(true);
       setMessage(response?.message || `Invitation ${responseAction}ed successfully!`);
       
     } catch (err) {
       console.error(`Failed to ${responseAction} invitation:`, err);
+      console.error('Error details:', err.response || err);
       setError(err.message || `Failed to ${responseAction} invitation`);
     } finally {
       setProcessing(false);
