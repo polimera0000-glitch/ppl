@@ -100,7 +100,7 @@ const contactController = {
         order: [['created_at', 'DESC']],
         include: [
           { model: User, as: 'sender', attributes: ['id','name','role','company_name','firm_name'] },
-          { model: User, as: 'recipient', attributes: ['id','name','role','email','college','branch','year','college_name','branch_name','year_of_study'] },
+          { model: User, as: 'recipient', attributes: ['id','name','role','email','college','branch','year'] },
           Submission ? { model: Submission, as: 'submission', attributes: ['id','title','competition_id'] } : null,
         ].filter(Boolean),
       });
