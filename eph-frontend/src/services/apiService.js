@@ -403,6 +403,41 @@ async getCompetitionRegistrationStats(competitionId) {
       body: { action }
     });
   }
+  // ===== PAYMENT METHODS =====
+  
+  async createPaymentOrder(paymentData) {
+    return this.makeRequest('/payments/create', {
+      method: 'POST',
+      body: paymentData
+    });
+  }
+
+  async verifyPayment(verificationData) {
+    return this.makeRequest('/payments/verify', {
+      method: 'POST',
+      body: verificationData
+    });
+  }
+
+  async getPaymentStatus(orderId) {
+    return this.makeRequest(`/payments/status/${orderId}`, {
+      method: 'GET'
+    });
+  }
+
+  async getPaymentHistory(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const url = queryString ? `/payments/history?${queryString}` : '/payments/history';
+    return this.makeRequest(url, {
+      method: 'GET'
+    });
+  }
+
+  async cancelPayment(orderId) {
+    return this.makeRequest(`/payments/cancel/${orderId}`, {
+      method: 'POST'
+    });
+  }
 }
 
 export const apiService = new ApiService();

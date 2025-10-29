@@ -11,6 +11,7 @@ const adminRoutes = require('./admin');
 const submissions = require('./submissions');
 const contactRoutes = require('./contact');
 const invitationRoutes = require('./invitations');
+const paymentRoutes = require('./payments');
 
 const router = express.Router();
 
@@ -36,6 +37,7 @@ router.use('/videos', videoRoutes);
 router.use('/perks', perkRoutes);
 router.use('/contacts', contactRoutes);
 router.use('/invitations', invitationRoutes);
+router.use('/payments', paymentRoutes);
 
 // Admin routes with stricter rate limiting
 router.use('/admin', adminLimiter, adminRoutes);
@@ -139,6 +141,16 @@ router.get('/', (req, res) => {
         resend: 'POST /invitations/resend/:invitationId',
         cancel: 'DELETE /invitations/:invitationId',
         myInvitations: 'GET /invitations/my-invitations'
+      },
+      payments: {
+        create: 'POST /payments/create',
+        status: 'GET /payments/status/:orderId',
+        history: 'GET /payments/history',
+        verify: 'POST /payments/verify/:orderId',
+        cancel: 'POST /payments/cancel/:orderId',
+        callback: 'POST /payments/callback (webhook)',
+        success: 'GET /payments/success/:orderId',
+        failure: 'GET /payments/failure/:orderId'
       }
     },
     security: {

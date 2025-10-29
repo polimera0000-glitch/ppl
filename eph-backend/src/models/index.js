@@ -29,6 +29,7 @@ const JudgingCriteriaDef = require('./JudgingCriteria');
 const ScoreDef = require('./Score');
 const ContactDef = require('./ContactRequest.js');
 const TeamInvitationDef = require('./TeamInvitation.js');
+const PaymentDef = require('./Payment.js');
 
 // ---- Initialize models (no new Sequelize here) ----
 const User = UserDef(sequelize, DataTypes);
@@ -46,6 +47,7 @@ const Submission = SubmissionDef(sequelize, DataTypes);
 const JudgingCriteria = JudgingCriteriaDef(sequelize, DataTypes);
 const Score = ScoreDef(sequelize, DataTypes);
 const TeamInvitation = TeamInvitationDef(sequelize, DataTypes);
+const Payment = PaymentDef(sequelize, DataTypes);
 
 // ---- Associations ----
 
@@ -132,6 +134,12 @@ TeamInvitation.belongsTo(User, { foreignKey: 'invitee_id', as: 'invitee' });
 User.hasMany(TeamInvitation, { foreignKey: 'inviter_id', as: 'sentInvitations' });
 User.hasMany(TeamInvitation, { foreignKey: 'invitee_id', as: 'receivedInvitations' });
 
+// Payment associations
+Payment.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+Payment.belongsTo(Competition, { foreignKey: 'competition_id', as: 'competition' });
+User.hasMany(Payment, { foreignKey: 'user_id', as: 'payments' });
+Competition.hasMany(Payment, { foreignKey: 'competition_id', as: 'payments' });
+
 // ---- Export ----
 module.exports = {
   sequelize,
@@ -149,4 +157,5 @@ module.exports = {
   ContactRequest,
   EmailVerificationToken,
   TeamInvitation,
+  Payment,
 };

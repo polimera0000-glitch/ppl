@@ -43,6 +43,8 @@ import CompetitionLeaderboard from "./pages/CompetitionLeaderboard.jsx";
 import ViewCompetitionScreen from "./pages/ViewCompetitionScreen.jsx";
 import CompetitionDetails from "./pages/CompetitionDetails.jsx";
 import InvitationResponse from "./pages/InvitationResponse.jsx";
+import PaymentScreen from "./pages/PaymentScreen.jsx";
+import PaymentSuccess from "./pages/PaymentSuccess.jsx";
 
 import ContactPage from "./pages/ContactPage.jsx";
 
@@ -143,6 +145,11 @@ function App() {
               
               {/* Invitation Response Route */}
               <Route path="/invitations/respond/:token" element={<InvitationResponse />} />
+              
+              {/* Payment Routes */}
+              <Route path="/payment" element={<PaymentScreen />} />
+              <Route path="/payment/:orderId" element={<PaymentScreen />} />
+              <Route path="/payment/success/:orderId" element={<PaymentSuccess />} />
               
               <Route
                 path="/competition/:competitionId/leaderboard"
