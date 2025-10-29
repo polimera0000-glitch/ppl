@@ -1,6 +1,6 @@
 // src/pages/PaymentSuccess.jsx
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { apiService } from '../services/apiService';
 import { useAuth } from '../hooks/useAuth';
 import SidebarLayout from '../components/SidebarLayout';
@@ -20,6 +20,7 @@ const PaymentSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [paymentData, setPaymentData] = useState(null);
@@ -34,15 +35,49 @@ const PaymentSuccess = () => {
       return;
     }
 
-    if (paymentResult) {
+    // Check if this is a callback from payment gateway
+    const isCallback = orderId === 'callback' || searchParams.get('orderId') || searchParams.get('merchantOrderNo');
+    
+    if (isCallback) {
+      handlePaymentCallback();
+    } else if (paymentResult) {
       setPaymentData(paymentResult);
       completeRegistration();
-    } else if (orderId) {
+    } else if (orderId && orderId !== 'callback') {
       fetchPaymentDetails();
     } else {
       navigate('/competitions');
     }
   }, [orderId, user]);
+
+  const handlePaymentCallback = async () => {
+    try {
+      // Get payment parameters from URL
+      const callbackOrderId = searchParams.get('orderId') || 
+                             searchParams.get('merchantOrderNo') || 
+                             searchParams.get('txnId');
+
+      console.log('Payment callback - Order ID:', callbackOrderId);
+      console.log('All callback params:', Object.fromEntries(searchParams.entries()));
+
+      if (callbackOrderId) {
+        // Fetch payment details using the order ID from callback
+        const response = await apiService.getPaymentStatus(callbackOrderId);
+        
+        if (response?.success) {
+          setPaymentData(response.data);
+          
+          if (response.data.status === 'completed') {
+            setRegistrationComplete(true);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Payment callback error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchPaymentDetails = async () => {
     try {

@@ -34,19 +34,19 @@ const paymentController = {
         });
       }
 
-      // Check if user already has a pending/completed payment for this competition
+      // Check if user already has a completed payment for this competition
       const existingPayment = await Payment.findOne({
         where: {
           user_id: userId,
           competition_id: competitionId,
-          status: ['pending', 'processing', 'completed']
+          status: 'completed'
         }
       });
 
       if (existingPayment) {
         return res.status(400).json({
           success: false,
-          message: 'Payment already exists for this competition',
+          message: 'You have already completed payment for this competition',
           data: {
             orderId: existingPayment.order_id,
             status: existingPayment.status

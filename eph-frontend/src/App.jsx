@@ -45,6 +45,7 @@ import CompetitionDetails from "./pages/CompetitionDetails.jsx";
 import InvitationResponse from "./pages/InvitationResponse.jsx";
 import PaymentScreen from "./pages/PaymentScreen.jsx";
 import PaymentSuccess from "./pages/PaymentSuccess.jsx";
+import PaymentCallback from "./pages/PaymentCallback.jsx";
 
 import ContactPage from "./pages/ContactPage.jsx";
 
@@ -150,6 +151,7 @@ function App() {
               <Route path="/payment" element={<PaymentScreen />} />
               <Route path="/payment/:orderId" element={<PaymentScreen />} />
               <Route path="/payment/success/:orderId" element={<PaymentSuccess />} />
+              <Route path="/payment/callback" element={<PaymentCallback />} />
               
               <Route
                 path="/competition/:competitionId/leaderboard"
