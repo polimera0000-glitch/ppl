@@ -1,15 +1,23 @@
 // src/services/paymentService.js
 const logger = require('../utils/logger');
+const GetepayEncryption = require('../utils/getepayEncryption');
+const axios = require('axios');
 
 class PaymentService {
   constructor() {
-    // Payment gateway configuration
+    // Getepay gateway configuration
     this.gatewayConfig = {
       baseUrl: process.env.PAYMENT_GATEWAY_URL || '',
       merchantId: process.env.PAYMENT_MERCHANT_ID || '',
+      terminalId: process.env.PAYMENT_TERMINAL_ID || '',
       secretKey: process.env.PAYMENT_SECRET_KEY || '',
-      currency: 'INR'
+      iv: process.env.PAYMENT_IV || '',
+      currency: 'INR',
+      returnUrl: process.env.PAYMENT_RETURN_URL || process.env.FRONTEND_URL + '/payment/success'
     };
+
+    // Initialize encryption
+    this.encryption = new GetepayEncryption();
 
     // Pricing configuration
     this.pricing = {
@@ -27,7 +35,7 @@ class PaymentService {
   }
 
   /**
-   * Generate payment order for competition registration
+   * Generate payment order for competition registration using Getepay
    */
   async createPaymentOrder(registrationData) {
     try {
@@ -47,38 +55,76 @@ class PaymentService {
       // Generate unique order ID
       const orderId = this.generateOrderId(competitionId, userId);
 
-      // Create payment order data
-      const paymentOrder = {
-        orderId,
-        amount,
+      // Create Getepay request data
+      const getepayData = {
+        mid: this.gatewayConfig.merchantId,
+        amount: amount.toFixed(2),
+        merchantTransactionId: orderId,
+        transactionDate: new Date().toString(),
+        terminalId: this.gatewayConfig.terminalId,
+        udf1: userEmail || '', // User email
+        udf2: userName || '', // User name
+        udf3: teamName || 'Individual Registration', // Team name or type
+        udf4: competitionId, // Competition ID
+        udf5: userType, // User type (undergraduate/graduate)
+        udf6: '', // Reserved for split payment
+        udf7: teamSize.toString(), // Team size
+        udf8: '', // Reserved
+        udf9: '', // Reserved
+        udf10: '', // Reserved
+        ru: this.gatewayConfig.returnUrl,
+        callbackUrl: '', // Optional callback URL
         currency: this.gatewayConfig.currency,
-        competitionId,
-        userId,
-        userType,
-        teamSize,
-        teamName,
-        userEmail,
-        userName,
-        status: 'pending',
-        createdAt: new Date()
+        paymentMode: 'ALL', // All payment modes
+        bankId: '',
+        txnType: 'single',
+        productType: 'IPG',
+        txnNote: `Competition Registration - ${competitionId}`,
+        vpa: this.gatewayConfig.terminalId
       };
 
-      // TODO: Call payment gateway API to create order
-      // This will be implemented once we have the gateway details
-      
-      logger.info(`Payment order created: ${orderId} for amount ₹${amount}`);
-      
-      return {
-        success: true,
-        orderId,
-        amount,
-        currency: this.gatewayConfig.currency,
-        paymentUrl: this.generatePaymentUrl(paymentOrder)
+      // Encrypt the request data
+      const encryptedReq = await this.encryption.encrypt(getepayData);
+
+      // Prepare API request
+      const requestPayload = {
+        mid: this.gatewayConfig.merchantId,
+        terminalId: this.gatewayConfig.terminalId,
+        req: encryptedReq
       };
+
+      // Call Getepay API
+      const response = await axios.post(this.gatewayConfig.baseUrl, requestPayload, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000 // 30 seconds timeout
+      });
+
+      if (response.data && response.data.res) {
+        // Decrypt the response
+        const decryptedResponse = await this.encryption.decrypt(response.data.res);
+        
+        logger.info(`Getepay payment order created: ${orderId}`, decryptedResponse);
+        
+        return {
+          success: true,
+          orderId,
+          amount,
+          currency: this.gatewayConfig.currency,
+          paymentUrl: decryptedResponse.paymentUrl,
+          paymentId: decryptedResponse.paymentId,
+          token: decryptedResponse.token,
+          qrIntent: decryptedResponse.qrIntent,
+          gatewayResponse: decryptedResponse
+        };
+      } else {
+        throw new Error('Invalid response from Getepay gateway');
+      }
 
     } catch (error) {
-      logger.error('Error creating payment order:', error);
-      throw new Error('Failed to create payment order');
+      logger.error('Error creating Getepay payment order:', error);
+      throw new Error('Failed to create payment order: ' + error.message);
     }
   }
 

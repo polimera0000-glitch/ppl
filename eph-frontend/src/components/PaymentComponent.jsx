@@ -74,15 +74,16 @@ const PaymentComponent = ({
     try {
       setLoading(true);
       setError(null);
+      setPaymentStatus('processing');
 
-      // For now, simulate payment process
-      // In real implementation, this would redirect to payment gateway
-      
-      // Simulate payment processing
-      setTimeout(() => {
-        setPaymentStatus('processing');
+      // Check if we have a payment URL from Getepay
+      if (paymentOrder.paymentUrl) {
+        // Redirect to Getepay payment page
+        window.location.href = paymentOrder.paymentUrl;
+      } else {
+        // Fallback: simulate payment for testing
+        console.log('No payment URL found, using simulation for testing');
         
-        // Simulate payment completion
         setTimeout(() => {
           setPaymentStatus('completed');
           if (onPaymentSuccess) {
@@ -93,7 +94,7 @@ const PaymentComponent = ({
             });
           }
         }, 2000);
-      }, 1000);
+      }
 
     } catch (err) {
       console.error('Payment failed:', err);

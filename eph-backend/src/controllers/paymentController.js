@@ -157,27 +157,44 @@ const paymentController = {
     }
   },
 
-  // Handle payment callback/webhook
+  // Handle Getepay payment callback/webhook
   handlePaymentCallback: async (req, res) => {
     try {
       const callbackData = req.body;
       
-      logger.info('Payment callback received:', callbackData);
+      logger.info('Getepay payment callback received:', callbackData);
 
-      const result = await paymentService.handlePaymentCallback(callbackData);
+      // Getepay sends encrypted response data
+      if (callbackData.res) {
+        const GetepayEncryption = require('../utils/getepayEncryption');
+        const encryption = new GetepayEncryption();
+        
+        // Decrypt the response
+        const decryptedData = await encryption.decrypt(callbackData.res);
+        logger.info('Decrypted Getepay response:', decryptedData);
 
-      if (result.success) {
-        res.status(200).json({
-          success: true,
-          message: 'Payment callback processed successfully'
-        });
+        // Process the payment result
+        const result = await paymentService.handlePaymentCallback(decryptedData);
+
+        if (result.success) {
+          res.status(200).json({
+            success: true,
+            message: 'Payment callback processed successfully'
+          });
+        } else {
+          res.status(400).json({
+            success: false,
+            message: result.message
+          });
+        }
       } else {
         res.status(400).json({
           success: false,
-          message: result.message
+          message: 'Invalid callback data format'
         });
       }
     } catch (error) {
+      logger.error('Error processing Getepay callback:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to process payment callback',
