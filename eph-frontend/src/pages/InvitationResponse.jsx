@@ -233,7 +233,7 @@ const InvitationResponse = () => {
               variant="primary"
               size="md"
               fullWidth={true}
-              className="bg-green-600 hover:bg-green-700 text-white border-green-600 font-semibold shadow-lg"
+              className="!bg-green-600 hover:!bg-green-700 !text-white !border-green-600 font-semibold shadow-lg"
             />
             <CustomButton
               text={processing ? 'Processing...' : '❌ Decline Invitation'}
@@ -243,7 +243,7 @@ const InvitationResponse = () => {
               variant="outline"
               size="md"
               fullWidth={true}
-              className="text-red-600 border-red-500 hover:bg-red-50 border-2 font-semibold"
+              className="!text-red-600 !border-red-500 hover:!bg-red-50 !border-2 font-semibold"
             />
           </div>
         )}

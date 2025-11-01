@@ -22,14 +22,14 @@ const CustomButton = ({
   
   const variantClasses = {
     primary: enabled && !loading 
-      ? 'bg-white bg-opacity-10 hover:bg-opacity-20 active:scale-95 border border-white border-opacity-20 text-white focus:ring-white/50' 
-      : 'bg-white bg-opacity-5 border border-white border-opacity-10 cursor-not-allowed text-white/70',
+      ? 'bg-blue-600 hover:bg-blue-700 active:scale-95 border border-blue-600 text-white focus:ring-blue-500/50 shadow-md' 
+      : 'bg-gray-400 border border-gray-400 cursor-not-allowed text-white opacity-60',
     secondary: enabled && !loading
-      ? 'bg-surface text-primary-text border border-border hover:bg-border focus:ring-primary/50'
-      : 'bg-surface/50 text-secondary-text border border-border cursor-not-allowed',
+      ? 'bg-gray-100 text-gray-800 border border-gray-300 hover:bg-gray-200 focus:ring-gray-500/50'
+      : 'bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed',
     outline: enabled && !loading
-      ? 'bg-transparent text-primary-text border border-border hover:bg-border focus:ring-primary/50'
-      : 'bg-transparent text-secondary-text border border-border cursor-not-allowed'
+      ? 'bg-transparent text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500/50'
+      : 'bg-transparent text-gray-400 border border-gray-200 cursor-not-allowed'
   };
   
   const widthClass = fullWidth ? 'w-full' : 'w-auto';
