@@ -151,7 +151,9 @@ function App() {
               <Route path="/payment" element={<PaymentScreen />} />
               <Route path="/payment/:orderId" element={<PaymentScreen />} />
               <Route path="/payment/success/:orderId" element={<PaymentSuccess />} />
+              <Route path="/payment/success" element={<PaymentSuccess />} />
               <Route path="/payment/callback" element={<PaymentCallback />} />
+              <Route path="/payments/history" element={<PaymentSuccess />} />
               
               <Route
                 path="/competition/:competitionId/leaderboard"

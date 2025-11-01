@@ -41,6 +41,8 @@ router.get(
   competitionController.getRegistrationStatus
 );
 
+
+
 // Get complete user context for competition page
 router.get(
   '/:id/user-context',

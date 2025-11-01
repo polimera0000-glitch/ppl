@@ -1415,22 +1415,51 @@ const CompetitionRegisterScreen = () => {
         // ========== END PAYMENT INFO ==========
       };
 
-      // Instead of direct registration, redirect to payment
-      const registrationData = {
-        competitionId: id,
-        userType: applicant.edu_type, // undergraduate/graduate
-        teamSize: registrationType === 'team' ? members.length + 1 : 1,
-        teamName: registrationType === 'team' ? teamName : undefined,
-        registrationType: registrationType, // individual/team
-        formData: payload // Store form data for after payment
-      };
+      // Check if user is admin - admins don't need to pay
+      if (user?.role === 'admin') {
+        // Admin registration - direct registration without payment
+        const response = await apiService.registerForCompetition(id, payload);
 
-      // Navigate to payment screen
-      navigate('/payment', {
-        state: registrationData
-      });
+        if (response?.success) {
+          showToast('success', 'Admin registration successful!');
+          
+          // Refresh user profile data
+          try {
+            const profileResponse = await apiService.getProfile();
+            if (profileResponse?.success && profileResponse?.data?.user) {
+              authService.setUser?.(profileResponse.data.user);
+            }
+          } catch (profileError) {
+            console.warn('Failed to refresh profile after registration:', profileError);
+          }
+          
+          navigate('/main?tab=competitions', {
+            replace: true,
+            state: { justRegisteredCompetitionId: id },
+          });
+        } else {
+          const msg = response?.message || 'Registration failed';
+          setError(msg);
+          showToast('error', msg);
+        }
+      } else {
+        // Regular user registration - redirect to payment
+        const registrationData = {
+          competitionId: id,
+          userType: applicant.edu_type, // undergraduate/graduate
+          teamSize: registrationType === 'team' ? members.length + 1 : 1,
+          teamName: registrationType === 'team' ? teamName : undefined,
+          registrationType: registrationType, // individual/team
+          formData: payload // Store form data for after payment
+        };
 
-      // Note: Actual registration will happen after successful payment
+        // Navigate to payment screen
+        navigate('/payment', {
+          state: registrationData
+        });
+
+        // Note: Actual registration will happen after successful payment
+      }
     } catch (err) {
       const msg = err.message || 'Network error occurred';
       setError(msg);

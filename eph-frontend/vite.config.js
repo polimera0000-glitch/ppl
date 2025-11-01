@@ -6,6 +6,7 @@ export default defineConfig({
   server: {
     port: 3001,
     host: true,
+    historyApiFallback: true,
     proxy: {
       '/api/v1': {
         target: 'http://localhost:3000',

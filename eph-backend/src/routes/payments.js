@@ -65,6 +65,8 @@ router.post('/callback', paymentController.handlePaymentCallback);
 router.get('/success/:orderId', optionalAuth, orderIdValidation, paymentController.getPaymentSuccess);
 router.get('/failure/:orderId', optionalAuth, orderIdValidation, paymentController.getPaymentFailure);
 
+
+
 // Protected routes (require authentication)
 router.use(authenticate);
 
@@ -73,6 +75,8 @@ router.post('/create', paymentLimiter, createPaymentValidation, paymentControlle
 
 // Get payment status
 router.get('/status/:orderId', orderIdValidation, paymentController.getPaymentStatus);
+
+
 
 // Get user's payment history
 router.get('/history', paymentController.getPaymentHistory);

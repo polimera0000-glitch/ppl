@@ -36,7 +36,11 @@ const PaymentSuccess = () => {
     }
 
     // Check if this is a callback from payment gateway
-    const isCallback = orderId === 'callback' || searchParams.get('orderId') || searchParams.get('merchantOrderNo');
+    const callbackOrderId = searchParams.get('orderId') || 
+                           searchParams.get('merchantTransactionId') || 
+                           searchParams.get('txnId');
+    
+    const isCallback = orderId === 'callback' || callbackOrderId;
     
     if (isCallback) {
       handlePaymentCallback();
@@ -46,21 +50,26 @@ const PaymentSuccess = () => {
     } else if (orderId && orderId !== 'callback') {
       fetchPaymentDetails();
     } else {
-      navigate('/competitions');
+      // If no specific order ID, show a generic success page
+      // This handles the case where users return from gateway manually
+      setLoading(false);
     }
-  }, [orderId, user]);
+  }, [orderId, user, searchParams]);
 
   const handlePaymentCallback = async () => {
     try {
       // Get payment parameters from URL
       const callbackOrderId = searchParams.get('orderId') || 
-                             searchParams.get('merchantOrderNo') || 
+                             searchParams.get('merchantTransactionId') || 
                              searchParams.get('txnId');
 
       console.log('Payment callback - Order ID:', callbackOrderId);
       console.log('All callback params:', Object.fromEntries(searchParams.entries()));
 
       if (callbackOrderId) {
+        // Wait a moment for the backend callback to process
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
         // Fetch payment details using the order ID from callback
         const response = await apiService.getPaymentStatus(callbackOrderId);
         
@@ -70,10 +79,46 @@ const PaymentSuccess = () => {
           if (response.data.status === 'completed') {
             setRegistrationComplete(true);
           }
+        } else {
+          // If payment status fetch fails, still show the callback data
+          const status = searchParams.get('status') || searchParams.get('txnStatus');
+          const amount = searchParams.get('amount');
+          
+          setPaymentData({
+            orderId: callbackOrderId,
+            status: status === 'SUCCESS' ? 'completed' : 'failed',
+            amount: amount || 0,
+            paidAt: new Date().toISOString()
+          });
+          
+          if (status === 'SUCCESS') {
+            setRegistrationComplete(true);
+          }
         }
+      } else {
+        // No order ID found, redirect to competitions
+        navigate('/competitions?payment=error');
       }
     } catch (error) {
       console.error('Payment callback error:', error);
+      // Still try to show some data if available
+      const callbackOrderId = searchParams.get('orderId') || 
+                             searchParams.get('merchantTransactionId') || 
+                             searchParams.get('txnId');
+      const status = searchParams.get('status') || searchParams.get('txnStatus');
+      
+      if (callbackOrderId && status) {
+        setPaymentData({
+          orderId: callbackOrderId,
+          status: status === 'SUCCESS' ? 'completed' : 'failed',
+          amount: searchParams.get('amount') || 0,
+          paidAt: new Date().toISOString()
+        });
+        
+        if (status === 'SUCCESS') {
+          setRegistrationComplete(true);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -252,6 +297,25 @@ const PaymentSuccess = () => {
                 </div>
               </div>
             </div>
+
+            {/* Manual Return Message */}
+            {!paymentData && !loading && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold text-blue-800 mb-3">Returned from Payment Gateway?</h3>
+                <p className="text-sm text-blue-700 mb-3">
+                  If you just completed a payment and were redirected to the payment gateway's page, 
+                  your payment is being processed. Please check your recent payments below or visit 
+                  the competitions page to see your registration status.
+                </p>
+                <CustomButton
+                  text="Check My Payments"
+                  onPressed={() => navigate('/payments/history')}
+                  variant="outline"
+                  size="sm"
+                  className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                />
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="space-y-3">

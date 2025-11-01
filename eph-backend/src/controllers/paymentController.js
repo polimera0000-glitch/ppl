@@ -57,6 +57,18 @@ const paymentController = {
       // Get user details
       const user = await User.findByPk(userId);
 
+      // Calculate amount based on team size and user types
+      let totalAmount = 0;
+      
+      if (teamSize > 1) {
+        // For teams, calculate based on team size (assuming all same user type for now)
+        const pricePerPerson = userType.toLowerCase() === 'undergraduate' ? 500 : 1000;
+        totalAmount = pricePerPerson * teamSize;
+      } else {
+        // For individuals
+        totalAmount = userType.toLowerCase() === 'undergraduate' ? 500 : 1000;
+      }
+
       // Create payment order
       const paymentOrderData = {
         competitionId,
@@ -65,7 +77,8 @@ const paymentController = {
         teamSize: parseInt(teamSize),
         teamName,
         userEmail: user.email,
-        userName: user.name
+        userName: user.name,
+        totalAmount
       };
 
       const paymentOrder = await paymentService.createPaymentOrder(paymentOrderData);
@@ -75,7 +88,7 @@ const paymentController = {
         order_id: paymentOrder.orderId,
         user_id: userId,
         competition_id: competitionId,
-        amount: paymentOrder.amount,
+        amount: totalAmount,
         currency: paymentOrder.currency,
         user_type: userType.toLowerCase(),
         team_size: parseInt(teamSize),
@@ -90,7 +103,7 @@ const paymentController = {
         message: 'Payment order created successfully',
         data: {
           orderId: paymentOrder.orderId,
-          amount: paymentOrder.amount,
+          amount: totalAmount,
           currency: paymentOrder.currency,
           paymentUrl: paymentOrder.paymentUrl,
           expiresAt: payment.expires_at
@@ -164,38 +177,45 @@ const paymentController = {
       
       logger.info('Getepay payment callback received:', callbackData);
 
-      // Getepay sends encrypted response data
+      let processedData = callbackData;
+
+      // Check if Getepay sends encrypted response data
       if (callbackData.res) {
-        const GetepayEncryption = require('../utils/getepayEncryption');
-        const encryption = new GetepayEncryption();
-        
-        // Decrypt the response
-        const decryptedData = await encryption.decrypt(callbackData.res);
-        logger.info('Decrypted Getepay response:', decryptedData);
-
-        // Process the payment result
-        const result = await paymentService.handlePaymentCallback(decryptedData);
-
-        if (result.success) {
-          res.status(200).json({
-            success: true,
-            message: 'Payment callback processed successfully'
-          });
-        } else {
-          res.status(400).json({
-            success: false,
-            message: result.message
-          });
+        try {
+          const GetepayEncryption = require('../utils/getepayEncryption');
+          const encryption = new GetepayEncryption();
+          
+          // Decrypt the response
+          processedData = await encryption.decrypt(callbackData.res);
+          logger.info('Decrypted Getepay response:', processedData);
+        } catch (decryptError) {
+          logger.error('Error decrypting Getepay response:', decryptError);
+          // Continue with original data if decryption fails
+          processedData = callbackData;
         }
+      }
+
+      // Process the payment result
+      const result = await paymentService.handlePaymentCallback(processedData);
+
+      if (result.success) {
+        res.status(200).json({
+          success: true,
+          message: 'Payment callback processed successfully',
+          orderId: result.orderId,
+          status: result.status
+        });
       } else {
-        res.status(400).json({
+        res.status(200).json({ // Still return 200 to acknowledge receipt
           success: false,
-          message: 'Invalid callback data format'
+          message: result.message,
+          orderId: result.orderId,
+          status: result.status
         });
       }
     } catch (error) {
       logger.error('Error processing Getepay callback:', error);
-      res.status(500).json({
+      res.status(200).json({ // Return 200 to prevent gateway retries
         success: false,
         message: 'Failed to process payment callback',
         error: error.message

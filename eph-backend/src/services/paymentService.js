@@ -35,20 +35,35 @@ class PaymentService {
   }
 
   /**
+   * Calculate amount for team with mixed user types
+   */
+  calculateTeamAmount(teamMembers) {
+    return teamMembers.reduce((sum, member) => {
+      const memberType = member.userType || 'graduate';
+      const pricePerPerson = this.pricing[memberType.toLowerCase()] || this.pricing.graduate;
+      return sum + pricePerPerson;
+    }, 0);
+  }
+
+  /**
    * Generate payment order for competition registration using Getepay
    */
   async createPaymentOrder(registrationData) {
     try {
       // Validate gateway configuration
-      if (!this.gatewayConfig.baseUrl || !this.gatewayConfig.merchantId || !this.gatewayConfig.secretKey) {
+      if (!this.gatewayConfig.baseUrl || !this.gatewayConfig.merchantId || !this.gatewayConfig.secretKey || !this.gatewayConfig.terminalId) {
         logger.error('Missing Getepay configuration:', {
           hasBaseUrl: !!this.gatewayConfig.baseUrl,
           hasMerchantId: !!this.gatewayConfig.merchantId,
           hasSecretKey: !!this.gatewayConfig.secretKey,
-          hasTerminalId: !!this.gatewayConfig.terminalId
+          hasTerminalId: !!this.gatewayConfig.terminalId,
+          baseUrl: this.gatewayConfig.baseUrl,
+          merchantId: this.gatewayConfig.merchantId,
+          terminalId: this.gatewayConfig.terminalId
         });
         throw new Error('Payment gateway configuration is incomplete');
       }
+
       const { 
         competitionId, 
         userId, 
@@ -56,14 +71,29 @@ class PaymentService {
         teamSize, 
         teamName,
         userEmail,
-        userName 
+        userName,
+        totalAmount
       } = registrationData;
 
-      // Calculate amount
-      const amount = this.calculateAmount(userType, teamSize);
+      // Validate registration data
+      if (!competitionId || !userId || !userType) {
+        logger.error('Missing required registration data:', {
+          hasCompetitionId: !!competitionId,
+          hasUserId: !!userId,
+          hasUserType: !!userType
+        });
+        throw new Error('Required registration data is missing');
+      }
+
+      // Calculate amount - use provided totalAmount or calculate based on team size
+      const amount = totalAmount || this.calculateAmount(userType, teamSize);
 
       // Generate unique order ID
       const orderId = this.generateOrderId(competitionId, userId);
+
+      // Getepay will redirect to their own response page
+      const returnUrl = process.env.PAYMENT_RETURN_URL;
+      const callbackUrl = `${process.env.BACKEND_URL}/api/v1/payments/callback`;
 
       // Create Getepay request data
       const getepayData = {
@@ -82,8 +112,8 @@ class PaymentService {
         udf8: '', // Reserved
         udf9: '', // Reserved
         udf10: '', // Reserved
-        ru: this.gatewayConfig.returnUrl,
-        callbackUrl: '', // Optional callback URL
+        ru: returnUrl, // Return URL for browser redirect
+        callbackUrl: callbackUrl, // Server-to-server callback
         currency: this.gatewayConfig.currency,
         paymentMode: 'ALL', // All payment modes
         bankId: '',
@@ -92,6 +122,9 @@ class PaymentService {
         txnNote: `Competition Registration - ${competitionId}`,
         vpa: this.gatewayConfig.terminalId
       };
+
+      // Log the URLs for debugging
+      logger.info('Payment URLs configured:', { returnUrl, callbackUrl });
 
       // Encrypt the request data
       logger.info('Encrypting Getepay data:', getepayData);
@@ -126,13 +159,13 @@ class PaymentService {
 
       if (response.data) {
         logger.info('Full Getepay response:', response.data);
-        
+
         if (response.data.res) {
           // Decrypt the response
           const decryptedResponse = await this.encryption.decrypt(response.data.res);
-          
+
           logger.info(`Getepay payment order created: ${orderId}`, decryptedResponse);
-          
+
           return {
             success: true,
             orderId,
@@ -148,9 +181,9 @@ class PaymentService {
           // Handle success response with encrypted data in 'response' field instead of 'res'
           logger.info('Getepay success response with encrypted data in response field');
           const decryptedResponse = await this.encryption.decrypt(response.data.response);
-          
+
           logger.info(`Getepay payment order created: ${orderId}`, decryptedResponse);
-          
+
           return {
             success: true,
             orderId,
@@ -176,28 +209,47 @@ class PaymentService {
       }
 
     } catch (error) {
-      logger.error('Error creating Getepay payment order:', error);
-      
-      // Fallback: Return simulated payment order for testing
-      if (process.env.NODE_ENV === 'production' && process.env.PAYMENT_FALLBACK_SIMULATION === 'true') {
-        logger.warn('Using fallback simulation due to Getepay error');
-        
-        const orderId = this.generateOrderId(competitionId, userId);
-        const amount = this.calculateAmount(userType, teamSize);
-        
+      logger.error('Error creating Getepay payment order:', {
+        error: error.message,
+        stack: error.stack,
+        config: {
+          hasBaseUrl: !!this.gatewayConfig.baseUrl,
+          hasMerchantId: !!this.gatewayConfig.merchantId,
+          hasSecretKey: !!this.gatewayConfig.secretKey,
+          hasTerminalId: !!this.gatewayConfig.terminalId
+        }
+      });
+
+      // For development, provide more detailed error information
+      if (process.env.NODE_ENV === 'development') {
+        logger.error('Detailed error info:', {
+          errorType: error.constructor.name,
+          errorCode: error.code,
+          errorResponse: error.response?.data,
+          errorStatus: error.response?.status
+        });
+      }
+
+      // Fallback: Return simulated payment order for testing in development
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn('Using fallback simulation due to Getepay error in development');
+
+        const orderId = this.generateOrderId(registrationData.competitionId, registrationData.userId);
+        const amount = this.calculateAmount(registrationData.userType, registrationData.teamSize);
+
         return {
           success: true,
           orderId,
           amount,
           currency: this.gatewayConfig.currency,
-          paymentUrl: null, // No payment URL - will use simulation
+          paymentUrl: `${process.env.FRONTEND_URL}/payment/simulate/${orderId}`, // Simulation URL
           paymentId: `SIM_${orderId}`,
           token: null,
           qrIntent: null,
           gatewayResponse: { simulation: true }
         };
       }
-      
+
       throw new Error('Failed to create payment order: ' + error.message);
     }
   }
@@ -227,9 +279,9 @@ class PaymentService {
   async verifyPayment(orderId, paymentId, signature) {
     try {
       // TODO: Implement payment verification based on gateway API
-      
+
       logger.info(`Verifying payment: ${orderId}`);
-      
+
       // Placeholder verification logic
       return {
         success: true,
@@ -249,32 +301,57 @@ class PaymentService {
    */
   async handlePaymentCallback(callbackData) {
     try {
-      const { orderId, status, paymentId, signature } = callbackData;
+      logger.info('Processing payment callback:', callbackData);
 
-      // Verify payment
-      const verification = await this.verifyPayment(orderId, paymentId, signature);
+      // Extract order ID from Getepay response
+      const orderId = callbackData.merchantTransactionId || callbackData.orderId;
+      const status = callbackData.status || callbackData.txnStatus;
+      const paymentId = callbackData.paymentId || callbackData.txnId;
+      const amount = callbackData.amount;
 
-      if (verification.success && verification.status === 'completed') {
+      if (!orderId) {
+        throw new Error('Order ID not found in callback data');
+      }
+
+      // Check if payment was successful
+      const isSuccess = status === 'SUCCESS' || status === 'COMPLETED' || status === 'success';
+
+      if (isSuccess) {
         // Payment successful - complete registration
         await this.completeRegistrationAfterPayment(orderId);
-        
+
+        // Update payment record with gateway response
+        const { Payment } = require('../models');
+        await Payment.update({
+          payment_id: paymentId,
+          gateway_response: callbackData,
+          status: 'completed',
+          paid_at: new Date()
+        }, {
+          where: { order_id: orderId }
+        });
+
         return {
           success: true,
-          message: 'Payment completed successfully'
+          message: 'Payment completed successfully',
+          orderId,
+          status: 'completed'
         };
       } else {
         // Payment failed
-        await this.handleFailedPayment(orderId);
-        
+        await this.handleFailedPayment(orderId, callbackData);
+
         return {
           success: false,
-          message: 'Payment verification failed'
+          message: 'Payment failed',
+          orderId,
+          status: 'failed'
         };
       }
 
     } catch (error) {
       logger.error('Error handling payment callback:', error);
-      throw new Error('Payment callback processing failed');
+      throw new Error('Payment callback processing failed: ' + error.message);
     }
   }
 
@@ -283,12 +360,83 @@ class PaymentService {
    */
   async completeRegistrationAfterPayment(orderId) {
     try {
-      // TODO: Update registration status to confirmed
-      // TODO: Send confirmation email
-      // TODO: Update payment record
-      
-      logger.info(`Registration completed for order: ${orderId}`);
-      
+      const { Payment, Registration, Competition } = require('../models');
+
+      // Find the payment record
+      const payment = await Payment.findOne({
+        where: { order_id: orderId }
+      });
+
+      if (!payment) {
+        throw new Error(`Payment not found for order: ${orderId}`);
+      }
+
+      // Update payment status to completed
+      await payment.update({
+        status: 'completed',
+        paid_at: new Date()
+      });
+
+      // Find existing registration or create new one
+      let registration = await Registration.findOne({
+        where: {
+          competition_id: payment.competition_id,
+          leader_id: payment.user_id
+        }
+      });
+
+      if (registration) {
+        // Update existing registration status to confirmed
+        await registration.update({
+          status: 'confirmed',
+          confirmed_at: new Date()
+        });
+
+        // Update competition seats based on actual team size
+        const competition = await Competition.findByPk(payment.competition_id);
+        if (competition) {
+          await competition.update({
+            seats_remaining: Math.max(0, competition.seats_remaining - payment.team_size)
+          });
+        }
+
+        logger.info(`Existing registration confirmed for order: ${orderId}, registration: ${registration.id}`);
+      } else {
+        // Create new registration for the paid user
+        const competition = await Competition.findByPk(payment.competition_id);
+
+        if (!competition) {
+          throw new Error(`Competition not found: ${payment.competition_id}`);
+        }
+
+        // Determine registration type based on team size
+        const registrationType = payment.team_size > 1 ? 'team' : 'individual';
+
+        registration = await Registration.create({
+          competition_id: payment.competition_id,
+          leader_id: payment.user_id,
+          type: registrationType,
+          team_name: registrationType === 'team' ? `Team ${payment.user_id.substring(0, 8)}` : null,
+          status: 'confirmed',
+          confirmed_at: new Date(),
+          invitation_status: 'complete'
+        });
+
+        // Update competition seats
+        await competition.update({
+          seats_remaining: Math.max(0, competition.seats_remaining - payment.team_size)
+        });
+
+        logger.info(`New registration created for order: ${orderId}, registration: ${registration.id}`);
+      }
+
+      // Link payment to registration
+      await payment.update({
+        registration_id: registration.id
+      });
+
+      logger.info(`Registration completed for order: ${orderId}, registration: ${registration.id}`);
+
     } catch (error) {
       logger.error('Error completing registration after payment:', error);
       throw error;
@@ -298,13 +446,26 @@ class PaymentService {
   /**
    * Handle failed payment
    */
-  async handleFailedPayment(orderId) {
+  async handleFailedPayment(orderId, callbackData = null) {
     try {
-      // TODO: Update payment status to failed
-      // TODO: Send failure notification
-      
+      const { Payment } = require('../models');
+
+      // Update payment status to failed
+      const updateData = {
+        status: 'failed',
+        failure_reason: callbackData?.message || callbackData?.errorMessage || 'Payment failed'
+      };
+
+      if (callbackData) {
+        updateData.gateway_response = callbackData;
+      }
+
+      await Payment.update(updateData, {
+        where: { order_id: orderId }
+      });
+
       logger.info(`Payment failed for order: ${orderId}`);
-      
+
     } catch (error) {
       logger.error('Error handling failed payment:', error);
       throw error;
@@ -317,7 +478,7 @@ class PaymentService {
   async getPaymentStatus(orderId) {
     try {
       // TODO: Query payment gateway for status
-      
+
       return {
         orderId,
         status: 'pending', // pending, completed, failed, cancelled

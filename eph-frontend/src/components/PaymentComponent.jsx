@@ -58,6 +58,9 @@ const PaymentComponent = ({
       const response = await apiService.createPaymentOrder(paymentData);
       const orderData = response?.data || response;
 
+      console.log('Payment order response:', response);
+      console.log('Payment order data:', orderData);
+      
       setPaymentOrder(orderData);
       
     } catch (err) {
@@ -76,8 +79,12 @@ const PaymentComponent = ({
       setError(null);
       setPaymentStatus('processing');
 
+      console.log('Payment order before redirect:', paymentOrder);
+      console.log('Payment URL:', paymentOrder.paymentUrl);
+
       // Check if we have a payment URL from Getepay
       if (paymentOrder.paymentUrl) {
+        console.log('Redirecting to payment URL:', paymentOrder.paymentUrl);
         // Redirect to Getepay payment page
         window.location.href = paymentOrder.paymentUrl;
       } else {

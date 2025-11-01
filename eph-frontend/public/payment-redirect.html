@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Processing - EPH Platform</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        p {
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h2>Processing Payment</h2>
+        <p>Please wait while we complete your registration...</p>
+    </div>
+
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('merchantTransactionId') || 
+                       urlParams.get('orderId') || 
+                       urlParams.get('txnId') ||
+                       urlParams.get('merchantOrderNo') ||
+                       urlParams.get('transactionId');
+        const status = urlParams.get('status') || urlParams.get('txnStatus') || urlParams.get('responseCode');
+        
+        console.log('Payment redirect params:', Object.fromEntries(urlParams.entries()));
+        console.log('Extracted orderId:', orderId);
+        console.log('Extracted status:', status);
+        console.log('Full URL:', window.location.href);
+
+        // Update the display to show what we found
+        const container = document.querySelector('.container');
+        if (orderId) {
+            container.innerHTML = `
+                <div class="spinner"></div>
+                <h2>Processing Payment</h2>
+                <p>Order ID: ${orderId}</p>
+                <p>Status: ${status || 'Unknown'}</p>
+                <p>Please wait while we complete your registration...</p>
+            `;
+        } else {
+            container.innerHTML = `
+                <h2 class="error">No Payment Data Found</h2>
+                <p>No order ID found in URL parameters.</p>
+                <p>Redirecting to competitions page...</p>
+                <p><small>URL: ${window.location.href}</small></p>
+            `;
+        }
+
+        // Function to redirect to React app
+        function redirectToApp(success = true) {
+            const baseUrl = window.location.origin;
+            if (success && orderId) {
+                // Redirect to success page with order ID
+                window.location.href = `${baseUrl}/payment/success/callback?orderId=${orderId}&${urlParams.toString()}`;
+            } else {
+                // Redirect to failure page or competitions
+                window.location.href = `${baseUrl}/competitions?payment=failed`;
+            }
+        }
+
+        // Check payment status and redirect
+        if (orderId) {
+            // Send callback data to backend
+            fetch('/api/v1/payments/callback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(Object.fromEntries(urlParams.entries()))
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Callback response:', data);
+                // Redirect regardless of callback response
+                redirectToApp(data.success);
+            })
+            .catch(error => {
+                console.error('Callback error:', error);
+                // Still redirect to app
+                redirectToApp(false);
+            });
+        } else {
+            // No order ID, redirect to competitions after showing debug info
+            setTimeout(() => {
+                redirectToApp(false);
+            }, 5000); // Give more time to see the debug info
+        }
+    </script>
+</body>
+</html>

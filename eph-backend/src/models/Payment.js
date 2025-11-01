@@ -158,74 +158,25 @@ module.exports = (sequelize) => {
     ]
   });
 
-  // Associations
-  Payment.associate = (models) => {
-    Payment.belongsTo(models.Registration, {
-      foreignKey: 'registration_id',
-      as: 'registration'
-    });
-    
-    Payment.belongsTo(models.User, {
-      foreignKey: 'user_id',
-      as: 'user'
-    });
-    
-    Payment.belongsTo(models.Competition, {
-      foreignKey: 'competition_id',
-      as: 'competition'
-    });
-  };
-
   // Instance methods
-  Payment.prototype.isCompleted = function() {
+  Payment.prototype.isCompleted = function () {
     return this.status === 'completed';
   };
 
-  Payment.prototype.isPending = function() {
+  Payment.prototype.isPending = function () {
     return this.status === 'pending' || this.status === 'processing';
   };
 
-  Payment.prototype.isFailed = function() {
+  Payment.prototype.isFailed = function () {
     return this.status === 'failed' || this.status === 'cancelled';
   };
 
-  Payment.prototype.canRefund = function() {
+  Payment.prototype.canRefund = function () {
     return this.status === 'completed' && !this.refund_id;
   };
 
-  Payment.prototype.isExpired = function() {
+  Payment.prototype.isExpired = function () {
     return this.expires_at && new Date() > new Date(this.expires_at);
-  };
-
-  // Class methods
-  Payment.findByOrderId = function(orderId) {
-    return this.findOne({
-      where: { order_id: orderId },
-      include: [
-        { model: sequelize.models.Registration, as: 'registration' },
-        { model: sequelize.models.User, as: 'user' },
-        { model: sequelize.models.Competition, as: 'competition' }
-      ]
-    });
-  };
-
-  Payment.findByRegistrationId = function(registrationId) {
-    return this.findAll({
-      where: { registration_id: registrationId },
-      order: [['created_at', 'DESC']]
-    });
-  };
-
-  Payment.getCompletedPayments = function(competitionId) {
-    return this.findAll({
-      where: { 
-        competition_id: competitionId,
-        status: 'completed'
-      },
-      include: [
-        { model: sequelize.models.User, as: 'user', attributes: ['name', 'email'] }
-      ]
-    });
   };
 
   return Payment;

@@ -733,6 +733,14 @@ if (Object.prototype.hasOwnProperty.call(updateData, 'resources') && typeof upda
       const { type = 'individual', team_name, member_emails = [], members = [], abstract } = req.body;
       const userId = req.user.id;
 
+      logger.info('Registration request received:', {
+        competitionId,
+        type,
+        team_name,
+        member_emails,
+        userId
+      });
+
       // Handle both frontend formats - extract emails from members array if provided
       let teamMemberEmails = member_emails;
       if (members && members.length > 0 && teamMemberEmails.length === 0) {
@@ -1110,6 +1118,8 @@ if (Object.prototype.hasOwnProperty.call(updateData, 'resources') && typeof upda
       });
     }
   },
+
+
 
   // Get user's registration status for a specific competition
   getRegistrationStatus: async (req, res) => {
