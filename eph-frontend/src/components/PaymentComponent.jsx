@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/apiService';
 import CustomButton from './CustomButton';
+import { trackPaymentInitiated, trackPayment } from '../services/analytics';
 import {
   CreditCard,
   Shield,
@@ -62,6 +63,11 @@ const PaymentComponent = ({
       console.log('Payment order data:', orderData);
       
       setPaymentOrder(orderData);
+
+      // Track payment initiation
+      if (orderData?.orderId) {
+        trackPaymentInitiated(orderData.orderId, orderData.amount, 'INR', competitionId);
+      }
       
     } catch (err) {
       console.error('Failed to create payment order:', err);
