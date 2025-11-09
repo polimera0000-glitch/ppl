@@ -28,6 +28,11 @@ const CompetitionDetails = () => {
   const role = user?.role || null;
   const isAdmin = role === "admin"; // ✅ admins should not see Register
 
+  // --- Registration Fee Logic ---
+const FEE_UNDERGRAD = 500;
+const FEE_GRADUATE = 1000;
+const feeFor = (eduType) => (eduType === 'graduate' ? FEE_GRADUATE : FEE_UNDERGRAD);
+
   const [loading, setLoading] = useState(true);
   const [comp, setComp] = useState(null);
   const [error, setError] = useState(null);
@@ -438,6 +443,35 @@ const CompetitionDetails = () => {
               </div>
             </div>
           </div>
+
+        {/* ✅ Registration Fee Pill */}
+{(() => {
+  // Try to get education level from competition or eligibility_criteria
+  const eduType =
+    comp.education_level ||
+    comp.eligibility_criteria?.education?.toLowerCase?.() ||
+    "undergraduate"; // fallback for safety
+
+  const fee = feeFor(eduType);
+
+  return (
+    <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-semibold shadow-sm mt-2 sm:mt-3">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-4 h-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422A12.083 12.083 0 0118 20.944M12 14L5.84 10.578A12.083 12.083 0 006 20.944M12 14v7" />
+      </svg>
+      ₹{fee} • {eduType.charAt(0).toUpperCase() + eduType.slice(1)}
+    </div>
+  );
+})()}
+
+
 
           {/* Tabs (sticky on mobile) */}
           <div className="mb-0 sticky top-0 z-10 bg-transparent pt-1 sm:static sm:pt-0">
