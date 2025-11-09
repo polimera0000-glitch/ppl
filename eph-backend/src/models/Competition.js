@@ -57,6 +57,21 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     results_date: { type: DataTypes.DATE, allowNull: true },
+    // New submission / timeline fields requested
+    abstract_submission_start_date: { type: DataTypes.DATE, allowNull: true },
+    abstract_submission_end_date: { type: DataTypes.DATE, allowNull: true },
+    shortlisted_candidates_date: { type: DataTypes.DATE, allowNull: true },
+
+    prototype_submission_start_date: { type: DataTypes.DATE, allowNull: true },
+    prototype_submission_end_date: { type: DataTypes.DATE, allowNull: true },
+
+    pitch_deck_start_date: { type: DataTypes.DATE, allowNull: true },
+    pitch_deck_end_date: { type: DataTypes.DATE, allowNull: true },
+
+    final_round_date: { type: DataTypes.DATE, allowNull: true },
+
+    // Freeform evaluation metrics column (text)
+    evaluation_metrics: { type: DataTypes.TEXT, allowNull: true },
 
     max_team_size: {
       type: DataTypes.INTEGER,

@@ -163,8 +163,13 @@
 //     if (registrationDeadline && new Date(registrationDeadline) > new Date(startDate)) {
 //       return setError('Registration deadline must be before competition start'), false;
 //     }
-//     if (resultsDate && new Date(resultsDate) < new Date(endDate)) {
-//       return setError('Results date must be on/after competition end'), false;
+//     // Results date must come after final round date when both are provided
+//     if (finalRoundDate && resultsDate && new Date(resultsDate) <= new Date(finalRoundDate)) {
+//       return setError('Results announcement must be after final round date'), false;
+//     }
+//     // Fallback: if final round date is not provided, ensure results are after competition end
+//     if (!finalRoundDate && resultsDate && new Date(resultsDate) < new Date(endDate)) {
+//       return setError('Results announcement must be on/after competition end'), false;
 //     }
 
 //     const m = parseInt(maxTeamSize, 10);
@@ -398,7 +403,7 @@
 //                   />
 //                 </div>
 //                 <div>
-//                   <label className="block font-medium mb-2">Seats Available <span className="text-red-400">*</span></label>
+//                   <label className="block font-medium mb-2">Seats Available</label>
 //                   <input
 //                     type="number"
 //                     min={0}
@@ -738,6 +743,7 @@ const EditCompetitionScreen = () => {
   // Core fields
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [evaluationMetrics, setEvaluationMetrics] = useState("");
   const [sponsor, setSponsor] = useState("");
   const [locationField, setLocationField] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
@@ -753,6 +759,15 @@ const EditCompetitionScreen = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [resultsDate, setResultsDate] = useState("");
+  // New submission & evaluation timeline fields
+  const [abstractStartDate, setAbstractStartDate] = useState("");
+  const [abstractEndDate, setAbstractEndDate] = useState("");
+  const [shortlistedDate, setShortlistedDate] = useState("");
+  const [prototypeStartDate, setPrototypeStartDate] = useState("");
+  const [prototypeEndDate, setPrototypeEndDate] = useState("");
+  const [pitchDeckStartDate, setPitchDeckStartDate] = useState("");
+  const [pitchDeckEndDate, setPitchDeckEndDate] = useState("");
+  const [finalRoundDate, setFinalRoundDate] = useState("");
 
   // Structured
   const [eligibility, setEligibility] = useState({
@@ -825,6 +840,20 @@ const EditCompetitionScreen = () => {
         setRegistrationStartDate(toD(c.registration_start_date));
         setRegistrationDeadline(toD(c.registration_deadline));
         setResultsDate(toD(c.results_date));
+  // Prefill new timeline fields
+  setAbstractStartDate(toD(c.abstract_submission_start_date));
+  setAbstractEndDate(toD(c.abstract_submission_end_date));
+  setShortlistedDate(toD(c.shortlisted_candidates_date));
+
+  setPrototypeStartDate(toD(c.prototype_submission_start_date));
+  setPrototypeEndDate(toD(c.prototype_submission_end_date));
+
+  setPitchDeckStartDate(toD(c.pitch_deck_start_date));
+  setPitchDeckEndDate(toD(c.pitch_deck_end_date));
+
+  setFinalRoundDate(toD(c.final_round_date));
+
+  setEvaluationMetrics(c.evaluation_metrics || "");
 
         if (c.eligibility_criteria && typeof c.eligibility_criteria === "object") {
           const ec = c.eligibility_criteria;
@@ -920,7 +949,10 @@ const EditCompetitionScreen = () => {
     if (registrationDeadline && new Date(registrationDeadline) > new Date(startDate))
       return setError("Registration deadline must be before competition start"), false;
 
-    if (resultsDate && new Date(resultsDate) < new Date(endDate))
+    // Results date must come after final round if provided; otherwise must be on/after competition end
+    if (finalRoundDate && resultsDate && new Date(resultsDate) <= new Date(finalRoundDate))
+      return setError("Results announcement must be after final round date"), false;
+    if (!finalRoundDate && resultsDate && new Date(resultsDate) < new Date(endDate))
       return setError("Results date must be on/after competition end"), false;
 
     const m = parseInt(maxTeamSize, 10);
@@ -967,6 +999,21 @@ const EditCompetitionScreen = () => {
           ? new Date(registrationDeadline).toISOString()
           : null,
         results_date: resultsDate ? new Date(resultsDate).toISOString() : null,
+
+  // New timeline / evaluation fields
+  abstract_submission_start_date: abstractStartDate ? new Date(abstractStartDate).toISOString() : null,
+  abstract_submission_end_date: abstractEndDate ? new Date(abstractEndDate).toISOString() : null,
+  shortlisted_candidates_date: shortlistedDate ? new Date(shortlistedDate).toISOString() : null,
+
+  prototype_submission_start_date: prototypeStartDate ? new Date(prototypeStartDate).toISOString() : null,
+  prototype_submission_end_date: prototypeEndDate ? new Date(prototypeEndDate).toISOString() : null,
+
+  pitch_deck_start_date: pitchDeckStartDate ? new Date(pitchDeckStartDate).toISOString() : null,
+  pitch_deck_end_date: pitchDeckEndDate ? new Date(pitchDeckEndDate).toISOString() : null,
+
+  final_round_date: finalRoundDate ? new Date(finalRoundDate).toISOString() : null,
+
+  evaluation_metrics: evaluationMetrics?.trim() || null,
 
         max_team_size: parseInt(maxTeamSize, 10),
         seats_remaining: parseInt(seatsRemaining, 10),
@@ -1102,6 +1149,17 @@ const EditCompetitionScreen = () => {
                     />
                   </div>
 
+                  <div>
+                    <label className="block font-medium mb-2 text-primary-text">Evaluation Metrics</label>
+                    <textarea
+                      rows={4}
+                      placeholder="Describe evaluation rubric / metrics / weights"
+                      value={evaluationMetrics}
+                      onChange={(e) => setEvaluationMetrics(e.target.value)}
+                      className="w-full px-4 py-3 bg-background border border-border rounded-lg text-primary-text placeholder-secondary-text outline-none resize-none"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block font-medium mb-2 text-primary-text">
@@ -1169,7 +1227,7 @@ const EditCompetitionScreen = () => {
                   </div>
                   <div>
                     <label className="block font-medium mb-2 text-primary-text">
-                      Seats Available <span className="text-red-400">*</span>
+                      Seats Available
                     </label>
                     <div className="flex items-center gap-2 h-11 px-3 rounded-lg bg-background border border-border">
                       <Hash className="w-4 h-4 text-secondary-text" />
@@ -1264,6 +1322,47 @@ const EditCompetitionScreen = () => {
                         onChange={(e) => setResultsDate(e.target.value)}
                         className="w-full h-11 px-3 rounded-lg bg-background border border-border text-primary-text outline-none"
                       />
+                    </div>
+                    {/* Submission & evaluation dates */}
+                    <div className="md:col-span-3">
+                      <h4 className="text-sm font-medium text-primary-text mb-2">Submission & Evaluation</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block font-medium mb-2 text-primary-text">Abstract Submission Start</label>
+                          <input type="date" value={abstractStartDate} onChange={(e) => setAbstractStartDate(e.target.value)} className="w-full h-11 px-3 rounded-lg bg-background border border-border text-primary-text outline-none" />
+                        </div>
+                        <div>
+                          <label className="block font-medium mb-2 text-primary-text">Abstract Submission End</label>
+                          <input type="date" value={abstractEndDate} onChange={(e) => setAbstractEndDate(e.target.value)} className="w-full h-11 px-3 rounded-lg bg-background border border-border text-primary-text outline-none" />
+                        </div>
+                        <div>
+                          <label className="block font-medium mb-2 text-primary-text">Shortlisted Candidates Date</label>
+                          <input type="date" value={shortlistedDate} onChange={(e) => setShortlistedDate(e.target.value)} className="w-full h-11 px-3 rounded-lg bg-background border border-border text-primary-text outline-none" />
+                        </div>
+
+                        <div>
+                          <label className="block font-medium mb-2 text-primary-text">Prototype Submission Start</label>
+                          <input type="date" value={prototypeStartDate} onChange={(e) => setPrototypeStartDate(e.target.value)} className="w-full h-11 px-3 rounded-lg bg-background border border-border text-primary-text outline-none" />
+                        </div>
+                        <div>
+                          <label className="block font-medium mb-2 text-primary-text">Prototype Submission End</label>
+                          <input type="date" value={prototypeEndDate} onChange={(e) => setPrototypeEndDate(e.target.value)} className="w-full h-11 px-3 rounded-lg bg-background border border-border text-primary-text outline-none" />
+                        </div>
+                        <div>
+                          <label className="block font-medium mb-2 text-primary-text">Pitch Deck Submission Start</label>
+                          <input type="date" value={pitchDeckStartDate} onChange={(e) => setPitchDeckStartDate(e.target.value)} className="w-full h-11 px-3 rounded-lg bg-background border border-border text-primary-text outline-none" />
+                        </div>
+
+                        <div>
+                          <label className="block font-medium mb-2 text-primary-text">Pitch Deck Submission End</label>
+                          <input type="date" value={pitchDeckEndDate} onChange={(e) => setPitchDeckEndDate(e.target.value)} className="w-full h-11 px-3 rounded-lg bg-background border border-border text-primary-text outline-none" />
+                        </div>
+
+                        <div>
+                          <label className="block font-medium mb-2 text-primary-text">Final Round Date</label>
+                          <input type="date" value={finalRoundDate} onChange={(e) => setFinalRoundDate(e.target.value)} className="w-full h-11 px-3 rounded-lg bg-background border border-border text-primary-text outline-none" />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </section>

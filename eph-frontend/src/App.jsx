@@ -16,9 +16,9 @@ import { ThemeProvider } from "./context/ThemeProvider.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { useAuth } from "./hooks/useAuth";
 
-// Analytics
-import { initGA } from "./services/analytics";
-import { usePageTracking } from "./hooks/useAnalytics";
+// Analytics (disabled)
+/* import { initGA } from "./services/analytics";
+import { usePageTracking } from "./hooks/useAnalytics"; */
 
 // Pages
 import SplashScreen from "./pages/SplashScreen.jsx";
@@ -84,23 +84,22 @@ function RedirectIfAuthed({ children }) {
   return children;
 }
 
-// Component to handle analytics tracking
+/* Analytics tracking disabled
 function AnalyticsWrapper({ children }) {
   usePageTracking(); // Track page views automatically
   return children;
-}
+} */
 
 function App() {
-  // Initialize Google Analytics on app start
+  /* Initialize Google Analytics on app start - disabled
   useEffect(() => {
     initGA();
-  }, []);
+  }, []); */
 
   return (
     <ThemeProvider>
       <AuthProvider>
         <Router>
-          <AnalyticsWrapper>
           <div className="App">
             <Routes>
               {/* Public */}
@@ -292,7 +291,6 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
-          </AnalyticsWrapper>
         </Router>
       </AuthProvider>
     </ThemeProvider>

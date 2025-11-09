@@ -1,3 +1,7 @@
+/* 
+This file is temporarily disabled as part of GA removal.
+Original implementation is preserved below for reference.
+
 // src/hooks/useAnalytics.js
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -12,5 +16,8 @@ export const usePageTracking = () => {
     trackPageView(location.pathname + location.search, document.title);
   }, [location]);
 };
+*/
 
+// Stubbed export to prevent import errors
+export const usePageTracking = () => {};
 export default usePageTracking;

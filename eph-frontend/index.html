@@ -7,28 +7,6 @@
     <meta name="description" content="PPL - Premier Project League" />
     <meta name="theme-color" content="#667eea" />
     <title>PPL</title>
-    
-    <!-- Google Analytics -->
-    <script>
-      // Get GA ID from environment or use placeholder
-      window.GA_MEASUREMENT_ID = '%VITE_GA_MEASUREMENT_ID%' || 'GA_MEASUREMENT_ID';
-      
-      // Only load GA if we have a valid ID
-      if (window.GA_MEASUREMENT_ID && window.GA_MEASUREMENT_ID !== 'GA_MEASUREMENT_ID' && !window.GA_MEASUREMENT_ID.includes('%')) {
-        // Load gtag script
-        var script = document.createElement('script');
-        script.async = true;
-        script.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.GA_MEASUREMENT_ID;
-        document.head.appendChild(script);
-        
-        // Initialize gtag
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        window.gtag = gtag;
-        gtag('js', new Date());
-        gtag('config', window.GA_MEASUREMENT_ID);
-      }
-    </script>
   </head>
   <body>
     <div id="root"></div>

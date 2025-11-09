@@ -433,6 +433,18 @@ const competitionController = {
   registration_start_date,
   registration_deadline, // you already had this
   results_date,
+  abstract_submission_start_date,
+  abstract_submission_end_date,
+  shortlisted_candidates_date,
+
+  prototype_submission_start_date,
+  prototype_submission_end_date,
+
+  pitch_deck_start_date,
+  pitch_deck_end_date,
+
+  final_round_date,
+  evaluation_metrics,
   prizes,
   resources,
   team_limits,
@@ -504,6 +516,19 @@ const seatsRemainingInt = parseInt(
   registration_start_date: registration_start_date ?? null,
   registration_deadline: registration_deadline ?? null,
   results_date: results_date ?? null,
+  abstract_submission_start_date: abstract_submission_start_date ?? null,
+  abstract_submission_end_date: abstract_submission_end_date ?? null,
+  shortlisted_candidates_date: shortlisted_candidates_date ?? null,
+
+  prototype_submission_start_date: prototype_submission_start_date ?? null,
+  prototype_submission_end_date: prototype_submission_end_date ?? null,
+
+  pitch_deck_start_date: pitch_deck_start_date ?? null,
+  pitch_deck_end_date: pitch_deck_end_date ?? null,
+
+  final_round_date: final_round_date ?? null,
+
+  evaluation_metrics: evaluation_metrics ?? null,
 
   prizes: Array.isArray(prizes) ? prizes : [],
   resources: Array.isArray(resources) ? resources : [],
@@ -625,6 +650,8 @@ if (Object.prototype.hasOwnProperty.call(updateData, 'resources') && typeof upda
       // Trim simple strings
 ['title','description','sponsor','location','banner_image_url','description_long','rules','rules_markdown']
   .forEach(k => { if (typeof updateData[k] === 'string') updateData[k] = updateData[k].trim(); });
+      // Trim evaluation text if provided
+  if (typeof updateData.evaluation_metrics === 'string') updateData.evaluation_metrics = updateData.evaluation_metrics.trim();
 
       await competition.update(updateData);
       // const out = parseCompetitionTextFields(competition.toJSON());

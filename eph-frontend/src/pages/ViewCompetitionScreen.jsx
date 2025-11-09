@@ -106,6 +106,64 @@ const ViewCompetitionScreen = () => {
           </div>
         )}
 
+        {/* Timeline Details */}
+        <div className="bg-white/10 rounded-xl p-4 border border-white/20">
+          <h3 className="text-lg font-semibold mb-3">Timeline</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-white/80">
+            <div>
+              <p className="text-sm text-white/60">Registration Opens</p>
+              <p className="font-medium">{competition.registration_start_date ? new Date(competition.registration_start_date).toLocaleDateString() : '—'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-white/60">Registration Closes</p>
+              <p className="font-medium">{competition.registration_deadline ? new Date(competition.registration_deadline).toLocaleDateString() : '—'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-white/60">Competition Dates</p>
+              <p className="font-medium">{(competition.start_date || competition.end_date) ? `${competition.start_date ? new Date(competition.start_date).toLocaleDateString() : '—'} – ${competition.end_date ? new Date(competition.end_date).toLocaleDateString() : '—'}` : '—'}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-white/60">Abstract Submission Start</p>
+              <p className="font-medium">{competition.abstract_submission_start_date ? new Date(competition.abstract_submission_start_date).toLocaleDateString() : '—'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-white/60">Abstract Submission End</p>
+              <p className="font-medium">{competition.abstract_submission_end_date ? new Date(competition.abstract_submission_end_date).toLocaleDateString() : '—'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-white/60">Shortlisted Candidates</p>
+              <p className="font-medium">{competition.shortlisted_candidates_date ? new Date(competition.shortlisted_candidates_date).toLocaleDateString() : '—'}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-white/60">Prototype Submission Start</p>
+              <p className="font-medium">{competition.prototype_submission_start_date ? new Date(competition.prototype_submission_start_date).toLocaleDateString() : '—'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-white/60">Prototype Submission End</p>
+              <p className="font-medium">{competition.prototype_submission_end_date ? new Date(competition.prototype_submission_end_date).toLocaleDateString() : '—'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-white/60">Pitch Deck Submission Start</p>
+              <p className="font-medium">{competition.pitch_deck_start_date ? new Date(competition.pitch_deck_start_date).toLocaleDateString() : '—'}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-white/60">Pitch Deck Submission End</p>
+              <p className="font-medium">{competition.pitch_deck_end_date ? new Date(competition.pitch_deck_end_date).toLocaleDateString() : '—'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-white/60">Final Round Date</p>
+              <p className="font-medium">{competition.final_round_date ? new Date(competition.final_round_date).toLocaleDateString() : '—'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-white/60">Results Announcement</p>
+              <p className="font-medium">{competition.results_date ? new Date(competition.results_date).toLocaleDateString() : '—'}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Stats (display-only) */}
         <div className="grid md:grid-cols-3 gap-4">
           <div className="bg-white/10 rounded-xl p-4 border border-white/20">

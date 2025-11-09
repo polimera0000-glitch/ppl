@@ -1,12 +1,45 @@
+/* 
+This file is temporarily disabled as part of GA removal.
+Original implementation preserved below for reference.
+*/
+
+// Stubbed exports to prevent import errors
+export const initGA = () => {};
+export const trackPageView = () => {};
+export const trackEvent = () => {};
+export const trackRegistration = () => {};
+export const trackPayment = () => {};
+export const trackPaymentInitiated = () => {};
+export const trackTeamInvitation = () => {};
+export const trackCompetitionView = () => {};
+export const trackLogin = () => {};
+export const trackSignup = () => {};
+
+export default {
+  initGA,
+  trackPageView,
+  trackEvent,
+  trackRegistration,
+  trackPayment,
+  trackPaymentInitiated,
+  trackTeamInvitation,
+  trackCompetitionView,
+  trackLogin,
+  trackSignup
+};
+
+/* Original implementation preserved below:
+
 // src/services/analytics.js
 // Google Analytics 4 integration
 
-// Replace with your actual Google Analytics Measurement ID
-const GA_MEASUREMENT_ID = process.env.VITE_GA_MEASUREMENT_ID || 'GA_MEASUREMENT_ID';
+const GA_MEASUREMENT_ID =
+  (typeof window !== 'undefined' && window.GA_MEASUREMENT_ID) ||
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GA_MEASUREMENT_ID) ||
+  'GA_MEASUREMENT_ID';
 
 // Initialize Google Analytics
 export const initGA = () => {
-  // Check if gtag is available
   if (typeof window !== 'undefined' && window.gtag) {
     window.gtag('config', GA_MEASUREMENT_ID, {
       page_title: document.title,
@@ -83,7 +116,7 @@ export const trackPaymentInitiated = (orderId, amount, currency, competitionId) 
 export const trackTeamInvitation = (action, competitionId) => {
   trackEvent('team_invitation', {
     category: 'team_management',
-    label: action, // 'sent', 'accepted', 'rejected'
+    label: action,
     competition_id: competitionId
   });
 };
@@ -115,16 +148,4 @@ export const trackSignup = (method = 'email') => {
     method: method
   });
 };
-
-export default {
-  initGA,
-  trackPageView,
-  trackEvent,
-  trackRegistration,
-  trackPayment,
-  trackPaymentInitiated,
-  trackTeamInvitation,
-  trackCompetitionView,
-  trackLogin,
-  trackSignup
-};
+*/
