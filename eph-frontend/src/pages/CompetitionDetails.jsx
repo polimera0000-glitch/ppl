@@ -125,48 +125,123 @@ const CompetitionDetails = () => {
   };
 
   const TIMELINE_LABELS = {
-    registration_start_date: { short: "Registration Opens.", long: "Registration opens." },
-    registration_deadline: { short: "Registration Closes.", long: "Registration closes." },
-    start_date: { short: "Start Date.", long: "Start Date." },
-    entry_deadline: {
-      short: "Entry Deadline.",
-      long: "Entry Deadline. You must accept the competition rules before this date in order to compete.",
-    },
-    team_merger_deadline: {
-      short: "Team Merger Deadline.",
-      long: "Team Merger Deadline. This is the last day participants may join or merge teams.",
-    },
-    final_submission_deadline: { short: "Final Submission Deadline.", long: "Final Submission Deadline." },
-    end_date: { short: "Competition Ends.", long: "Competition Ends." },
-    results_date: { short: "Results Announced.", long: "Results announced." },
-  };
+  // Registration
+  registration_start_date: {
+    short: "Registration Opens",
+    long: "Registration Opens",
+  },
+  registration_deadline: {
+    short: "Registration Closes",
+    long: "Registration Closes",
+  },
+
+  // Abstract Submission
+  abstract_submission_start_date: {
+    short: "Abstract Submission Opens",
+    long: "Abstract Submission Opens",
+  },
+  abstract_submission_end_date: {
+    short: "Abstract Submission Closes",
+    long: "Abstract Submission Closes",
+  },
+
+  // Shortlisted Candidates
+  shortlisted_candidates_date: {
+    short: "Shortlisted Candidates Announced",
+    long: "Shortlisted Candidates Announced",
+  },
+
+  // Prototype Submission
+  prototype_submission_start_date: {
+    short: "Prototype Submission Opens",
+    long: "Prototype Submission Opens",
+  },
+  prototype_submission_end_date: {
+    short: "Prototype Submission Closes",
+    long: "Prototype Submission Closes",
+  },
+
+  // Pitch Deck Submission
+  pitch_deck_start_date: {
+    short: "Pitch Deck Submission Opens",
+    long: "Pitch Deck Submission Opens",
+  },
+  pitch_deck_end_date: {
+    short: "Pitch Deck Submission Closes",
+    long: "Pitch Deck Submission Closes",
+  },
+
+  // Final Round
+  final_round_date: {
+    short: "Final Round",
+    long: "Final Round",
+  },
+
+  // Results
+  results_date: {
+    short: "Results Announced",
+    long: "Results Announced",
+  },
+
+  // Legacy fields / fallback (keep these for compatibility)
+  
+  entry_deadline: {
+    short: "Entry Deadline",
+    long: "Entry Deadline. Accept rules before this date to compete.",
+  },
+  team_merger_deadline: {
+    short: "Team Merger Deadline",
+    long: "Team Merger Deadline — Last day participants may join or merge teams.",
+  },
+  final_submission_deadline: {
+    short: "Final Submission Deadline",
+    long: "Final Submission Deadline",
+  },
+};
+
 
   const tags = useMemo(() => (Array.isArray(comp?.tags) ? comp.tags : []), [comp]);
 
   const timelineItems = useMemo(() => {
-    if (!comp) return [];
-    const candidates = [
-      ["registration_start_date", comp.registration_start_date],
-      ["registration_deadline", comp.registration_deadline],
-      ["start_date", comp.start_date],
-      ["entry_deadline", comp.entry_deadline],
-      ["team_merger_deadline", comp.team_merger_deadline],
-      ["final_submission_deadline", comp.final_submission_deadline],
-      ["end_date", comp.end_date],
-      ["results_date", comp.results_date],
-    ].filter(([, v]) => !!v);
+  if (!comp) return [];
+  const candidates = [
+    // Registration
+    ["registration_start_date", comp.registration_start_date],
+    ["registration_deadline", comp.registration_deadline],
+    // Abstract
+    ["abstract_submission_start_date", comp.abstract_submission_start_date],
+    ["abstract_submission_end_date", comp.abstract_submission_end_date],
+    // Shortlist
+    ["shortlisted_candidates_date", comp.shortlisted_candidates_date],
+    // Prototype
+    ["prototype_submission_start_date", comp.prototype_submission_start_date],
+    ["prototype_submission_end_date", comp.prototype_submission_end_date],
+    // Pitch Deck
+    ["pitch_deck_start_date", comp.pitch_deck_start_date],
+    ["pitch_deck_end_date", comp.pitch_deck_end_date],
+    // Final + Results
+    ["final_round_date", comp.final_round_date],
+    ["results_date", comp.results_date],
+    // Fallbacks
+    
+  ].filter(([, v]) => !!v);
 
-    const toTS = (d) => (d ? new Date(d).getTime() : Number.MAX_SAFE_INTEGER);
+  const toTS = (d) => (d ? new Date(d).getTime() : Number.MAX_SAFE_INTEGER);
 
-    return candidates
-      .map(([key, date]) => ({
-        key,
-        date,
-        ts: toTS(date),
-        text: TIMELINE_LABELS[key]?.long || TIMELINE_LABELS[key]?.short || key,
-      }))
-      .sort((a, b) => a.ts - b.ts);
-  }, [comp]);
+  return candidates
+    .map(([key, date]) => ({
+      key,
+      date,
+      ts: toTS(date),
+      text:
+        TIMELINE_LABELS[key]?.long ||
+        TIMELINE_LABELS[key]?.short ||
+        key.replaceAll("_", " "),
+    }))
+    .sort((a, b) => a.ts - b.ts);
+}, [comp]);
+
+
 
   const seatsLeft = comp?.seats_remaining;
 
