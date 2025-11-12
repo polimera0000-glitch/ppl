@@ -492,7 +492,7 @@ const feeFor = (eduType) => (eduType === 'graduate' ? FEE_GRADUATE : FEE_UNDERGR
             </div>
 
             <div className="hidden sm:flex sm:gap-2">
-              {["overview", "leaderboard", "timeline", "rules"].map((tab) => (
+              {["overview", "description", "timeline","leaderboard"].map((tab) => (
                 <button
                   key={`d-${tab}`}
                   onClick={() => setActiveTab(tab)}
@@ -776,7 +776,7 @@ const feeFor = (eduType) => (eduType === 'graduate' ? FEE_GRADUATE : FEE_UNDERGR
             {activeTab === "rules" && (
               <>
                 <h4 className="text-primary-text font-semibold text-xs sm:text-sm uppercase tracking-wider mb-2">
-                  Rules
+                  descritpion
                 </h4>
                 {comp.rules_markdown || comp.rules ? (
                   <div className="text-secondary-text whitespace-pre-wrap text-sm sm:text-base break-words">
