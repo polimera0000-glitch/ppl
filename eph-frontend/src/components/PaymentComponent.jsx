@@ -33,7 +33,7 @@ const PaymentComponent = ({
 
   // Calculate amount based on user type and team size
   const calculateAmount = () => {
-    const pricePerPerson = userType === 'undergraduate' ? 500 : 1000;
+    const pricePerPerson = userType === 'undergraduate' ? '999':'1999';
     return pricePerPerson * teamSize;
   };
 
@@ -223,7 +223,7 @@ const PaymentComponent = ({
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              ₹{userType === 'undergraduate' ? '500' : '1000'} per person
+              ₹{userType === 'undergraduate' ? '999':'1999'} per person
             </p>
           </div>
         </div>
