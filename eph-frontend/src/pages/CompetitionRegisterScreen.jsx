@@ -1087,8 +1087,8 @@ const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 const normalizePhone = (p) => String(p || '').trim();
 
 // Pricing (displayed for reference, but not enforced during registration)
-const FEE_UNDERGRAD = 500;
-const FEE_GRADUATE = 1000;
+const FEE_UNDERGRAD = 999;
+const FEE_GRADUATE = 1999;
 const feeFor = (eduType) => (eduType === 'graduate' ? FEE_GRADUATE : FEE_UNDERGRAD);
 
 const emptyMember = () => ({
@@ -1478,7 +1478,7 @@ const CompetitionRegisterScreen = () => {
         }`}
     >
       <GraduationCap className="w-4 h-4 text-white/90" />
-      {eduType === 'graduate' ? '₹1000 • Graduate' : '₹500 • Undergraduate'}
+      {eduType === 'graduate' ? '₹1999 • Graduate' : '₹999 • Undergraduate'}
     </span>
   );
 

@@ -62,11 +62,11 @@ const paymentController = {
       
       if (teamSize > 1) {
         // For teams, calculate based on team size (assuming all same user type for now)
-        const pricePerPerson = userType.toLowerCase() === 'undergraduate' ? 500 : 1000;
+        const pricePerPerson = userType.toLowerCase() === 'undergraduate' ? 999 : 1999;
         totalAmount = pricePerPerson * teamSize;
       } else {
         // For individuals
-        totalAmount = userType.toLowerCase() === 'undergraduate' ? 500 : 1000;
+        totalAmount = userType.toLowerCase() === 'undergraduate' ? 999 : 1999;
       }
 
       // Create payment order

@@ -21,8 +21,8 @@ class PaymentService {
 
     // Pricing configuration
     this.pricing = {
-      undergraduate: 500, // ₹500 per person
-      graduate: 1000      // ₹1000 per person
+      undergraduate: 999, // ₹999 per person
+      graduate: 1999      // ₹1999 per person
     };
   }
 

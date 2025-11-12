@@ -29,8 +29,8 @@ const CompetitionDetails = () => {
   const isAdmin = role === "admin"; // ✅ admins should not see Register
 
   // --- Registration Fee Logic ---
-const FEE_UNDERGRAD = 500;
-const FEE_GRADUATE = 1000;
+const FEE_UNDERGRAD = 999;
+const FEE_GRADUATE = 1999;
 const feeFor = (eduType) => (eduType === 'graduate' ? FEE_GRADUATE : FEE_UNDERGRAD);
 
   const [loading, setLoading] = useState(true);
@@ -476,7 +476,7 @@ const feeFor = (eduType) => (eduType === 'graduate' ? FEE_GRADUATE : FEE_UNDERGR
           {/* Tabs (sticky on mobile) */}
           <div className="mb-0 sticky top-0 z-10 bg-transparent pt-1 sm:static sm:pt-0">
             <div className="grid grid-cols-2 gap-2 sm:hidden">
-              {["overview", "leaderboard", "timeline", "rules"].map((tab) => (
+              {["overview","descrption", "timeline", "leaderboard"].map((tab) => (
                 <button
                   key={`m-${tab}`}
                   onClick={() => setActiveTab(tab)}
