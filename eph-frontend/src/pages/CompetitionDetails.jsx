@@ -321,7 +321,7 @@ const CompetitionDetails = () => {
               <img
                 src={comp.banner_image_url}
                 alt={`${comp.title} Banner`}
-                className="className=w-full h-80 sm:h-[28rem] object-cover"
+                className="w-full h-56 sm:h-80 object-cover"
                 onError={(e) => (e.target.style.display = 'none')}
               />
             </div>
@@ -674,17 +674,6 @@ const CompetitionDetails = () => {
                   </div>
                 )}
 
-                {/* Registration Status Component */}
-                {!isAdmin && (
-                  <div className="pt-2">
-                    <RegistrationStatusComponent
-                      competitionId={id}
-                      onStatusChange={(status) => {
-                        console.log('Registration status changed:', status);
-                      }}
-                    />
-                  </div>
-                )}
               </>
             )}
 
