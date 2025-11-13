@@ -321,7 +321,7 @@ const CompetitionDetails = () => {
               <img
                 src={comp.banner_image_url}
                 alt={`${comp.title} Banner`}
-                className="w-full h-56 sm:h-80 object-cover"
+                className="className=w-full h-80 sm:h-[28rem] object-cover"
                 onError={(e) => (e.target.style.display = 'none')}
               />
             </div>
