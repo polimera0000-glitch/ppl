@@ -57,8 +57,8 @@ const CompetitionDetails = () => {
     return "upcoming";
   }, [startAt, endAt, now]);
 
-  const registrationStart = useMemo(() => toDate(comp?.registration_start_date), [comp]);
-  const registrationEnd = useMemo(() => toDate(comp?.registration_deadline), [comp]);
+  const registrationStart = useMemo(() => toDate(comp?.registration_start_date) || toDate(comp?.start_date), [comp]);
+  const registrationEnd = useMemo(() => toDate(comp?.registration_deadline) || toDate(comp?.end_date), [comp]);
 
   const isRegistrationOpen = useMemo(() => {
     if (!registrationStart || !registrationEnd) return true;
@@ -224,7 +224,7 @@ const CompetitionDetails = () => {
   const seatsLeft = comp?.seats_remaining;
 
   const canRegisterCTA =
-    phase === "upcoming" &&
+    phase !== "completed" &&
     !isAdmin &&
     isRegistrationOpen &&
     (typeof seatsLeft !== "number" || seatsLeft > 0);
@@ -489,6 +489,60 @@ const CompetitionDetails = () => {
 
           {/* Panel */}
           <div className="p-4 sm:p-6 border-2 border-slate-200 dark:border-slate-700 rounded-2xl sm:rounded-tl-none bg-white dark:bg-slate-800 space-y-6">
+            {/* Registration Button - Visible in all tabs */}
+            {!isAdmin && canRegisterCTA && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-slate-900 dark:text-white font-bold mb-1">Ready to participate?</h4>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                      Registration is open. Secure your spot now!
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRegister}
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors whitespace-nowrap"
+                  >
+                    Register Now
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Show registration closed message if registration period has ended */}
+            {!isAdmin && !canRegisterCTA && registrationEnd && now > registrationEnd && (
+              <div className="p-4 bg-slate-100 dark:bg-slate-700/30 border-2 border-slate-300 dark:border-slate-600 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-600 flex items-center justify-center">
+                    <X className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-slate-900 dark:text-white font-bold mb-1">Registration Closed</h4>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                      Registration deadline has passed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show registration not yet open message if before registration start */}
+            {!isAdmin && !canRegisterCTA && registrationStart && now < registrationStart && (
+              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-amber-200 dark:bg-amber-900/40 flex items-center justify-center">
+                    <CalendarDays className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-slate-900 dark:text-white font-bold mb-1">Registration Opens Soon</h4>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                      Registration starts on {fmtLong(comp.registration_start_date)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Overview */}
             {activeTab === "overview" && (
               <>

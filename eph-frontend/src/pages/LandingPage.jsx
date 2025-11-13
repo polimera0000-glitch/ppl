@@ -311,7 +311,7 @@ export default function LandingPage({ embedded = false }) {
         <div className="flex items-center gap-5 mt-6">
           <a
             aria-label="LinkedIn"
-            href="#"
+            href="https://www.linkedin.com/in/project-premier-league-undefined-6b8915395?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
             target="_blank"
             rel="noopener noreferrer"
             className="text-secondary-text hover:text-primary-text transition-colors"
@@ -320,21 +320,12 @@ export default function LandingPage({ embedded = false }) {
           </a>
           <a
             aria-label="Instagram"
-            href="#"
+            href="https://www.instagram.com/projectpremierleague?igsh=MWJ4bjZzMm54Nmp6cg=="
             target="_blank"
             rel="noopener noreferrer"
             className="text-secondary-text hover:text-primary-text transition-colors"
           >
             <Instagram className="h-6 w-6" />
-          </a>
-          <a
-            aria-label="Twitter/X"
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-secondary-text hover:text-primary-text transition-colors"
-          >
-            <Twitter className="h-6 w-6" />
           </a>
           <a
             aria-label="YouTube"
