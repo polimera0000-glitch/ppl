@@ -499,12 +499,21 @@ const CompetitionDetails = () => {
                       Registration is open. Secure your spot now!
                     </p>
                   </div>
-                  <button
-                    onClick={handleRegister}
-                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors whitespace-nowrap"
-                  >
-                    Register Now
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
+                    <button
+                      onClick={() => handleRegister("individual")}
+                      className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold transition-all duration-200 shadow-sm active:scale-[.98]"
+                    >
+                      Register as Individual
+                    </button>
+
+                    <button
+                      onClick={() => handleRegister("team")}
+                      className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold transition-all duration-200 shadow-sm active:scale-[.98]"
+                    >
+                      Register as Team
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
