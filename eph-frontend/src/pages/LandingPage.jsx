@@ -74,10 +74,10 @@ export default function LandingPage({ embedded = false }) {
       <section className="relative text-center pt-20 pb-16 sm:pt-24 sm:pb-24 md:pt-32 md:pb-32 px-4 overflow-hidden bg-surface/60 safe-top">
         <div className="max-w-4xl mx-auto relative z-10">
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6 leading-tight text-primary-text">
-            Where Student Projects Meet Real Investors
+            Where Ideas Meet Real Investors
           </h1>
           <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 max-w-2xl mx-auto text-secondary-text">
-            Transform college projects into successful startups. Compete, learn,
+            Transform college projects/ideas into successful startups. Compete, learn,
             and pitch to real investors through PPL – the ultimate startup
             league for students.
           </p>

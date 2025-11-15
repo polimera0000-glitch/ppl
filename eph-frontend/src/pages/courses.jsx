@@ -11,7 +11,7 @@ const Courses = () => {
 
       {/* Title */}
       <h2 className="text-3xl font-bold text-primary-text mb-3">
-        Courses Coming Soon
+        Courses Starts from dec 10th.
       </h2>
 
       {/* Description */}
