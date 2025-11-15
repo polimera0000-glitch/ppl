@@ -509,7 +509,7 @@ const CompetitionDetails = () => {
 
                     <button
                       onClick={() => handleRegister("team")}
-                      className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold transition-all duration-200 shadow-sm active:scale-[.98]"
+                      className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold transition-all duration-200 shadow-sm active:scale-[.98]"
                     >
                       Register as Team
                     </button>
