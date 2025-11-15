@@ -17,7 +17,7 @@ import {
   FileText,
   Mail,
   Phone,
-  User as UserIcon,
+  User,
   Building2,
   GraduationCap,
   Briefcase,
@@ -362,21 +362,68 @@ const CompetitionRegisterScreen = () => {
 
   const FeePill = ({ eduType }) => (
     <span
-      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border-2
-        ${eduType === 'graduate'
-          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700'
-          : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
-        }`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+        eduType === 'graduate'
+          ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700'
+          : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+      }`}
     >
-      <GraduationCap className="w-4 h-4" />
-      {eduType === 'graduate' ? '₹1999 • Graduate' : '₹999 • Undergraduate'}
+      <GraduationCap className="w-3.5 h-3.5" />
+      <span className="hidden sm:inline">
+        {eduType === 'graduate' ? '₹1999 • Graduate' : '₹999 • Undergraduate'}
+      </span>
+      <span className="sm:hidden">
+        ₹{feeFor(eduType)}
+      </span>
     </span>
+  );
+
+  const InputField = ({ icon: Icon, label, type = "text", value, onChange, placeholder, required, readOnly, helper }) => (
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
+      <div className="relative">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">
+          <Icon className="w-4 h-4" />
+        </div>
+        <input
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+          readOnly={readOnly}
+          className="w-full h-11 pl-10 pr-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+        />
+      </div>
+      {helper && <p className="text-xs text-slate-500 dark:text-slate-400">{helper}</p>}
+    </div>
+  );
+
+  const SelectField = ({ icon: Icon, label, value, onChange, options, required }) => (
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
+      <div className="relative">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none z-10">
+          <Icon className="w-4 h-4" />
+        </div>
+        <select
+          value={value}
+          onChange={onChange}
+          required={required}
+          className="w-full h-11 pl-10 pr-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none text-sm"
+        >
+          {options.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
   );
 
   return (
     <SidebarLayout currentPage="competitions" onPageChange={() => {}}>
       <div className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 dark:bg-slate-900">
-        <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+        <div className="p-3 sm:p-6 max-w-5xl mx-auto">
           {loading && (
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 dark:border-blue-900 border-t-blue-600 dark:border-t-blue-400" />
@@ -385,7 +432,7 @@ const CompetitionRegisterScreen = () => {
 
           {!loading && error && !competition && (
             <div className="max-w-lg mx-auto">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 border-2 border-slate-200 dark:border-slate-700 text-center">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 text-center">
                 <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
                   <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
                 </div>
@@ -394,7 +441,7 @@ const CompetitionRegisterScreen = () => {
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button
                     onClick={() => navigate(-1)}
-                    className="px-5 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-lg font-semibold transition-colors border-2 border-slate-200 dark:border-slate-600"
+                    className="px-5 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-lg font-semibold transition-colors border border-slate-200 dark:border-slate-600"
                   >
                     Go Back
                   </button>
@@ -411,23 +458,23 @@ const CompetitionRegisterScreen = () => {
 
           {!loading && competition && (
             <>
-              {/* Header */}
-              <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 border-2 border-slate-200 dark:border-slate-700 mb-6">
+              {/* Sticky Header - Mobile Optimized */}
+              <div className="sticky top-0 z-10 -mx-3 sm:mx-0 bg-white dark:bg-slate-800 rounded-none sm:rounded-xl p-3 sm:p-4 border-b sm:border border-slate-200 dark:border-slate-700 mb-4 sm:mb-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0">
-                      <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0">
+                      <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="min-w-0">
-                      <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                        Registration Form
+                      <h1 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white truncate">
+                        Registration
                       </h1>
-                      <p className="text-slate-600 dark:text-slate-400 text-sm">{competition.title}</p>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 truncate">{competition.title}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => navigate(-1)}
-                    className="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border-2 border-slate-200 dark:border-slate-600 transition-colors shrink-0"
+                    className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 transition-colors shrink-0"
                     aria-label="Close"
                   >
                     <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
@@ -436,34 +483,34 @@ const CompetitionRegisterScreen = () => {
               </div>
 
               {/* Form */}
-              <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-8 border-2 border-slate-200 dark:border-slate-700">
-                <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-3 sm:p-6 border border-slate-200 dark:border-slate-700">
+                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                   {/* Registration Type */}
-                  <section className="space-y-3">
-                    <label className="block font-semibold text-slate-900 dark:text-white text-lg">Registration Type</label>
-                    <div className="grid grid-cols-2 gap-3">
+                  <section className="space-y-2.5">
+                    <label className="block font-semibold text-slate-900 dark:text-white text-sm sm:text-base">Registration Type</label>
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setRegistrationType('individual')}
-                        className={`h-12 px-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 font-medium ${
+                        className={`h-11 sm:h-12 px-3 sm:px-4 rounded-lg border-2 transition-all flex items-center justify-center gap-1.5 sm:gap-2 font-medium text-sm ${
                           registrationType === 'individual'
                             ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-700 dark:text-blue-300'
                             : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-blue-500'
                         }`}
                       >
-                        <UserIcon className="w-5 h-5" />
+                        <User className="w-4 h-4 sm:w-5 sm:h-5" />
                         Individual
                       </button>
                       <button
                         type="button"
                         onClick={() => setRegistrationType('team')}
-                        className={`h-12 px-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 font-medium ${
+                        className={`h-11 sm:h-12 px-3 sm:px-4 rounded-lg border-2 transition-all flex items-center justify-center gap-1.5 sm:gap-2 font-medium text-sm ${
                           registrationType === 'team'
                             ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-700 dark:text-blue-300'
                             : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-blue-500'
                         }`}
                       >
-                        <Users className="w-5 h-5" />
+                        <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                         Team
                       </button>
                     </div>
@@ -471,283 +518,209 @@ const CompetitionRegisterScreen = () => {
 
                   {/* Team Name */}
                   {registrationType === 'team' && (
-                    <section className="space-y-3">
-                      <label className="block font-semibold text-slate-900 dark:text-white">Team Name</label>
-                      <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 border-2 border-slate-200 dark:border-slate-600 focus-within:border-blue-500 transition-colors">
-                        <FileText className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                        <input
-                          value={teamName}
-                          onChange={(e) => setTeamName(e.target.value)}
-                          placeholder="Enter your team name"
-                          className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                          required
-                        />
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Team size (including you): up to {competition?.max_team_size || 1}
-                      </p>
+                    <section className="space-y-2.5">
+                      <InputField
+                        icon={FileText}
+                        label="Team Name"
+                        value={teamName}
+                        onChange={(e) => setTeamName(e.target.value)}
+                        placeholder="Enter your team name"
+                        required
+                        helper={`Max ${competition?.max_team_size || 1} members including you`}
+                      />
                     </section>
                   )}
 
                   {/* Leader Details */}
-                  <section className="space-y-5 p-5 rounded-xl bg-slate-50 dark:bg-slate-700/30 border-2 border-slate-200 dark:border-slate-700">
-                    <div className="flex items-center justify-between flex-wrap gap-3">
-                      <h3 className="font-bold text-slate-900 dark:text-white text-lg">Your Details</h3>
+                  <section className="space-y-3 p-3 sm:p-4 rounded-lg bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">Your Details</h3>
                       <FeePill eduType={applicant.edu_type} />
                     </div>
 
-                    {/* Name */}
-                    <div className="space-y-2">
-                      <label className="block text-slate-700 dark:text-slate-300 font-medium">Full Name</label>
-                      <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus-within:border-blue-500 transition-colors">
-                        <UserIcon className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                        <input
-                          value={applicant.name}
-                          onChange={(e) => setApplicant({ ...applicant, name: e.target.value })}
-                          placeholder="Your name"
-                          className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                          required
-                        />
-                      </div>
+                    <InputField
+                      icon={User}
+                      label="Full Name"
+                      value={applicant.name}
+                      onChange={(e) => setApplicant({ ...applicant, name: e.target.value })}
+                      placeholder="Your name"
+                      required
+                    />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <InputField
+                        icon={Mail}
+                        label="Email"
+                        type="email"
+                        value={applicant.email}
+                        onChange={(e) => setApplicant({ ...applicant, email: e.target.value })}
+                        placeholder="you@example.com"
+                        required
+                        readOnly
+                      />
+
+                      <InputField
+                        icon={Phone}
+                        label="Mobile Number"
+                        type="tel"
+                        value={applicant.phone}
+                        onChange={(e) => setApplicant({ ...applicant, phone: e.target.value })}
+                        placeholder="+91 90000 00000"
+                        required
+                      />
                     </div>
 
-                    {/* Email + Phone */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="block text-slate-700 dark:text-slate-300 font-medium">Email</label>
-                        <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600">
-                          <Mail className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                          <input
-                            type="email"
-                            value={applicant.email}
-                            onChange={(e) => setApplicant({ ...applicant, email: e.target.value })}
-                            placeholder="you@example.com"
-                            className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                            required
-                            readOnly
-                            title="Your email is linked to your account"
-                          />
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <SelectField
+                        icon={User}
+                        label="Gender"
+                        value={applicant.gender}
+                        onChange={(e) => setApplicant({ ...applicant, gender: e.target.value })}
+                        options={[
+                          { value: 'male', label: 'Male' },
+                          { value: 'female', label: 'Female' },
+                          { value: 'non_binary', label: 'Non-binary' },
+                          { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+                        ]}
+                      />
 
-                      <div className="space-y-2">
-                        <label className="block text-slate-700 dark:text-slate-300 font-medium">Mobile Number</label>
-                        <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus-within:border-blue-500 transition-colors">
-                          <Phone className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                          <input
-                            type="tel"
-                            value={applicant.phone}
-                            onChange={(e) => setApplicant({ ...applicant, phone: e.target.value })}
-                            placeholder="+91 90000 00000"
-                            className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                            required
-                          />
-                        </div>
-                      </div>
+                      <InputField
+                        icon={Building2}
+                        label="Organization / Institution"
+                        value={applicant.org}
+                        onChange={(e) => setApplicant({ ...applicant, org: e.target.value })}
+                        placeholder="Your college or company"
+                        required
+                      />
                     </div>
 
-                    {/* Gender + Org */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="block text-slate-700 dark:text-slate-300 font-medium">Gender</label>
-                        <select
-                          className="h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white outline-none w-full focus:border-blue-500 transition-colors"
-                          value={applicant.gender}
-                          onChange={(e) => setApplicant({ ...applicant, gender: e.target.value })}
-                        >
-                          <option value="male">Male</option>
-                          <option value="female">Female</option>
-                          <option value="non_binary">Non-binary</option>
-                          <option value="prefer_not_to_say">Prefer not to say</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="block text-slate-700 dark:text-slate-300 font-medium">Organization / Institution</label>
-                        <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus-within:border-blue-500 transition-colors">
-                          <Building2 className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                          <input
-                            value={applicant.org}
-                            onChange={(e) => setApplicant({ ...applicant, org: e.target.value })}
-                            placeholder="Your college or company"
-                            className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Type + Work Exp */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="block text-slate-700 dark:text-slate-300 font-medium">Type</label>
-                        <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus:border-blue-500 transition-colors">
-                          <GraduationCap className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                          <select
-                            className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white"
-                            value={applicant.edu_type}
-                            onChange={(e) => setApplicant({ ...applicant, edu_type: e.target.value })}
-                          >
-                            <option value="undergraduate">Undergraduate</option>
-                            <option value="graduate">Graduate</option>
-                            <option value="other">Other</option>
-                          </select>
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <SelectField
+                        icon={GraduationCap}
+                        label="Type"
+                        value={applicant.edu_type}
+                        onChange={(e) => setApplicant({ ...applicant, edu_type: e.target.value })}
+                        options={[
+                          { value: 'undergraduate', label: 'Undergraduate' },
+                          { value: 'graduate', label: 'Graduate' },
+                          { value: 'other', label: 'Other' },
+                        ]}
+                      />
 
                       {applicant.edu_type === 'graduate' && (
-                        <div className="space-y-2">
-                          <label className="block text-slate-700 dark:text-slate-300 font-medium">Work Experience (years)</label>
-                          <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus-within:border-blue-500 transition-colors">
-                            <Briefcase className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                            <input
-                              type="number"
-                              min="0"
-                              max="60"
-                              value={applicant.work_experience_years}
-                              onChange={(e) => setApplicant({ ...applicant, work_experience_years: e.target.value })}
-                              placeholder="e.g., 2"
-                              className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                              required
-                            />
-                          </div>
-                        </div>
+                        <InputField
+                          icon={Briefcase}
+                          label="Work Experience (years)"
+                          type="number"
+                          value={applicant.work_experience_years}
+                          onChange={(e) => setApplicant({ ...applicant, work_experience_years: e.target.value })}
+                          placeholder="e.g., 2"
+                          required
+                        />
                       )}
                     </div>
                   </section>
 
                   {/* Team Members */}
                   {registrationType === 'team' && (
-                    <section className="space-y-5">
-                      <h3 className="font-bold text-slate-900 dark:text-white text-lg">Team Members</h3>
+                    <section className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
+                          Team Members {members.length > 0 && `(${members.length})`}
+                        </h3>
+                      </div>
 
                       {/* Add Member Form */}
-                      <div className="space-y-4 p-5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/30">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Add Team Member</p>
+                      <div className="space-y-3 p-3 sm:p-4 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/30">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">Add Team Member</p>
                           <FeePill eduType={memberDraft.edu_type} />
                         </div>
 
-                        {/* Name */}
-                        <div className="space-y-2">
-                          <label className="block text-slate-700 dark:text-slate-300 font-medium">Full Name</label>
-                          <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus-within:border-blue-500 transition-colors">
-                            <UserIcon className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                            <input
-                              value={memberDraft.name}
-                              onChange={(e) => setMemberDraft({ ...memberDraft, name: e.target.value })}
-                              placeholder="Member name"
-                              className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                            />
-                          </div>
+                        <InputField
+                          icon={User}
+                          label="Full Name"
+                          value={memberDraft.name}
+                          onChange={(e) => setMemberDraft({ ...memberDraft, name: e.target.value })}
+                          placeholder="Member name"
+                        />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <InputField
+                            icon={Mail}
+                            label="Email"
+                            type="email"
+                            value={memberDraft.email}
+                            onChange={(e) => setMemberDraft({ ...memberDraft, email: e.target.value })}
+                            placeholder="member@example.com"
+                          />
+
+                          <InputField
+                            icon={Phone}
+                            label="Mobile Number"
+                            type="tel"
+                            value={memberDraft.phone}
+                            onChange={(e) => setMemberDraft({ ...memberDraft, phone: e.target.value })}
+                            placeholder="+91 9xxxx xxxxx"
+                          />
                         </div>
 
-                        {/* Email + Phone */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="block text-slate-700 dark:text-slate-300 font-medium">Email</label>
-                            <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus-within:border-blue-500 transition-colors">
-                              <Mail className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                              <input
-                                type="email"
-                                value={memberDraft.email}
-                                onChange={(e) => setMemberDraft({ ...memberDraft, email: e.target.value })}
-                                placeholder="member@example.com"
-                                className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                              />
-                            </div>
-                          </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <SelectField
+                            icon={User}
+                            label="Gender"
+                            value={memberDraft.gender}
+                            onChange={(e) => setMemberDraft({ ...memberDraft, gender: e.target.value })}
+                            options={[
+                              { value: 'male', label: 'Male' },
+                              { value: 'female', label: 'Female' },
+                              { value: 'non_binary', label: 'Non-binary' },
+                              { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+                            ]}
+                          />
 
-                          <div className="space-y-2">
-                            <label className="block text-slate-700 dark:text-slate-300 font-medium">Mobile Number</label>
-                            <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus-within:border-blue-500 transition-colors">
-                              <Phone className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                              <input
-                                type="tel"
-                                value={memberDraft.phone}
-                                onChange={(e) => setMemberDraft({ ...memberDraft, phone: e.target.value })}
-                                placeholder="+91 9xxxx xxxxx"
-                                className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                              />
-                            </div>
-                          </div>
+                          <InputField
+                            icon={Building2}
+                            label="Organization / Institution"
+                            value={memberDraft.org}
+                            onChange={(e) => setMemberDraft({ ...memberDraft, org: e.target.value })}
+                            placeholder="College or company"
+                          />
                         </div>
 
-                        {/* Gender + Org */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="block text-slate-700 dark:text-slate-300 font-medium">Gender</label>
-                            <select
-                              className="h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white outline-none w-full focus:border-blue-500 transition-colors"
-                              value={memberDraft.gender}
-                              onChange={(e) => setMemberDraft({ ...memberDraft, gender: e.target.value })}
-                            >
-                              <option value="male">Male</option>
-                              <option value="female">Female</option>
-                              <option value="non_binary">Non-binary</option>
-                              <option value="prefer_not_to_say">Prefer not to say</option>
-                            </select>
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="block text-slate-700 dark:text-slate-300 font-medium">Organization / Institution</label>
-                            <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus-within:border-blue-500 transition-colors">
-                              <Building2 className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                              <input
-                                value={memberDraft.org}
-                                onChange={(e) => setMemberDraft({ ...memberDraft, org: e.target.value })}
-                                placeholder="College or company"
-                                className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Type + Work Exp */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="block text-slate-700 dark:text-slate-300 font-medium">Type</label>
-                            <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus:border-blue-500 transition-colors">
-                              <GraduationCap className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                              <select
-                                className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white"
-                                value={memberDraft.edu_type}
-                                onChange={(e) => setMemberDraft({ ...memberDraft, edu_type: e.target.value })}
-                              >
-                                <option value="undergraduate">Undergraduate</option>
-                                <option value="graduate">Graduate</option>
-                                <option value="other">Other</option>
-                              </select>
-                            </div>
-                          </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <SelectField
+                            icon={GraduationCap}
+                            label="Type"
+                            value={memberDraft.edu_type}
+                            onChange={(e) => setMemberDraft({ ...memberDraft, edu_type: e.target.value })}
+                            options={[
+                              { value: 'undergraduate', label: 'Undergraduate' },
+                              { value: 'graduate', label: 'Graduate' },
+                              { value: 'other', label: 'Other' },
+                            ]}
+                          />
 
                           {memberDraft.edu_type === 'graduate' && (
-                            <div className="space-y-2">
-                              <label className="block text-slate-700 dark:text-slate-300 font-medium">Work Experience (years)</label>
-                              <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus-within:border-blue-500 transition-colors">
-                                <Briefcase className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="60"
-                                  value={memberDraft.work_experience_years}
-                                  onChange={(e) => setMemberDraft({ ...memberDraft, work_experience_years: e.target.value })}
-                                  placeholder="e.g., 1"
-                                  className="flex-1 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                                  required
-                                />
-                              </div>
-                            </div>
+                            <InputField
+                              icon={Briefcase}
+                              label="Work Experience (years)"
+                              type="number"
+                              value={memberDraft.work_experience_years}
+                              onChange={(e) => setMemberDraft({ ...memberDraft, work_experience_years: e.target.value })}
+                              placeholder="e.g., 1"
+                              required
+                            />
                           )}
                         </div>
 
-                        <div className="flex justify-end pt-2">
+                        <div className="flex justify-end pt-1">
                           <button
                             type="button"
                             onClick={addMember}
-                            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold inline-flex items-center gap-2 transition-colors"
+                            className="w-full sm:w-auto px-4 sm:px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold inline-flex items-center justify-center gap-2 transition-colors text-sm"
                           >
-                            <Plus className="w-5 h-5" />
+                            <Plus className="w-4 h-4" />
                             Add Member
                           </button>
                         </div>
@@ -755,22 +728,21 @@ const CompetitionRegisterScreen = () => {
 
                       {/* Members List */}
                       {members.length > 0 && (
-                        <div className="space-y-3">
-                          <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">
+                        <div className="space-y-2.5">
+                          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">
                             Team Members ({members.length})
                           </p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 gap-3">
                             {members.map((m, index) => (
-                              <div key={index} className="border-2 border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-white dark:bg-slate-800">
-                                <div className="flex items-start justify-between mb-3">
-                                  <div className="font-semibold text-slate-900 dark:text-white">{m.name || 'Member'}</div>
+                              <div key={index} className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-slate-800">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="font-semibold text-slate-900 dark:text-white text-sm truncate">{m.name || 'Member'}</div>
+                                    <div className="text-xs text-slate-600 dark:text-slate-400 break-all">{m.email}</div>
+                                  </div>
                                   <FeePill eduType={m.edu_type} />
                                 </div>
-                                <div className="space-y-2 text-sm">
-                                  <div className="text-slate-600 dark:text-slate-400">
-                                    <span className="font-medium text-slate-900 dark:text-white">Email: </span>
-                                    <span className="break-all">{m.email}</span>
-                                  </div>
+                                <div className="space-y-1 text-xs mb-3">
                                   <div className="text-slate-600 dark:text-slate-400">
                                     <span className="font-medium text-slate-900 dark:text-white">Phone: </span>
                                     {m.phone}
@@ -787,13 +759,13 @@ const CompetitionRegisterScreen = () => {
                                     )}
                                   </div>
                                 </div>
-                                <div className="mt-4 pt-3 border-t-2 border-slate-100 dark:border-slate-700 flex justify-end">
+                                <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-end">
                                   <button
                                     type="button"
                                     onClick={() => removeMember(index)}
-                                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 inline-flex items-center gap-2 font-medium transition-colors"
+                                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 inline-flex items-center gap-1.5 font-medium transition-colors text-xs"
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                     Remove
                                   </button>
                                 </div>
@@ -806,92 +778,88 @@ const CompetitionRegisterScreen = () => {
                   )}
 
                   {/* Project Abstract */}
-                  <section className="space-y-3">
+                  <section className="space-y-2.5">
                     <div className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                      <label className="font-semibold text-slate-900 dark:text-white">Project Abstract</label>
-                      <span className="text-slate-500 dark:text-slate-400 text-sm">(Optional)</span>
+                      <FileText className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                      <label className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">Project Abstract</label>
+                      <span className="text-slate-500 dark:text-slate-400 text-xs">(Optional)</span>
                     </div>
                     <textarea
                       placeholder="Describe your project idea, approach, or solution..."
                       value={abstract}
                       onChange={(e) => setAbstract(e.target.value)}
-                      rows={5}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-2 border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                      rows={4}
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-sm"
                     />
                   </section>
 
                   {/* Fees - For Reference Only */}
-                  <section className="space-y-4">
-                    <div className="flex items-center justify-between flex-wrap gap-3">
-                      <h3 className="font-bold text-slate-900 dark:text-white text-lg">Registration Fees</h3>
-                      <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 px-3 py-1.5 rounded-lg border-2 border-yellow-300 dark:border-yellow-700 font-semibold">
+                  <section className="space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">Registration Fees</h3>
+                      <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 px-2.5 py-1 rounded-lg border border-yellow-300 dark:border-yellow-700 font-semibold">
                         For Reference Only
                       </span>
                     </div>
 
-                    <div className="rounded-xl border-2 border-slate-200 dark:border-slate-700 overflow-hidden opacity-70">
-                      {/* Header */}
-                      <div className="hidden sm:grid sm:grid-cols-4 gap-4 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold px-5 py-3">
-                        <div>Participant</div>
-                        <div>Type</div>
-                        <div className="text-right">Fee (₹)</div>
-                        <div className="text-right">Notes</div>
-                      </div>
-
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
                       {/* Leader */}
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 px-5 py-4 border-t-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                        <div className="text-slate-900 dark:text-white font-semibold">
-                          You (Leader)
-                          <div className="sm:hidden text-xs text-slate-500 dark:text-slate-400 font-normal break-all">{applicant.email}</div>
+                      <div className="px-3 sm:px-4 py-3 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <div className="text-slate-900 dark:text-white font-semibold text-sm">You (Leader)</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 break-all">{applicant.email}</div>
+                          </div>
+                          <FeePill eduType={applicant.edu_type} />
                         </div>
-                        <div className="text-slate-600 dark:text-slate-400">{applicant.edu_type}</div>
-                        <div className="sm:text-right text-slate-900 dark:text-white font-bold">₹{leaderFee}</div>
-                        <div className="sm:text-right text-slate-600 dark:text-slate-400 text-sm">
-                          {applicant.edu_type === 'graduate' ? 'Graduate fee' : 'Undergraduate fee'}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-600 dark:text-slate-400">Fee</span>
+                          <span className="text-slate-900 dark:text-white font-bold">₹{leaderFee}</span>
                         </div>
                       </div>
 
                       {/* Members */}
                       {registrationType === 'team' &&
                         members.map((m, i) => (
-                          <div key={i} className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 px-5 py-4 border-t-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                            <div className="text-slate-900 dark:text-white font-semibold">
-                              Member {i + 1}
-                              <div className="sm:hidden text-xs text-slate-500 dark:text-slate-400 font-normal break-all">{m.email}</div>
+                          <div key={i} className="px-3 sm:px-4 py-3 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <div className="text-slate-900 dark:text-white font-semibold text-sm">Member {i + 1}</div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400 break-all">{m.email}</div>
+                              </div>
+                              <FeePill eduType={m.edu_type} />
                             </div>
-                            <div className="text-slate-600 dark:text-slate-400">{m.edu_type}</div>
-                            <div className="sm:text-right text-slate-900 dark:text-white font-bold">₹{feeFor(m.edu_type)}</div>
-                            <div className="sm:text-right text-slate-600 dark:text-slate-400 text-sm">
-                              {m.edu_type === 'graduate' ? 'Graduate fee' : 'Undergraduate fee'}
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-600 dark:text-slate-400">Fee</span>
+                              <span className="text-slate-900 dark:text-white font-bold">₹{feeFor(m.edu_type)}</span>
                             </div>
                           </div>
                         ))}
 
                       {/* Total */}
-                      <div className="px-5 py-4 border-t-2 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700 flex items-center justify-between">
-                        <span className="text-slate-700 dark:text-slate-300 font-semibold">Total</span>
-                        <span className="text-slate-900 dark:text-white font-bold text-xl">₹{totalFee}</span>
+                      <div className="px-3 sm:px-4 py-3 bg-blue-50 dark:bg-blue-900/20 flex items-center justify-between">
+                        <span className="text-blue-900 dark:text-blue-100 font-bold text-sm">Total</span>
+                        <span className="text-blue-900 dark:text-blue-100 font-bold text-lg">₹{totalFee}</span>
                       </div>
                     </div>
 
-                    <p className="text-sm text-slate-600 dark:text-slate-400 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2.5 sm:p-3">
                       <strong className="text-blue-700 dark:text-blue-300">Note:</strong> Payment will be processed after form submission.
                     </p>
                   </section>
 
                   {/* Agreements */}
-                  <section className="space-y-3">
-                    <div className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl border-2 border-slate-200 dark:border-slate-700">
+                  <section className="space-y-2.5">
+                    <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-700/30 rounded-lg border border-slate-200 dark:border-slate-700">
                       <input
                         id="agree-tnc"
                         type="checkbox"
                         checked={agreeTnC}
                         onChange={(e) => setAgreeTnC(e.target.checked)}
-                        className="mt-1 w-4 h-4"
+                        className="mt-0.5 w-4 h-4 shrink-0"
                         required
                       />
-                      <label htmlFor="agree-tnc" className="text-slate-600 dark:text-slate-300">
+                      <label htmlFor="agree-tnc" className="text-slate-600 dark:text-slate-300 text-sm">
                         I agree to the{' '}
                         <button
                           type="button"
@@ -903,16 +871,16 @@ const CompetitionRegisterScreen = () => {
                         .
                       </label>
                     </div>
-                    <div className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl border-2 border-slate-200 dark:border-slate-700">
+                    <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-700/30 rounded-lg border border-slate-200 dark:border-slate-700">
                       <input
                         id="agree-privacy"
                         type="checkbox"
                         checked={agreePrivacy}
                         onChange={(e) => setAgreePrivacy(e.target.checked)}
-                        className="mt-1 w-4 h-4"
+                        className="mt-0.5 w-4 h-4 shrink-0"
                         required
                       />
-                      <label htmlFor="agree-privacy" className="text-slate-600 dark:text-slate-300">
+                      <label htmlFor="agree-privacy" className="text-slate-600 dark:text-slate-300 text-sm">
                         I agree to the{' '}
                         <button
                           type="button"
@@ -928,20 +896,20 @@ const CompetitionRegisterScreen = () => {
 
                   {/* Error Display */}
                   {error && (
-                    <div className="p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
-                        <p className="text-red-700 dark:text-red-300 font-medium">{error}</p>
+                    <div className="p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400 shrink-0" />
+                        <p className="text-red-700 dark:text-red-300 font-medium text-sm">{error}</p>
                       </div>
                     </div>
                   )}
 
                   {/* Submit Button */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full h-14 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="w-full h-12 sm:h-14 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-base sm:text-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {submitting ? 'Submitting Registration…' : 'Submit Registration'}
                     </button>
@@ -950,7 +918,7 @@ const CompetitionRegisterScreen = () => {
                       <button
                         type="button"
                         onClick={() => navigate(-1)}
-                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors text-sm font-medium flex items-center gap-2 mx-auto"
+                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors text-sm font-medium flex items-center gap-1.5 mx-auto"
                       >
                         <ChevronLeft className="w-4 h-4" />
                         Cancel and Go Back
