@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
   Rocket,
@@ -46,12 +46,33 @@ export default function LandingPage({ embedded = false }) {
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [RefundOpen, setRefundOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showFloatingButton, setShowFloatingButton] = useState(false);
+  const heroButtonRef = useRef(null);
+  
   const { user, isAuthenticated } = useAuth?.() || {};
   const isAdmin = (user?.role || "").toLowerCase() === "admin";
   const exploreTo = isAuthenticated
     ? `${isAdmin ? "/admin" : "/main"}?tab=competitions`
     : "/competitions";
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowFloatingButton(!entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    if (heroButtonRef.current) {
+      observer.observe(heroButtonRef.current);
+    }
+
+    return () => {
+      if (heroButtonRef.current) {
+        observer.unobserve(heroButtonRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen font-sans bg-background text-primary-text transition-colors">
@@ -70,6 +91,18 @@ export default function LandingPage({ embedded = false }) {
         />
       )}
 
+      {/* Floating Explore Competitions Button */}
+      {showFloatingButton && (
+        <RouterLink
+          to={exploreTo}
+          className="lg:hidden fixed bottom-6 right-6 z-50 px-6 py-3 rounded-md font-semibold bg-primary text-white hover:bg-primary-hover transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2 touch-manipulation"
+          aria-label="Explore Competitions"
+        >
+          <Compass className="h-5 w-5" />
+          <span className="inline lg:hidden">Explore Competitions</span>
+        </RouterLink>
+      )}
+
       {/* Hero */}
       <section className="relative text-center pt-20 pb-16 sm:pt-24 sm:pb-24 md:pt-32 md:pb-32 px-4 overflow-hidden bg-surface/60 safe-top">
         <div className="max-w-4xl mx-auto relative z-10">
@@ -84,11 +117,12 @@ export default function LandingPage({ embedded = false }) {
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center w-full sm:w-auto">
             <RouterLink
+              ref={heroButtonRef}
               to={exploreTo}
               className="px-6 sm:px-8 py-3 rounded-full font-semibold bg-primary text-white hover:bg-primary-hover transition-all duration-300 transform hover:scale-[1.02] text-center touch-manipulation"
             >
               <div className="flex items-center justify-center gap-2">
-              <Compass className="h-5 w-5" />
+                <Compass className="h-5 w-5" />
                 <span>Explore Competitions</span>
               </div>
             </RouterLink>
@@ -99,7 +133,7 @@ export default function LandingPage({ embedded = false }) {
                 className="px-6 sm:px-8 py-3 rounded-full font-semibold border border-border bg-surface text-primary-text hover:bg-border transition-all duration-300 transform hover:scale-[1.02] text-center touch-manipulation"
               >
                 <div className="flex items-center justify-center gap-2">
-                <Rocket className="h-5 w-5" />
+                  <Rocket className="h-5 w-5" />
                   <span>Get Started</span>
                 </div>
               </RouterLink>
@@ -177,7 +211,7 @@ export default function LandingPage({ embedded = false }) {
           <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-primary-text">
             PPL Startup Course
           </h2>
-        <p className="text-base sm:text-lg mb-10 sm:mb-12 text-secondary-text">
+          <p className="text-base sm:text-lg mb-10 sm:mb-12 text-secondary-text">
             An 8-week program to build a validated business model and a pitch deck.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
@@ -286,227 +320,226 @@ export default function LandingPage({ embedded = false }) {
       </section>
 
       {/* ===== Footer / Contact ===== */}
-<footer
-  id="contact"
-  role="contentinfo"
-  className="bg-surface border-t border-border"
->
-  <div className="max-w-7xl mx-auto px-4 py-16">
-    {/* Top grid */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10">
-      {/* Brand + short blurb */}
-      <div>
-        <div className="flex items-center gap-3 mb-4">
-          <Rocket className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold tracking-tight text-primary-text">
-            Premier Project League
-          </span>
+      <footer
+        id="contact"
+        role="contentinfo"
+        className="bg-surface border-t border-border"
+      >
+        <div className="max-w-7xl mx-auto px-4 py-16 pb-32">
+          {/* Top grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10">
+            {/* Brand + short blurb */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <Rocket className="h-8 w-8 text-primary" />
+                <span className="text-2xl font-bold tracking-tight text-primary-text">
+                  Premier Project League
+                </span>
+              </div>
+              <p className="text-secondary-text">
+                Turning student projects into real startups through competitions,
+                mentorship, and investor connections.
+              </p>
+
+              {/* Socials */}
+              <div className="flex items-center gap-5 mt-6">
+                <a
+                  aria-label="LinkedIn"
+                  href="https://www.linkedin.com/in/project-premier-league-undefined-6b8915395?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-secondary-text hover:text-primary-text transition-colors"
+                >
+                  <Linkedin className="h-6 w-6" />
+                </a>
+                <a
+                  aria-label="Instagram"
+                  href="https://www.instagram.com/projectpremierleague?igsh=MWJ4bjZzMm54Nmp6cg=="
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-secondary-text hover:text-primary-text transition-colors"
+                >
+                  <Instagram className="h-6 w-6" />
+                </a>
+                <a
+                  aria-label="YouTube"
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-secondary-text hover:text-primary-text transition-colors"
+                >
+                  <Youtube className="h-6 w-6" />
+                </a>
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <h4 className="text-sm font-semibold tracking-wider text-secondary-text uppercase mb-4">
+                Quick Links
+              </h4>
+              <ul className="space-y-3">
+                <li>
+                  <RouterLink
+                    to="/competitions"
+                    className="text-primary-text/90 hover:text-primary transition-colors"
+                  >
+                    Competitions
+                  </RouterLink>
+                </li>
+                <li>
+                  <RouterLink
+                    to="/roles"
+                    className="text-primary-text/90 hover:text-primary transition-colors"
+                  >
+                    Get Started
+                  </RouterLink>
+                </li>
+                <li>
+                  <a
+                    href="#course"
+                    className="text-primary-text/90 hover:text-primary transition-colors"
+                  >
+                    Startup Course
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#why-ppl"
+                    className="text-primary-text/90 hover:text-primary transition-colors"
+                  >
+                    Why PPL
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal (open modals like Contact) */}
+            <div>
+              <h4 className="text-sm font-semibold tracking-wider text-secondary-text uppercase mb-4">
+                Legal
+              </h4>
+              <ul className="space-y-3">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setTermsOpen(true)}
+                    className="text-left text-primary-text/90 hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded"
+                  >
+                    Terms &amp; Conditions
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setPrivacyOpen(true)}
+                    className="text-left text-primary-text/90 hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded"
+                  >
+                    Privacy Policy
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setRefundOpen(true)}
+                    className="text-left text-primary-text/90 hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded"
+                  >
+                    Refund &amp; Cancellation
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Newsletter / Contact */}
+            <div>
+              <h4 className="text-sm font-semibold tracking-wider text-secondary-text uppercase mb-4">
+                Stay in the loop
+              </h4>
+              <p className="text-secondary-text mb-4">
+                Get updates on new competitions and Investor Day announcements.
+              </p>
+
+              <form
+                onSubmit={(e) => e.preventDefault()}
+                className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+              >
+                <label htmlFor="footer-email" className="sr-only">
+                  Email address
+                </label>
+                <input
+                  id="footer-email"
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  className="w-full rounded-lg px-4 py-3 bg-background border border-border text-primary-text placeholder:text-secondary-text focus:outline-none focus:ring-2 focus:ring-primary/50 text-base"
+                />
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-6 py-3 rounded-lg font-semibold bg-primary text-white hover:bg-primary-hover transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-surface touch-manipulation text-center md:text-center"
+                >
+                  Join
+                </button>
+              </form>
+
+              {/* Contact line */}
+              <div className="flex items-start sm:items-center gap-3 mt-6">
+                <Mail className="h-5 w-5 text-secondary-text mt-0.5 sm:mt-0" />
+                <a
+                  href="mailto:contact@ppl.com"
+                  className="text-primary-text hover:text-primary transition-colors break-all"
+                >
+                  support@theppl.com
+                </a>
+              </div>
+              <p>📍65-4-421, Near Hanuman temple, Gajuwaka bus depot, Visakhapatnam-530026</p>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-border my-10" />
+
+          {/* Bottom bar */}
+          <div className="flex flex-col gap-3 items-center justify-between text-sm text-secondary-text md:flex-row">
+            <p className="text-center md:text-left">
+              © {new Date().getFullYear()} Premier Project League. All rights reserved.
+            </p>
+            <p className="text-center md:text-left">
+              Powered by <b>VB Educators</b>
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+              <button
+                type="button"
+                onClick={() => setTermsOpen(true)}
+                className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded px-1"
+              >
+                Terms
+              </button>
+              <span className="opacity-40">|</span>
+              <button
+                type="button"
+                onClick={() => setPrivacyOpen(true)}
+                className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded px-1"
+              >
+                Privacy
+              </button>
+              <span className="opacity-40">|</span>
+              <button
+                type="button"
+                onClick={() => setContactOpen(true)}
+                className="hover:text-primary transition-colors underline-offset-4 hover:underline focus:outline-none focus:ring-2 focus:ring-primary/40 rounded px-1"
+              >
+                Contact
+              </button>
+            </div>
+          </div>
         </div>
-        <p className="text-secondary-text">
-          Turning student projects into real startups through competitions,
-          mentorship, and investor connections.
-        </p>
+      </footer>
 
-        {/* Socials */}
-        <div className="flex items-center gap-5 mt-6">
-          <a
-            aria-label="LinkedIn"
-            href="https://www.linkedin.com/in/project-premier-league-undefined-6b8915395?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-secondary-text hover:text-primary-text transition-colors"
-          >
-            <Linkedin className="h-6 w-6" />
-          </a>
-          <a
-            aria-label="Instagram"
-            href="https://www.instagram.com/projectpremierleague?igsh=MWJ4bjZzMm54Nmp6cg=="
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-secondary-text hover:text-primary-text transition-colors"
-          >
-            <Instagram className="h-6 w-6" />
-          </a>
-          <a
-            aria-label="YouTube"
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-secondary-text hover:text-primary-text transition-colors"
-          >
-            <Youtube className="h-6 w-6" />
-          </a>
-        </div>
-      </div>
-
-      {/* Quick Links */}
-      <div>
-        <h4 className="text-sm font-semibold tracking-wider text-secondary-text uppercase mb-4">
-          Quick Links
-        </h4>
-        <ul className="space-y-3">
-          <li>
-            <RouterLink
-              to="/competitions"
-              className="text-primary-text/90 hover:text-primary transition-colors"
-            >
-              Competitions
-            </RouterLink>
-          </li>
-          <li>
-            <RouterLink
-              to="/roles"
-              className="text-primary-text/90 hover:text-primary transition-colors"
-            >
-              Get Started
-            </RouterLink>
-          </li>
-          <li>
-            <a
-              href="#course"
-              className="text-primary-text/90 hover:text-primary transition-colors"
-            >
-              Startup Course
-            </a>
-          </li>
-          <li>
-            <a
-              href="#why-ppl"
-              className="text-primary-text/90 hover:text-primary transition-colors"
-            >
-              Why PPL
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      {/* Legal (open modals like Contact) */}
-      <div>
-        <h4 className="text-sm font-semibold tracking-wider text-secondary-text uppercase mb-4">
-          Legal
-        </h4>
-        <ul className="space-y-3">
-          <li>
-            <button
-              type="button"
-              onClick={() => setTermsOpen(true)}
-              className="text-left text-primary-text/90 hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded"
-            >
-              Terms &amp; Conditions
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              onClick={() => setPrivacyOpen(true)}
-              className="text-left text-primary-text/90 hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded"
-            >
-              Privacy Policy
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              onClick={() => setRefundOpen(true)}
-              className="text-left text-primary-text/90 hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded"
-            >
-              Refund &amp; Cancellation
-            </button>
-          </li>
-        </ul>
-      </div>
-
-      {/* Newsletter / Contact */}
-      <div>
-        <h4 className="text-sm font-semibold tracking-wider text-secondary-text uppercase mb-4">
-          Stay in the loop
-        </h4>
-        <p className="text-secondary-text mb-4">
-          Get updates on new competitions and Investor Day announcements.
-        </p>
-
-        <form
-          onSubmit={(e) => e.preventDefault()}
-          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
-        >
-          <label htmlFor="footer-email" className="sr-only">
-            Email address
-          </label>
-          <input
-            id="footer-email"
-            type="email"
-            required
-            placeholder="you@example.com"
-            className="w-full rounded-lg px-4 py-3 bg-background border border-border text-primary-text placeholder:text-secondary-text focus:outline-none focus:ring-2 focus:ring-primary/50 text-base"
-          />
-          <button
-            type="submit"
-            className="w-full sm:w-auto px-6 py-3 rounded-lg font-semibold bg-primary text-white hover:bg-primary-hover transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-surface touch-manipulation text-center md:text-center"
-          >
-            Join
-          </button>
-        </form>
-
-        {/* Contact line */}
-        <div className="flex items-start sm:items-center gap-3 mt-6">
-          <Mail className="h-5 w-5 text-secondary-text mt-0.5 sm:mt-0" />
-          <a
-            href="mailto:contact@ppl.com"
-            className="text-primary-text hover:text-primary transition-colors break-all"
-          >
-            support@theppl.com
-          </a>
-        </div>
-        <p>📍65-4-421, Near Hanuman temple, Gajuwaka bus depot, Visakhapatnam-530026</p>
-      </div>
-    </div>
-
-    {/* Divider */}
-    <div className="h-px bg-border my-10" />
-
-    {/* Bottom bar */}
-    <div className="flex flex-col gap-3 items-center justify-between text-sm text-secondary-text md:flex-row">
-      <p className="text-center md:text-left">
-        © {new Date().getFullYear()} Premier Project League. All rights reserved.
-      </p>
-      <p className="text-center md:text-left">
-        Powered by <b>VB Educators</b>
-      </p>
-      <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-        <button
-          type="button"
-          onClick={() => setTermsOpen(true)}
-          className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded px-1"
-        >
-          Terms
-        </button>
-        <span className="opacity-40">|</span>
-        <button
-          type="button"
-          onClick={() => setPrivacyOpen(true)}
-          className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded px-1"
-        >
-          Privacy
-        </button>
-        <span className="opacity-40">|</span>
-        <button
-          type="button"
-          onClick={() => setContactOpen(true)}
-          className="hover:text-primary transition-colors underline-offset-4 hover:underline focus:outline-none focus:ring-2 focus:ring-primary/40 rounded px-1"
-        >
-          Contact
-        </button>
-      </div>
-    </div>
-  </div>
-</footer>
-
-{/* Modals */}
-<ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
-<TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} />
-<PrivacyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
-<RefundModal open={RefundOpen} onClose={() => setRefundOpen(false)} />
-
+      {/* Modals */}
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
+      <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} />
+      <PrivacyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
+      <RefundModal open={RefundOpen} onClose={() => setRefundOpen(false)} />
     </div>
   );
 }
