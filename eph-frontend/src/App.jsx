@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -7,18 +7,21 @@ import {
 } from "react-router-dom";
 
 // Providers
-import { AuthProvider } from "./context/AuthProvider.jsx"; // keep your existing auth
-// (Removed ColorThemeProvider; theming now happens via useTheme + CSS vars)
-// (Optional) keep your palette ThemeProvider if you still use it elsewhere
+import { AuthProvider } from "./context/AuthProvider.jsx";
 import { ThemeProvider } from "./context/ThemeProvider.jsx";
 
 // Guards
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { useAuth } from "./hooks/useAuth";
 
-// Analytics (disabled)
-/* import { initGA } from "./services/analytics";
-import { usePageTracking } from "./hooks/useAnalytics"; */
+// Google Analytics Hook
+import useGoogleAnalytics from "./hooks/useGoogleAnalytics";
+
+// Google Analytics must be wrapped safely inside Router
+function AnalyticsWrapper() {
+  useGoogleAnalytics();
+  return null;
+}
 
 // Pages
 import SplashScreen from "./pages/SplashScreen.jsx";
@@ -52,77 +55,52 @@ import PaymentSuccess from "./pages/PaymentSuccess.jsx";
 import PaymentCallback from "./pages/PaymentCallback.jsx";
 
 import ContactPage from "./pages/ContactPage.jsx";
-
-import VerifyEmail from "./pages/VerifyEmail";
-
-import EmailVerificationNotice from "./pages/EmailVerificationNotice";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
+import EmailVerificationNotice from "./pages/EmailVerificationNotice.jsx";
 
 import "./index.css";
 
 // --- Small gates ---
-// Sends logged-in users to /main or /admin when they hit "/".
 function RootGate() {
   const { isAuthenticated, user, hydrated = true } = useAuth();
   const isAdmin = (user?.role || "").toLowerCase() === "admin";
-  if (!hydrated) return null; // or a tiny loader if you prefer
+  if (!hydrated) return null;
   if (isAuthenticated) {
-    const dest = `${isAdmin ? "/admin" : "/main"}?tab=dashboard`;
-    return <Navigate to={dest} replace />;
+    return <Navigate to={`${isAdmin ? "/admin" : "/main"}?tab=dashboard`} replace />;
   }
   return <LandingPage />;
 }
 
-// Prevents logged-in users from seeing /login or /roles (bounce to app).
 function RedirectIfAuthed({ children }) {
   const { isAuthenticated, user, hydrated = true } = useAuth();
   const isAdmin = (user?.role || "").toLowerCase() === "admin";
   if (!hydrated) return null;
   if (isAuthenticated) {
-    const dest = `${isAdmin ? "/admin" : "/main"}?tab=dashboard`;
-    return <Navigate to={dest} replace />;
+    return <Navigate to={`${isAdmin ? "/admin" : "/main"}?tab=dashboard`} replace />;
   }
   return children;
 }
 
-/* Analytics tracking disabled
-function AnalyticsWrapper({ children }) {
-  usePageTracking(); // Track page views automatically
-  return children;
-} */
-
 function App() {
-  /* Initialize Google Analytics on app start - disabled
-  useEffect(() => {
-    initGA();
-  }, []); */
-
   return (
     <ThemeProvider>
       <AuthProvider>
         <Router>
+
+          {/* Google Analytics Hook — SAFE */}
+          <AnalyticsWrapper />
+
           <div className="App">
             <Routes>
               {/* Public */}
               <Route path="/splash" element={<SplashScreen />} />
               <Route path="/landing" element={<LandingPage />} />
-              {/* Root now shows AppInitializer which handles splash screen logic */}
               <Route path="/" element={<AppInitializer />} />
-              <Route
-                path="/competitions"
-                element={<PublicCompetitionScreen />}
-              />
-              <Route
-                path="/courses"
-                element={<Courses />}
-              />
-              <Route
-                path="/about"
-                element={<div>About Page - Coming Soon</div>}
-              />
+              <Route path="/competitions" element={<PublicCompetitionScreen />} />
+              <Route path="/courses" element={<Courses />} />
+              <Route path="/about" element={<div>About Page - Coming Soon</div>} />
               <Route path="/contact" element={<ContactPage />} />
-              {/* <Route path="/roles" element={<RoleSelectionScreen />} />
-              <Route path="/login" element={<LoginScreen />} />
-              <Route path="/register" element={<RegisterScreen />} /> */}
+
               <Route
                 path="/roles"
                 element={
@@ -147,29 +125,24 @@ function App() {
                   </RedirectIfAuthed>
                 }
               />
-              <Route
-                path="/forgot-password"
-                element={<ForgotPasswordScreen />}
-              />
+
+              <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
               <Route path="/reset-password" element={<ResetPasswordScreen />} />
 
               <Route path="/verify-email" element={<VerifyEmail />} />
-
               <Route path="/verify-email-sent" element={<EmailVerificationNotice />} />
-
               <Route path="/auth/callback" element={<OAuthCallbackScreen />} />
-              
-              {/* Invitation Response Route */}
+
               <Route path="/invitations/respond/:token" element={<InvitationResponse />} />
-              
-              {/* Payment Routes */}
+
+              {/* Payments */}
               <Route path="/payment" element={<PaymentScreen />} />
               <Route path="/payment/:orderId" element={<PaymentScreen />} />
               <Route path="/payment/success/:orderId" element={<PaymentSuccess />} />
               <Route path="/payment/success" element={<PaymentSuccess />} />
               <Route path="/payment/callback" element={<PaymentCallback />} />
               <Route path="/payments/history" element={<PaymentSuccess />} />
-              
+
               <Route
                 path="/competition/:competitionId/leaderboard"
                 element={<CompetitionLeaderboard />}
@@ -194,7 +167,6 @@ function App() {
                 }
               />
 
-              {/* Keep if /admin should render MainNav shell */}
               <Route
                 path="/admin"
                 element={
@@ -204,7 +176,6 @@ function App() {
                 }
               />
 
-              {/* Competition flows */}
               <Route
                 path="/competition/register"
                 element={
@@ -246,7 +217,6 @@ function App() {
                 }
               />
 
-              {/* Submissions */}
               <Route
                 path="/submissions/my"
                 element={
@@ -264,7 +234,6 @@ function App() {
                 }
               />
 
-              {/* Admin role lists */}
               <Route
                 path="/admin/roles/:role"
                 element={
@@ -274,7 +243,6 @@ function App() {
                 }
               />
 
-              {/* Optional: Admin hub */}
               <Route
                 path="/admin-hub"
                 element={
@@ -284,10 +252,7 @@ function App() {
                 }
               />
 
-              {/* Convenience */}
               <Route path="/home" element={<Navigate to="/main" replace />} />
-
-              {/* 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
