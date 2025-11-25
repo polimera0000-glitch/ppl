@@ -135,7 +135,7 @@ const InvitationResponse = () => {
           <p className="text-gray-600 mb-6">{error}</p>
           <CustomButton
             text="Go to Homepage"
-            onPressed={() => navigate('/')}
+            onPressed={() => navigate('homeHref')}
             variant="primary"
             size="md"
             fullWidth={true}
@@ -165,7 +165,7 @@ const InvitationResponse = () => {
             />
             <CustomButton
               text="Go to Homepage"
-              onPressed={() => navigate('/')}
+              onPressed={() => navigate('/Home')}
               variant="outline"
               size="md"
               fullWidth={true}
