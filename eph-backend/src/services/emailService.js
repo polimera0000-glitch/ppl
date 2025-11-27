@@ -384,7 +384,7 @@ If you didn't create an account, you can ignore this email.`;
   // [Keep all other email methods unchanged - they call sendEmail() which handles everything]
   
   async sendWelcomeEmail(email, name) {
-    const dashboardUrl = `${frontend}/dashboard`;
+    const dashboardUrl = `${frontend}/login`;
     const subject = `Welcome to ${BRAND_NAME}!`;
     const bodyHtml = `
       <tr><td style="padding:28px 32px 12px;">
@@ -404,7 +404,7 @@ If you didn't create an account, you can ignore this email.`;
         <div style="text-align:center;margin:20px 0;">
           <a href="${dashboardUrl}" target="_blank" rel="noopener"
              style="display:inline-block;padding:12px 24px;border-radius:8px;background:#2563eb;color:#fff;font-weight:600;">
-            Go to Dashboard
+            Go to Login
           </a>
         </div>
       </td></tr>
@@ -424,7 +424,7 @@ Next steps:
 - Track XP and redeem perks
 - Connect with partners
 
-Dashboard: ${dashboardUrl}`;
+Login: ${dashboardUrl}`;
 
     return this.sendEmail(email, subject, html, text);
   }
