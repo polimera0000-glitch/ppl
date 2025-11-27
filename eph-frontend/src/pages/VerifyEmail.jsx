@@ -97,6 +97,12 @@ export default function VerifyEmail() {
             <div className="text-6xl">✅</div>
             <h1 className="mt-4 text-2xl font-semibold">Email verified successfully!</h1>
             <p className="mt-2 text-gray-600">{msg}</p>
+            <button
+              className="mt-6 px-6 py-3 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors"
+              onClick={() => navigate("/login")}
+            >
+              Go to Login
+            </button>
           </>
         )}
 
