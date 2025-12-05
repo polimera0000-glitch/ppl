@@ -28,21 +28,68 @@ const PaymentComponent = ({
   const [error, setError] = useState(null);
   const [paymentOrder, setPaymentOrder] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState('pending');
+  
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponValidating, setCouponValidating] = useState(false);
+  const [couponError, setCouponError] = useState(null);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
 
   const { userType, teamSize = 1, teamName, registrationType } = registrationData;
 
   // Calculate amount based on user type and team size
   const calculateAmount = () => {
-    const pricePerPerson = userType === 'undergraduate' ? '999':'1999';
+    const pricePerPerson = userType === 'undergraduate' ? 999 : 1999;
     return pricePerPerson * teamSize;
   };
 
-  const amount = calculateAmount();
+  const originalAmount = calculateAmount();
+  const discountAmount = appliedCoupon ? (originalAmount * appliedCoupon.discount_percentage) / 100 : 0;
+  const amount = originalAmount - discountAmount;
 
-  useEffect(() => {
-    // Create payment order when component mounts
-    createPaymentOrder();
-  }, []);
+  // Don't auto-create payment order - let user apply coupon first
+  // useEffect(() => {
+  //   createPaymentOrder();
+  // }, []);
+
+  const validateCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code');
+      return;
+    }
+
+    try {
+      setCouponValidating(true);
+      setCouponError(null);
+
+      const response = await apiService.validateCoupon(couponCode.trim());
+      
+      if (response?.success) {
+        setAppliedCoupon({
+          code: response.data.code,
+          discount_percentage: parseFloat(response.data.discount_percentage)
+        });
+        setCouponError(null);
+      } else {
+        setCouponError(response?.message || 'Invalid coupon code');
+        setAppliedCoupon(null);
+      }
+    } catch (err) {
+      console.error('Coupon validation failed:', err);
+      setCouponError(err.message || 'Failed to validate coupon');
+      setAppliedCoupon(null);
+    } finally {
+      setCouponValidating(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError(null);
+    // Reset payment order so user can recreate with new coupon
+    setPaymentOrder(null);
+  };
 
   const createPaymentOrder = async () => {
     try {
@@ -53,7 +100,8 @@ const PaymentComponent = ({
         competitionId,
         userType,
         teamSize,
-        teamName: registrationType === 'team' ? teamName : undefined
+        teamName: registrationType === 'team' ? teamName : undefined,
+        couponCode: appliedCoupon ? appliedCoupon.code : undefined
       };
 
       const response = await apiService.createPaymentOrder(paymentData);
@@ -215,11 +263,29 @@ const PaymentComponent = ({
           </div>
 
           <div className="border-t border-gray-200 pt-2 mt-3">
+            {appliedCoupon && (
+              <>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-gray-600">Original Amount:</span>
+                  <div className="flex items-center gap-1">
+                    <IndianRupee className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-500 line-through">{originalAmount}</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-green-600">Discount ({appliedCoupon.discount_percentage}%):</span>
+                  <div className="flex items-center gap-1">
+                    <IndianRupee className="w-4 h-4 text-green-600" />
+                    <span className="text-green-600">-{discountAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+              </>
+            )}
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Amount:</span>
+              <span className="text-gray-600 font-semibold">Total Amount:</span>
               <div className="flex items-center gap-1">
                 <IndianRupee className="w-4 h-4 text-green-600" />
-                <span className="font-bold text-lg text-gray-800">{amount}</span>
+                <span className="font-bold text-lg text-gray-800">{amount.toFixed(2)}</span>
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
@@ -227,6 +293,90 @@ const PaymentComponent = ({
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Coupon Code Section */}
+      <div className="bg-gray-50 rounded-lg p-4 mb-6">
+        <h3 className="font-semibold text-gray-800 mb-3">Have a Coupon Code?</h3>
+        
+        {!paymentOrder ? (
+          !appliedCoupon ? (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="Enter coupon code"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  disabled={couponValidating}
+                />
+                <button
+                  onClick={validateCoupon}
+                  disabled={couponValidating || !couponCode.trim()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                >
+                  {couponValidating ? 'Validating...' : 'Apply'}
+                </button>
+              </div>
+              
+              {couponError && (
+                <div className="flex items-center gap-2 text-red-600 text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{couponError}</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <div>
+                    <p className="text-green-800 font-medium text-sm">
+                      Coupon Applied: {appliedCoupon.code}
+                    </p>
+                    <p className="text-green-600 text-xs">
+                      {appliedCoupon.discount_percentage}% discount
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={removeCoupon}
+                  className="text-red-600 hover:text-red-700 text-sm font-medium"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          )
+        ) : (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <div>
+                  <p className="text-green-800 font-medium text-sm">
+                    {appliedCoupon ? `Coupon Applied: ${appliedCoupon.code}` : 'No coupon applied'}
+                  </p>
+                  {appliedCoupon && (
+                    <p className="text-green-600 text-xs">
+                      {appliedCoupon.discount_percentage}% discount
+                    </p>
+                  )}
+                </div>
+              </div>
+              {appliedCoupon && (
+                <button
+                  onClick={removeCoupon}
+                  className="text-red-600 hover:text-red-700 text-sm font-medium"
+                >
+                  Change
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Error Display */}
@@ -264,16 +414,29 @@ const PaymentComponent = ({
 
       {/* Action Buttons */}
       <div className="space-y-3">
-        <CustomButton
-          text={loading ? 'Processing...' : 'Pay Now'}
-          onPressed={handlePayment}
-          enabled={!loading && paymentOrder}
-          loading={loading}
-          variant="primary"
-          size="md"
-          fullWidth={true}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-        />
+        {!paymentOrder ? (
+          <CustomButton
+            text={loading ? 'Creating Order...' : 'Continue to Payment'}
+            onPressed={createPaymentOrder}
+            enabled={!loading}
+            loading={loading}
+            variant="primary"
+            size="md"
+            fullWidth={true}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+          />
+        ) : (
+          <CustomButton
+            text={loading ? 'Processing...' : 'Pay Now'}
+            onPressed={handlePayment}
+            enabled={!loading && paymentOrder}
+            loading={loading}
+            variant="primary"
+            size="md"
+            fullWidth={true}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+          />
+        )}
         
         <CustomButton
           text="Cancel"

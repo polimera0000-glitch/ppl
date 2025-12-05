@@ -1,5 +1,5 @@
 // src/controllers/paymentController.js
-const { Payment, Registration, Competition, User } = require('../models');
+const { Payment, Registration, Competition, User, Coupon } = require('../models');
 const paymentService = require('../services/paymentService');
 const logger = require('../utils/logger');
 
@@ -7,7 +7,7 @@ const paymentController = {
   // Create payment order for registration
   createPaymentOrder: async (req, res) => {
     try {
-      const { competitionId, userType, teamSize = 1, teamName } = req.body;
+      const { competitionId, userType, teamSize = 1, teamName, couponCode } = req.body;
       const userId = req.user.id;
 
       // Validate input
@@ -58,15 +58,68 @@ const paymentController = {
       const user = await User.findByPk(userId);
 
       // Calculate amount based on team size and user types
-      let totalAmount = 0;
+      let originalAmount = 0;
       
       if (teamSize > 1) {
         // For teams, calculate based on team size (assuming all same user type for now)
         const pricePerPerson = userType.toLowerCase() === 'undergraduate' ? 999 : 1999;
-        totalAmount = pricePerPerson * teamSize;
+        originalAmount = pricePerPerson * teamSize;
       } else {
         // For individuals
-        totalAmount = userType.toLowerCase() === 'undergraduate' ? 999 : 1999;
+        originalAmount = userType.toLowerCase() === 'undergraduate' ? 999 : 1999;
+      }
+
+      let totalAmount = originalAmount;
+      let discountAmount = 0;
+      let appliedCoupon = null;
+
+      // Apply coupon if provided
+      if (couponCode) {
+        const coupon = await Coupon.findOne({
+          where: { code: couponCode.toUpperCase() }
+        });
+
+        if (!coupon) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid coupon code'
+          });
+        }
+
+        // Validate coupon
+        if (!coupon.is_active) {
+          return res.status(400).json({
+            success: false,
+            message: 'This coupon is no longer active'
+          });
+        }
+
+        const now = new Date();
+        if (coupon.valid_from && new Date(coupon.valid_from) > now) {
+          return res.status(400).json({
+            success: false,
+            message: 'This coupon is not yet valid'
+          });
+        }
+
+        if (coupon.valid_until && new Date(coupon.valid_until) < now) {
+          return res.status(400).json({
+            success: false,
+            message: 'This coupon has expired'
+          });
+        }
+
+        if (coupon.usage_limit && coupon.usage_count >= coupon.usage_limit) {
+          return res.status(400).json({
+            success: false,
+            message: 'This coupon has reached its usage limit'
+          });
+        }
+
+        // Calculate discount
+        discountAmount = (originalAmount * parseFloat(coupon.discount_percentage)) / 100;
+        totalAmount = originalAmount - discountAmount;
+        appliedCoupon = coupon;
       }
 
       // Create payment order
@@ -89,12 +142,20 @@ const paymentController = {
         user_id: userId,
         competition_id: competitionId,
         amount: totalAmount,
+        original_amount: appliedCoupon ? originalAmount : null,
+        discount_amount: appliedCoupon ? discountAmount : 0,
+        coupon_id: appliedCoupon ? appliedCoupon.id : null,
         currency: paymentOrder.currency,
         user_type: userType.toLowerCase(),
         team_size: parseInt(teamSize),
         status: 'pending',
         expires_at: new Date(Date.now() + 30 * 60 * 1000) // 30 minutes expiry
       });
+
+      // Increment coupon usage count if applied
+      if (appliedCoupon) {
+        await appliedCoupon.increment('usage_count');
+      }
 
       logger.info(`Payment order created: ${paymentOrder.orderId} for user ${userId}`);
 
@@ -103,7 +164,10 @@ const paymentController = {
         message: 'Payment order created successfully',
         data: {
           orderId: paymentOrder.orderId,
+          originalAmount: appliedCoupon ? originalAmount : totalAmount,
+          discountAmount: discountAmount,
           amount: totalAmount,
+          couponApplied: appliedCoupon ? appliedCoupon.code : null,
           currency: paymentOrder.currency,
           paymentUrl: paymentOrder.paymentUrl,
           expiresAt: payment.expires_at

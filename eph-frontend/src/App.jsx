@@ -57,6 +57,7 @@ import PaymentCallback from "./pages/PaymentCallback.jsx";
 import ContactPage from "./pages/ContactPage.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
 import EmailVerificationNotice from "./pages/EmailVerificationNotice.jsx";
+import AdminCouponsPage from "./pages/AdminCouponsPage.jsx";
 
 import "./index.css";
 
@@ -239,6 +240,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <RoleListPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/coupons"
+                element={
+                  <ProtectedRoute>
+                    <AdminCouponsPage />
                   </ProtectedRoute>
                 }
               />

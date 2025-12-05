@@ -51,6 +51,22 @@ module.exports = (sequelize) => {
       allowNull: false,
       comment: 'Payment amount in INR'
     },
+    original_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: 'Original amount before discount'
+    },
+    discount_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: 0,
+      comment: 'Discount amount applied from coupon'
+    },
+    coupon_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      comment: 'Applied coupon for this payment'
+    },
     currency: {
       type: DataTypes.STRING(3),
       allowNull: false,

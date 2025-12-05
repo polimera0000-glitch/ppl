@@ -438,6 +438,42 @@ async getCompetitionRegistrationStats(competitionId) {
       method: 'POST'
     });
   }
+
+  // ===== COUPON METHODS =====
+  
+  async validateCoupon(code) {
+    return this.makeRequest(`/coupons/validate/${code}`, {
+      method: 'GET'
+    });
+  }
+
+  async createCoupon(couponData) {
+    return this.makeRequest('/coupons', {
+      method: 'POST',
+      body: couponData
+    });
+  }
+
+  async getAllCoupons(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const url = queryString ? `/coupons?${queryString}` : '/coupons';
+    return this.makeRequest(url, {
+      method: 'GET'
+    });
+  }
+
+  async updateCoupon(id, couponData) {
+    return this.makeRequest(`/coupons/${id}`, {
+      method: 'PUT',
+      body: couponData
+    });
+  }
+
+  async deleteCoupon(id) {
+    return this.makeRequest(`/coupons/${id}`, {
+      method: 'DELETE'
+    });
+  }
 }
 
 export const apiService = new ApiService();

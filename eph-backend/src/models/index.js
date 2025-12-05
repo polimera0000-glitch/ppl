@@ -30,6 +30,7 @@ const ScoreDef = require('./Score');
 const ContactDef = require('./ContactRequest.js');
 const TeamInvitationDef = require('./TeamInvitation.js');
 const PaymentDef = require('./Payment.js');
+const CouponDef = require('./Coupon.js');
 
 // ---- Initialize models (no new Sequelize here) ----
 const User = UserDef(sequelize, DataTypes);
@@ -48,6 +49,7 @@ const JudgingCriteria = JudgingCriteriaDef(sequelize, DataTypes);
 const Score = ScoreDef(sequelize, DataTypes);
 const TeamInvitation = TeamInvitationDef(sequelize, DataTypes);
 const Payment = PaymentDef(sequelize, DataTypes);
+const Coupon = CouponDef(sequelize, DataTypes);
 
 // ---- Associations ----
 
@@ -137,8 +139,14 @@ User.hasMany(TeamInvitation, { foreignKey: 'invitee_id', as: 'receivedInvitation
 // Payment associations
 Payment.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Payment.belongsTo(Competition, { foreignKey: 'competition_id', as: 'competition' });
+Payment.belongsTo(Coupon, { foreignKey: 'coupon_id', as: 'coupon' });
 User.hasMany(Payment, { foreignKey: 'user_id', as: 'payments' });
 Competition.hasMany(Payment, { foreignKey: 'competition_id', as: 'payments' });
+
+// Coupon associations
+Coupon.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
+Coupon.hasMany(Payment, { foreignKey: 'coupon_id', as: 'payments' });
+User.hasMany(Coupon, { foreignKey: 'created_by', as: 'createdCoupons' });
 
 // ---- Export ----
 module.exports = {
@@ -158,4 +166,5 @@ module.exports = {
   EmailVerificationToken,
   TeamInvitation,
   Payment,
+  Coupon,
 };
