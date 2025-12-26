@@ -17,8 +17,13 @@ class StorageService {
       config && config.storage && config.storage.local
         ? config.storage.local
         : {};
-    this.uploadBase =
-      storageLocal.uploadPath || path.join(__dirname, "..", "uploads");
+    
+    // Use persistent storage path in production, local path in development
+    const defaultUploadPath = process.env.NODE_ENV === 'production' 
+      ? '/app/persistent-storage/uploads'  // Production persistent storage
+      : path.join(__dirname, "..", "uploads"); // Development local storage
+      
+    this.uploadBase = storageLocal.uploadPath || process.env.UPLOAD_PATH || defaultUploadPath;
     this.maxFileSize =
       typeof storageLocal.maxFileSize === "number"
         ? storageLocal.maxFileSize

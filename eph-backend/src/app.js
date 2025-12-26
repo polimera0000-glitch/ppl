@@ -165,10 +165,14 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static file serving
+// Static file serving - use persistent storage in production
+const uploadsPath = process.env.NODE_ENV === 'production' 
+  ? '/app/persistent-storage/uploads'
+  : path.join(__dirname, 'uploads');
+
 app.use(
   '/uploads',
-  express.static(path.join(__dirname, 'uploads'), {
+  express.static(uploadsPath, {
     maxAge: '1d',
     etag: true,
   })
@@ -183,6 +187,36 @@ app.get('/health', (req, res) => {
     version: config.server.apiVersion,
     uptime: process.uptime(),
   });
+});
+
+// Storage status endpoint (for monitoring)
+app.get('/storage-status', async (req, res) => {
+  try {
+    const StorageMonitor = require('./utils/storageMonitor');
+    const monitor = new StorageMonitor(
+      process.env.NODE_ENV === 'production' 
+        ? '/app/persistent-storage/uploads'
+        : path.join(__dirname, 'uploads')
+    );
+    
+    const [storageInfo, videoCount] = await Promise.all([
+      monitor.checkStorageUsage(),
+      monitor.getVideoCount()
+    ]);
+
+    res.json({
+      success: true,
+      storage: storageInfo,
+      videoCount,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get storage status',
+      error: error.message
+    });
+  }
 });
 
 // API routes
